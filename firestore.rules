@@ -155,10 +155,11 @@ service cloud.firestore {
              // (yani bu string) ile taşıdığından, `name`'in ID'den sapabilmesi
              // tam da bu fazın kapattığı "hayalet departman" sınıfını UI
              // tarafında geri açardı (listede bir ad, kayıtlarda başka bir
-             // değer). Aynı kısıt, yeniden adlandırmayı da fiilen yasaklar —
-             // bir departmanı yeniden adlandırmak ona referans veren TÜM
-             // tasks/users dokümanlarının yeniden yazılmasını gerektirir ve bu
-             // fazın kapsamı dışındadır (YAGNI).
+             // değer). Aynı kısıt, dokümanı YERİNDE yeniden adlandırmayı da
+             // yasaklar: `name`'i değiştirmek eşitliği bozar. Bu yüzden
+             // departmentService.renameDepartment yerinde güncelleme değil, bir
+             // TAŞIMA yapar — yeni ID ile yeni doküman, tüm tasks/users
+             // referanslarının güncellenmesi, eski dokümanın silinmesi.
              data.name == departmentId &&
              data.createdAt is number && data.createdAt > 0 &&
              data.createdBy is string && data.createdBy.size() <= 128;
@@ -738,12 +739,24 @@ service cloud.firestore {
       allow update: if isAdmin() && isValidDepartment(incoming(), departmentId) &&
                        incoming().createdAt == existing().createdAt &&
                        incoming().createdBy == existing().createdBy;
-      // Silme KAPALI: bir departman silinirse ona referans veren tasks/users
-      // dokümanları yetim kalır ve o görevler (departman eşleşmesi artık
-      // sağlanamayacağından) sorumlusu dışında herkes için görünmez olur.
-      // Güvenli silme, referansların önce taşınmasını gerektirir — bu fazın
-      // kapsamı dışında (YAGNI).
-      allow delete: if false;
+      // Silme yalnızca Admin'e açıktır. DİKKAT — buradaki izin, silmenin
+      // GÜVENLİ olduğunu DOĞRULAMAZ: bir departman silindiğinde ona referans
+      // veren tasks/users dokümanları yetim kalır ve o görevler (departman
+      // eşleşmesi artık sağlanamayacağından) sorumlusu dışında herkes için
+      // görünmez olur. "Bu değere referans veren doküman var mı" kontrolü
+      // kurallarda YAPILAMAZ: kural dilinde koleksiyon geneli sorgu/agregasyon
+      // yoktur, `exists()` yalnızca BİLİNEN bir doküman yolunu sınar. Sunucu
+      // tarafındaki tek alternatif bir Cloud Function tetikleyicisiydi; proje
+      // Spark planda olduğundan (bkz. functions/CLAUDE.md — deploy Blaze
+      // gerektirir) o da devrede değil.
+      //
+      // Bu yüzden referans bütünlüğü TAMAMEN istemci tarafı ön-kontrole
+      // dayanır: departmentService.deleteDepartment, silmeden hemen önce
+      // tasks/users üzerinde count() agregasyonuyla referans arar ve varsa
+      // silmeyi reddeder. Aradaki yarış koşulu (ön-kontrol ile silme arasında
+      // yeni bir referans yazılması) bilinçli olarak kabul edilmiştir — gerekçe
+      // ve Blaze'e geçişte atomikleştirme notu o fonksiyonun yorumundadır.
+      allow delete: if isAdmin();
     }
 
     match /tasks/{taskId} {

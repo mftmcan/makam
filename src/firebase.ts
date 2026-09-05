@@ -1,6 +1,6 @@
 import { initializeApp, FirebaseError } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCustomToken, signOut, onAuthStateChanged, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where, or, orderBy, limit, startAfter, addDoc, getDocFromServer, runTransaction, writeBatch, increment, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, getCountFromServer, updateDoc, deleteDoc, onSnapshot, query, where, or, orderBy, limit, startAfter, documentId, addDoc, getDocFromServer, runTransaction, writeBatch, increment, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getMessaging, isSupported, type Messaging } from 'firebase/messaging';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
@@ -114,4 +114,4 @@ async function testConnection() {
 const CONNECTION_TEST_INITIAL_DELAY_MS = 2000;
 setTimeout(testConnection, CONNECTION_TEST_INITIAL_DELAY_MS);
 
-export { signInWithPopup, signInWithCustomToken, signOut, onAuthStateChanged, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where, or, orderBy, limit, startAfter, addDoc, ref, uploadBytes, getDownloadURL, runTransaction, writeBatch, increment, FirebaseError };
+export { signInWithPopup, signInWithCustomToken, signOut, onAuthStateChanged, collection, doc, setDoc, getDoc, getDocs, getCountFromServer, updateDoc, deleteDoc, onSnapshot, query, where, or, orderBy, limit, startAfter, documentId, addDoc, ref, uploadBytes, getDownloadURL, runTransaction, writeBatch, increment, FirebaseError };

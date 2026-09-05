@@ -13,6 +13,7 @@ vi.mock('../firebase', () => ({
   setDoc: vi.fn(),
   getDoc: vi.fn(),
   getDocs: vi.fn(),
+  getCountFromServer: vi.fn(),
   onSnapshot: vi.fn(),
   query: vi.fn(),
   where: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock('../firebase', () => ({
   or: vi.fn(),
   limit: vi.fn(),
   startAfter: vi.fn(),
+  documentId: vi.fn(),
   writeBatch: vi.fn(() => ({
     update: vi.fn(),
     delete: vi.fn(),

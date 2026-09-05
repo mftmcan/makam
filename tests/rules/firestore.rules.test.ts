@@ -21,7 +21,7 @@ import {
   assertFails,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, deleteField } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, deleteField, writeBatch } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 // ── Emulator koruması ────────────────────────────────────────────────────────
@@ -683,8 +683,29 @@ describe('departments koleksiyonu (P0-2 referans varlığı)', () => {
     await assertFails(setDoc(doc(admin(), 'departments', 'Operasyon'), { name: 'Operasyon' }));
   });
 
-  it('Admin bile departman SİLEMEZ (referans veren tasks/users yetim kalır)', async () => {
-    await assertFails(deleteDoc(doc(admin(), 'departments', 'dept-a')));
+  it('Admin departman silebilir', async () => {
+    // dept-z hiçbir kullanıcıya/göreve atanmamıştır (bkz. seed yorumu).
+    await assertSucceeds(deleteDoc(doc(admin(), 'departments', 'dept-z')));
+  });
+
+  it('Müdür departman silemez', async () => {
+    await assertFails(deleteDoc(doc(managerA(), 'departments', 'dept-z')));
+  });
+
+  it('Memur departman silemez', async () => {
+    await assertFails(deleteDoc(doc(staffA(), 'departments', 'dept-z')));
+  });
+
+  it('kurallar HÂLÂ kullanımdaki bir departmanın silinmesini engelleyemez (referans kontrolü istemcidedir)', async () => {
+    // Bu test bir GÜVENLİK GARANTİSİ DEĞİL, bilinçli bir tasarım sınırının
+    // kaydıdır: kural dilinde koleksiyon geneli sorgu/agregasyon yoktur, bu
+    // yüzden "bu departmana referans veren görev var mı" sorusu burada
+    // sorulamaz. dept-a'ya task-a ve üç kullanıcı referans verdiği hâlde silme
+    // BAŞARILI olur — yetim referansları önleyen tek katman
+    // departmentService.deleteDepartment'ın count() ön-kontrolüdür (Spark
+    // planda Cloud Function tetikleyicisi kullanılamıyor; bkz. firestore.rules
+    // departments bloğu ve o fonksiyonun yarış koşulu notu).
+    await assertSucceeds(deleteDoc(doc(admin(), 'departments', 'dept-a')));
   });
 
   it('createdAt/createdBy güncellemeyle değiştirilemez', async () => {
@@ -722,6 +743,61 @@ describe('departments koleksiyonu (P0-2 referans varlığı)', () => {
     await assertSucceeds(setDoc(doc(admin(), 'users', 'yeni-admin'), {
       uid: 'yeni-admin', fullName: 'Yeni Yönetici', email: 'yeni-admin@makam.test', role: 'Admin',
     }));
+  });
+});
+
+// =============================================================================
+// 5c. Departman yeniden adlandırma = referans TAŞIMASI
+// =============================================================================
+/**
+ * `name == doküman ID` invaryantı yüzünden bir departman YERİNDE yeniden
+ * adlandırılamaz; departmentService.renameDepartment bunun yerine üç adımlı bir
+ * taşıma yapar. Bu blok, o adımların kurallar tarafından GERÇEKTEN kabul
+ * edildiğini ve sıranın neden zorunlu olduğunu emulator'a karşı kanıtlar.
+ */
+describe('departman yeniden adlandırma (referans taşıması)', () => {
+  const validDept = (id: string) => ({ name: id, createdAt: NOW, createdBy: 'admin-uid' });
+
+  it('taşıma yazımı yalnızca departmentId içerir — updatedAt/lockVersion olmadan da kabul edilir', async () => {
+    // renameDepartment tam olarak bunu yazar: updatedAt/lockVersion'a bilinçli
+    // olarak DOKUNULMAZ (yönetim taşıması, kullanıcı eylemi değil — bkz.
+    // functions/src/departmentBackfillCore.ts'teki aynı gerekçe). Diğer
+    // departman testleri updatedAt'i de gönderdiğinden bu yol ayrıca
+    // doğrulanmalı: `isValidTaskUpdate`/`isValidTaskBusinessRules` bu minimal
+    // yazımı da geçirmek zorunda.
+    await assertSucceeds(updateDoc(doc(admin(), 'tasks', 'task-a'), { departmentId: 'dept-z' }));
+    await assertSucceeds(updateDoc(doc(admin(), 'users', 'staff-a'), { departmentId: 'dept-z' }));
+  });
+
+  it('yeni departman AYNI batch içinde oluşturulursa referans güncellemesi REDDEDİLİR', async () => {
+    // Kuralların `exists()` çağrıları batch ÖNCESİ durumu okur — aynı batch'te
+    // yazılan departman dokümanı görünmez. renameDepartment'ın yeni dokümanı
+    // referans batch'lerinden ÖNCE ayrı bir yazımla commit etmesinin nedeni
+    // budur; bu test o gerekçenin hâlâ geçerli olduğunu kanıtlar.
+    const db = admin();
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'departments', 'Taşınan Birim'), validDept('Taşınan Birim'));
+    batch.update(doc(db, 'tasks', 'task-a'), { departmentId: 'Taşınan Birim' });
+    await assertFails(batch.commit());
+  });
+
+  it('doğru sırada (önce yeni doküman, sonra referanslar, en son silme) taşıma tamamlanır', async () => {
+    // (1) yeni doküman — ayrı commit
+    await assertSucceeds(setDoc(doc(admin(), 'departments', 'Taşınan Birim'), validDept('Taşınan Birim')));
+
+    // (2) referanslar — tek batch (gerçek akışta 450'lik parçalar)
+    const db = admin();
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'tasks', 'task-a'), { departmentId: 'Taşınan Birim' });
+    batch.update(doc(db, 'users', 'staff-a'), { departmentId: 'Taşınan Birim' });
+    // (3) eski dokümanın silinmesi AYNI batch'in sonunda
+    batch.delete(doc(db, 'departments', 'dept-a'));
+    await assertSucceeds(batch.commit());
+  });
+
+  it('Müdür bu taşımayı yapamaz (yeni birim oluşturamaz, eskisini silemez)', async () => {
+    await assertFails(setDoc(doc(managerA(), 'departments', 'Taşınan Birim'), validDept('Taşınan Birim')));
+    await assertFails(deleteDoc(doc(managerA(), 'departments', 'dept-a')));
   });
 });
 
