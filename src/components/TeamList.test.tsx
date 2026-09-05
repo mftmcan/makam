@@ -25,6 +25,8 @@ const renderList = (overrides: Partial<React.ComponentProps<typeof TeamList>> = 
   const onAddUser = vi.fn();
   const onUpdateUser = vi.fn();
   const onCreateDepartment = vi.fn().mockResolvedValue('Zabıta');
+  const onRenameDepartment = vi.fn().mockResolvedValue({ tasksUpdated: 0, usersUpdated: 0 });
+  const onDeleteDepartment = vi.fn().mockResolvedValue(undefined);
   render(
     <TeamList
       users={[admin, staff]}
@@ -35,10 +37,12 @@ const renderList = (overrides: Partial<React.ComponentProps<typeof TeamList>> = 
       onDeleteUser={vi.fn()}
       onAddUser={onAddUser}
       onCreateDepartment={onCreateDepartment}
+      onRenameDepartment={onRenameDepartment}
+      onDeleteDepartment={onDeleteDepartment}
       {...overrides}
     />
   );
-  return { onAddUser, onUpdateUser, onCreateDepartment };
+  return { onAddUser, onUpdateUser, onCreateDepartment, onRenameDepartment, onDeleteDepartment };
 };
 
 /**
@@ -148,6 +152,110 @@ describe('TeamList — departman atama (P0-2)', () => {
     expect(select).toHaveValue('Kapatılmış Birim');
     expect(within(select).getByRole('option', { name: /kayıtlı birim değil/ })).toBeInTheDocument();
     expect(screen.getByText(/departman kayıtlarında yok/i)).toBeInTheDocument();
+  });
+});
+
+/**
+ * TeamList — Birim Yönetimi paneli (departman yeniden adlandırma/silme).
+ *
+ * Panel bilinçli olarak AYRI bir sayfa/route değil, Kadro ekranına gömülü ve
+ * yalnızca Admin'e görünen kapalı bir bölümdür. Buradaki testlerin odağı UI
+ * sözleşmesidir: yıkıcı aksiyonun yazarak-doğrulama kapısı (Settings.tsx'teki
+ * "GERİ YÜKLE" deseniyle aynı) ve servis reddinin kullanıcıya görünür olması.
+ */
+describe('TeamList — Birim Yönetimi paneli', () => {
+  const openPanel = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole('button', { name: /Birim Yönetimi/ }));
+  };
+
+  const openPanelModal = async (
+    user: ReturnType<typeof userEvent.setup>,
+    triggerName: RegExp | string,
+    modalTitle: string
+  ) => {
+    await user.click(screen.getByRole('button', { name: triggerName }));
+    const closeButton = await screen.findByRole('button', { name: `${modalTitle} penceresini kapat` });
+    await waitFor(() => expect(closeButton).toHaveFocus());
+  };
+
+  it('yalnızca Admin\'e gösterilir', () => {
+    renderList({ currentUser: staff });
+    expect(screen.queryByRole('button', { name: /Birim Yönetimi/ })).not.toBeInTheDocument();
+  });
+
+  it('açıldığında kayıtlı birimleri aksiyonlarıyla listeler', async () => {
+    const user = userEvent.setup();
+    renderList();
+
+    await openPanel(user);
+
+    expect(screen.getByRole('button', { name: 'Basın birimini yeniden adlandır' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Operasyon birimini sil' })).toBeInTheDocument();
+  });
+
+  it('yeniden adlandırma, eski ve yeni adı servise geçirir', async () => {
+    const user = userEvent.setup();
+    const { onRenameDepartment } = renderList();
+
+    await openPanel(user);
+    await openPanelModal(user, 'Operasyon birimini yeniden adlandır', 'Birimi Yeniden Adlandır');
+
+    const input = screen.getByLabelText('Yeni Birim Adı');
+    await user.clear(input);
+    await user.type(input, 'Zabıta');
+    await user.click(screen.getByRole('button', { name: 'Taşımayı Onayla' }));
+
+    await waitFor(() => expect(onRenameDepartment).toHaveBeenCalledWith('Operasyon', 'Zabıta'));
+  });
+
+  it('yeniden adlandırma onayı, ad değişmediği sürece kapalıdır', async () => {
+    const user = userEvent.setup();
+    renderList();
+
+    await openPanel(user);
+    await openPanelModal(user, 'Operasyon birimini yeniden adlandır', 'Birimi Yeniden Adlandır');
+
+    // Kutu mevcut adla ön-doldurulur; aynı adla "taşıma" anlamsızdır.
+    expect(screen.getByLabelText('Yeni Birim Adı')).toHaveValue('Operasyon');
+    expect(screen.getByRole('button', { name: 'Taşımayı Onayla' })).toBeDisabled();
+  });
+
+  it('silme, doğrulama metni birebir yazılmadan başlatılamaz', async () => {
+    const user = userEvent.setup();
+    const { onDeleteDepartment } = renderList();
+
+    await openPanel(user);
+    await openPanelModal(user, 'Operasyon birimini sil', 'Birimi Sil');
+
+    const confirmButton = screen.getByRole('button', { name: 'Birimi Sil' });
+    expect(confirmButton).toBeDisabled();
+
+    await user.type(screen.getByLabelText(/Onaylamak için/i), 'birimi sil');
+    expect(confirmButton).toBeDisabled();
+    expect(onDeleteDepartment).not.toHaveBeenCalled();
+
+    await user.clear(screen.getByLabelText(/Onaylamak için/i));
+    await user.type(screen.getByLabelText(/Onaylamak için/i), 'BİRİMİ SİL');
+    await user.click(confirmButton);
+
+    await waitFor(() => expect(onDeleteDepartment).toHaveBeenCalledWith('Operasyon'));
+  });
+
+  it('silme reddedilirse (birim hâlâ kullanılıyorsa) hata gösterilir ve modal açık kalır', async () => {
+    const user = userEvent.setup();
+    const onDeleteDepartment = vi.fn().mockRejectedValue(
+      new Error('Bu birim hâlâ 3 görev ve 1 kullanıcı tarafından kullanılıyor — önce onları başka bir birime taşıyın.')
+    );
+    renderList({ onDeleteDepartment });
+
+    await openPanel(user);
+    await openPanelModal(user, 'Operasyon birimini sil', 'Birimi Sil');
+    await user.type(screen.getByLabelText(/Onaylamak için/i), 'BİRİMİ SİL');
+    await user.click(screen.getByRole('button', { name: 'Birimi Sil' }));
+
+    expect(await screen.findByText(/3 görev ve 1 kullanıcı/)).toBeInTheDocument();
+    // Modal kapanmaz: Admin sayıyı görüp önce taşımayı yapabilmeli.
+    expect(screen.getByLabelText(/Onaylamak için/i)).toBeInTheDocument();
   });
 });
 

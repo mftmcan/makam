@@ -16,6 +16,7 @@ import { auditLogService } from '../services/auditLogService';
 import { useUIStore } from '../store/uiStore';
 import { AUDIT_FIELD_LABELS, formatAuditValue } from '../lib/auditLabels';
 import { roleConfig, OrgNodeCard, DepartmentPicker } from './teamList/subcomponents';
+import { DepartmentManager } from './teamList/DepartmentManager';
 import { Skeleton } from './ui/Skeleton';
 import { useIsAdmin } from '../hooks/useIsAdmin';
 import { logger } from '../lib/logger';
@@ -154,6 +155,10 @@ interface TeamListProps {
   onDeleteUser: (userId: string) => void;
   onAddUser: (data: { email: string; fullName: string; role: UserRole; departmentId?: string }) => void;
   onCreateDepartment: (name: string) => Promise<string>;
+  /** Yeniden adlandırma gerçek bir "rename" değil bir TAŞIMAdır (name ==
+   *  doküman ID invaryantı) — bkz. departmentService.renameDepartment. */
+  onRenameDepartment: (oldId: string, newId: string) => Promise<{ tasksUpdated: number; usersUpdated: number }>;
+  onDeleteDepartment: (id: string) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -181,7 +186,7 @@ const TeamListSkeleton = () => (
   </div>
 );
 
-export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser, onDeleteUser, onAddUser, onCreateDepartment, isLoading = false }: TeamListProps) => {
+export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser, onDeleteUser, onAddUser, onCreateDepartment, onRenameDepartment, onDeleteDepartment, isLoading = false }: TeamListProps) => {
   const addToast = useUIStore(state => state.addToast);
   const isAdmin = useIsAdmin(currentUser);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -529,6 +534,19 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
           </div>
         )}
       </div>
+
+      {/* ── Birim Yönetimi (yalnızca Admin) ─────────────────────── */}
+      {/* Yalnızca UI nezaketi: firestore.rules departman create/update/delete'i
+          zaten isAdmin() ile kapatır (bkz. departments match bloğu). */}
+      {isAdmin && (
+        <DepartmentManager
+          departments={departments}
+          users={users}
+          tasks={tasks}
+          onRename={onRenameDepartment}
+          onDelete={onDeleteDepartment}
+        />
+      )}
 
       {/* ── Personnel Cards Grid / Org Tree ─────────────────────── */}
       {viewMode === 'grid' ? (

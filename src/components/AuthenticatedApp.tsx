@@ -177,6 +177,21 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
     [user.uid, registeredDepartments]
   );
 
+  // Yeniden adlandırma/silme yalnızca Admin'e açıktır (firestore.rules); burada
+  // ek bir rol kapısı YOKTUR çünkü paneli render eden TeamList zaten isAdmin
+  // ile koruyor ve gerçek sınır kurallardadır. Handler'lar servisin ham
+  // hatalarını YUTMAZ — panel, "hâlâ kullanılıyor" gibi reddi kullanıcıya
+  // olduğu gibi gösterebilmek için Promise'in reject'ine ihtiyaç duyar.
+  const handleRenameDepartment = useCallback(
+    (oldId: string, newId: string) => departmentService.renameDepartment(oldId, newId, user.uid),
+    [user.uid]
+  );
+
+  const handleDeleteDepartment = useCallback(
+    (id: string) => departmentService.deleteDepartment(id),
+    []
+  );
+
   const departments = useMemo(() => {
     const depts = new Set<string>();
     users.forEach(u => {
@@ -308,6 +323,8 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
         onDeleteUser={deleteUser}
         onAddUser={addUser}
         onCreateDepartment={handleCreateDepartment}
+        onRenameDepartment={handleRenameDepartment}
+        onDeleteDepartment={handleDeleteDepartment}
         isLoading={isDataLoading}
       />
     ),
