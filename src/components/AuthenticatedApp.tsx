@@ -29,6 +29,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { AppRoutes } from './AppRoutes';
 import { useActiveTab } from '../hooks/useActiveTab';
 import { useSelectedTaskId, useTaskNavigation } from '../hooks/useTaskRoute';
+import { useTaskBoardFilters } from '../hooks/useTaskBoardFilters';
+import { useTabSearchParam } from '../hooks/useTabSearchParam';
 
 import { Sidebar } from './Sidebar';
 import { AppHeader } from './AppHeader';
@@ -37,6 +39,7 @@ import { NotificationPrompt } from './NotificationPrompt';
 import { WelcomeModal } from './WelcomeModal';
 import { MobileDock } from './MobileDock';
 import { Modal } from './ui/Modal';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 import { Button } from './ui/Button';
 import { TaskFormModal } from './TaskFormModal';
 import { CertificateModal } from './CertificateModal';
@@ -68,7 +71,7 @@ import { useIdleTimer } from '../hooks/useIdleTimer';
 import { useSessionTimeout } from '../hooks/useSessionTimeout';
 import { useSelfHealing } from '../hooks/useSelfHealing';
 import { useIsAdmin } from '../hooks/useIsAdmin';
-import { type AppTabId } from '../constants';
+import { type AppTabId, TAB_TITLES } from '../constants';
 
 interface AuthenticatedAppProps {
   user: User;
@@ -104,6 +107,25 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
     isNotificationsOpen: s.isNotificationsOpen, setIsNotificationsOpen: s.setIsNotificationsOpen,
   })));
 
+  // Görev formu kirliyken Escape/backdrop ile sessizce kapanmasın diye
+  // (bkz. tasarım denetimi F31) — form kendi isDirty'sini onDirtyChange ile
+  // buraya bildirir, gerçek kapanış isteği önce buradan geçer.
+  const [isTaskFormDirty, setIsTaskFormDirty] = useState(false);
+  const [isTaskFormCloseConfirmOpen, setIsTaskFormCloseConfirmOpen] = useState(false);
+  const closeTaskForm = useCallback(() => {
+    setIsCreateModalOpen(false);
+    setIsEditModalOpen(false);
+    setParentTaskId(undefined);
+    setIsTaskFormDirty(false);
+  }, [setIsCreateModalOpen, setIsEditModalOpen, setParentTaskId]);
+  const requestCloseTaskForm = useCallback(() => {
+    if (isTaskFormDirty) {
+      setIsTaskFormCloseConfirmOpen(true);
+      return;
+    }
+    closeTaskForm();
+  }, [isTaskFormDirty, closeTaskForm]);
+
   // ─── Navigasyon: URL tek doğruluk kaynağı ─────────────────────────────────
   // `activeTab` ve `selectedTaskId` eskiden yukarıdaki uiStore seçiminin
   // parçasıydı (bkz. kod denetimi P1-6). Artık ikisi de route'tan türetilir;
@@ -112,17 +134,29 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
   const activeTab = useActiveTab();
   const selectedTaskId = useSelectedTaskId();
   const { openTask, closeTask, goToTab } = useTaskNavigation();
+  const [taskBoardFilters, setTaskBoardFilters] = useTaskBoardFilters();
+  const [settingsTab, setSettingsTab] = useTabSearchParam<'general' | 'sla' | 'security' | 'data'>('tab', 'general');
 
-  // Close notification panel when clicking outside
+  // Sekme değişiminde odak + duyuru — eskiden AnimatePresence içeriği
+  // görsel olarak değişiyordu ama ekran okuyucu kullanıcısına hiçbir şey
+  // bildirilmiyor, odak da eski konumunda (ör. Sidebar'daki tıklanan link)
+  // kalıyordu (bkz. tasarım denetimi F28). İlk mount'ta ATLANIR — sayfa ilk
+  // açıldığında odağı zorla taşımak gerekmez.
+  const mainRef = useRef<HTMLElement>(null);
+  const [routeAnnouncement, setRouteAnnouncement] = useState('');
+  const isFirstTabRenderRef = useRef(true);
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setIsNotificationsOpen(false);
-      }
-    };
-    if (isNotificationsOpen) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [isNotificationsOpen, setIsNotificationsOpen]);
+    if (isFirstTabRenderRef.current) {
+      isFirstTabRenderRef.current = false;
+      return;
+    }
+    mainRef.current?.focus();
+    setRouteAnnouncement(TAB_TITLES[activeTab]);
+  }, [activeTab]);
+
+  // Dışa tıklayınca kapatma + Escape/focus-trap artık NotificationPanel'in
+  // kendi useModalBehavior çağrısında (bkz. tasarım denetimi F13) — burada
+  // ayrı bir kopyası tutulmuyor.
 
   // Tab yetki kontrolü (Güvenlik Duvarı) artık burada bir useEffect değil,
   // her route element'ini saran <RequireTabAccess> guard'ıdır (bkz. o dosya).
@@ -147,6 +181,19 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
     () => applyOfflineMutations(firestoreBlockers, offlineMutations, 'blockers').filter(b => !b.isResolved),
     [firestoreBlockers, offlineMutations]
   );
+
+  // TaskBoard'daki "Senkron Bekliyor" satır rozeti için (bkz. tasarım
+  // denetimi F8) — 'create' mutasyonları geçici id'yi (data.id) hedefler,
+  // 'update'/'set'/'delete' ise gerçek docId'yi.
+  const pendingTaskIds = useMemo(() => {
+    const ids = new Set<string>();
+    offlineMutations.forEach(m => {
+      if (m.collectionName !== 'tasks') return;
+      const id = m.docId ?? (m.data?.id as string | undefined);
+      if (id) ids.add(id);
+    });
+    return ids;
+  }, [offlineMutations]);
 
   // ─── Global Focus Filter (Birim Odak Filtresi) ───────────────────────────
   const [globalFocusDept, setGlobalFocusDept] = useState<string>('ALL');
@@ -301,6 +348,9 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
         isLoading={isDataLoading}
         updateTaskStatus={updateTaskStatus}
         updateTask={updateTask}
+        filters={taskBoardFilters}
+        onFiltersChange={setTaskBoardFilters}
+        pendingTaskIds={pendingTaskIds}
       />
     ),
     blockers: (
@@ -347,7 +397,11 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
       />
     ),
     settings: (
-      <Settings tasks={tasks} users={users} blockers={blockers} triggerToast={triggerToast} currentUser={user} isLoading={isDataLoading} sessionTimeoutMs={sessionTimeoutMs} />
+      <Settings
+        tasks={tasks} users={users} blockers={blockers} triggerToast={triggerToast} currentUser={user}
+        isLoading={isDataLoading} sessionTimeoutMs={sessionTimeoutMs}
+        activeSubTab={settingsTab} onActiveSubTabChange={setSettingsTab}
+      />
     ),
   };
 
@@ -370,7 +424,16 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
       />
       <NotificationPanel isNotificationsOpen={isNotificationsOpen} setIsNotificationsOpen={setIsNotificationsOpen} notifRef={notifRef} notifications={notifications} markNotificationRead={markNotificationRead} markAllNotificationsRead={markAllNotificationsRead} />
 
-      <main id="main-content" className="lg:ml-64 min-h-screen relative z-10 scroll-smooth pb-24 lg:pb-0">
+      {/* Rota değişimi duyurusu — main'e odaklanmak SR kullanıcısına yalnızca
+          "bölge" değiştiğini söyler, hangi modüle geçildiğini söylemez. */}
+      <div aria-live="polite" role="status" className="sr-only">{routeAnnouncement}</div>
+
+      <main
+        id="main-content"
+        ref={mainRef}
+        tabIndex={-1}
+        className="lg:ml-64 min-h-screen relative z-10 scroll-smooth pb-24 lg:pb-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-executive-blue/30"
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -385,7 +448,7 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
               <div className="flex items-center justify-center p-20 min-h-[400px]">
                 <div className="flex flex-col items-center gap-4">
                   <div className="w-8 h-8 border-2 border-executive-gold/20 border-t-executive-gold rounded-full animate-spin" />
-                  <span className="text-[10px] text-text-muted font-medium uppercase tracking-[0.3em] opacity-50">MODÜL YÜKLENİYOR...</span>
+                  <span className="text-micro text-text-muted font-medium uppercase tracking-[0.3em] opacity-50">MODÜL YÜKLENİYOR...</span>
                 </div>
               </div>
             }>
@@ -408,7 +471,7 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
         size="sm"
       >
         <div className="flex flex-col gap-4">
-          <p className="text-[13px] text-text-muted font-light leading-relaxed">
+          <p className="text-body text-text-muted font-light leading-relaxed">
             Uzun süredir işlem yapılmadığı için oturumunuz{' '}
             <strong className="text-status-danger font-medium" aria-live="polite">
               {Math.ceil(sessionRemainingMs / 1000)} saniye
@@ -426,7 +489,7 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
       {/* Görev Form Modalı (Yeni / Düzenle) */}
       <Modal
         isOpen={isCreateModalOpen || isEditModalOpen}
-        onClose={() => { setIsCreateModalOpen(false); setIsEditModalOpen(false); }}
+        onClose={requestCloseTaskForm}
         title={isEditModalOpen ? "Talimat Güncellemesi" : "Yeni Talimat Tanımla"}
         size="lg"
       >
@@ -445,9 +508,20 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
             if (isEditModalOpen && selectedTask) return updateTask(selectedTask.id, data);
             return createTask(data);
           }}
-          onClose={() => { setIsCreateModalOpen(false); setIsEditModalOpen(false); setParentTaskId(undefined); }}
+          onClose={requestCloseTaskForm}
+          onDirtyChange={setIsTaskFormDirty}
         />
       </Modal>
+
+      {/* Kirli formda çıkış onayı (F31) */}
+      <ConfirmDialog
+        isOpen={isTaskFormCloseConfirmOpen}
+        onClose={() => setIsTaskFormCloseConfirmOpen(false)}
+        onConfirm={() => { setIsTaskFormCloseConfirmOpen(false); closeTaskForm(); }}
+        title="Kaydedilmemiş Değişiklikler"
+        message="Bu formda kaydedilmemiş değişiklikleriniz var. Şimdi çıkarsanız bu değişiklikler kaybolacak."
+        confirmLabel="Değişiklikleri Kaybet ve Çık"
+      />
 
       {/* Görev Detay Modalı — TaskDetails/TaskDetailsFooter lazy() olduğundan
           bu Suspense sınırı, footer prop'u dahil ikisini de kapsar (Suspense

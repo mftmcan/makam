@@ -73,7 +73,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
             aria-hidden
           />
           <span className={cn(
-            'font-normal text-[13px] tracking-wide transition-colors duration-300',
+            'font-normal text-body tracking-wide transition-colors duration-300',
             // text-executive-gold (#C5A059) düz metin olarak açık zeminlerde
             // ~2.2:1 kontrast veriyor (axe-core authenticated e2e testi bulgusu)
             // — tema-duyarlı --gold-text token'ı kullanılıyor (bkz. index.css).
@@ -95,7 +95,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
   );
 
   const SidebarContent = (
-    <div className="w-64 h-full bg-makam-glass backdrop-blur-[35px] flex flex-col p-6 gap-8 relative overflow-y-auto no-scrollbar border-r border-surface-border shadow-2xl">
+    <div className="w-64 h-full bg-makam-glass backdrop-blur-[35px] flex flex-col p-6 gap-8 relative overflow-y-auto custom-scrollbar border-r border-surface-border shadow-2xl">
       <div className="relative w-full py-4 px-3 flex justify-center items-center rounded-2xl bg-surface-glass border border-surface-border shadow-[0_8px_32px_rgba(0,0,0,0.15)] overflow-hidden group">
         <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-executive-gold/30 to-transparent opacity-70 pointer-events-none" />
 
@@ -112,13 +112,13 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
               (~1.14:1 kontrast, axe-core authenticated e2e testi bulgusu).
               Login/AboutModal/App.tsx'teki gibi çözümlenmiş temayı izliyor. */}
           <Logo variant={resolvedTheme} size="md" className="drop-shadow-[0_4px_12px_rgba(197,160,89,0.12)]" />
-          <div className="absolute -right-2 -top-2 bg-executive-gold text-brand-obsidian text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">v2.3.0</div>
+          <div className="absolute -right-2 -top-2 bg-executive-gold text-brand-obsidian text-micro font-bold px-1.5 py-0.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">v2.3.0</div>
         </button>
       </div>
 
       <nav className="flex flex-col gap-7 flex-1" aria-label="Ana menü">
         <div className="flex flex-col gap-1.5">
-          <div className="text-[9px] text-text-muted font-medium uppercase tracking-[0.22em] mb-2 px-2" aria-hidden="true">
+          <div className="text-micro text-text-muted font-medium uppercase tracking-[0.22em] mb-2 px-2" aria-hidden="true">
             OPERASYON
           </div>
           {filteredPrimaryItems.map(renderMenuItem)}
@@ -126,7 +126,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
 
         {filteredSystemItems.length > 0 && (
           <div className="flex flex-col gap-1.5 pt-2 border-t border-surface-border">
-            <div className="text-[9px] text-text-muted font-medium uppercase tracking-[0.22em] mb-2 px-2" aria-hidden="true">
+            <div className="text-micro text-text-muted font-medium uppercase tracking-[0.22em] mb-2 px-2" aria-hidden="true">
               DİZGE
             </div>
             {filteredSystemItems.map(renderMenuItem)}
@@ -148,7 +148,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
             <span className="text-[14px] font-normal text-text-heading truncate tracking-tight leading-none font-display">{user?.fullName}</span>
             <div className="flex items-center gap-1.5 mt-1">
               <span className="w-1 h-1 rounded-full bg-status-success" />
-              <span className="text-[8px] text-[color:var(--gold-text)] font-medium uppercase tracking-[0.22em]">{user ? ROLE_LABELS[user.role] : ''}</span>
+              <span className="text-micro text-[color:var(--gold-text)] font-medium uppercase tracking-[0.22em]">{user ? ROLE_LABELS[user.role] : ''}</span>
             </div>
           </div>
         </div>
@@ -159,7 +159,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
             onLogout();
           }}
           aria-label="Oturumu kapat"
-          className="flex items-center justify-center gap-2 px-5 py-3 text-text-tertiary hover:text-status-danger hover:bg-status-danger/10 rounded-full transition-all group font-medium text-[11px] uppercase tracking-[0.16em] border border-surface-border hover:border-status-danger/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
+          className="flex items-center justify-center gap-2 px-5 py-3 text-text-tertiary hover:text-status-danger hover:bg-status-danger/10 rounded-full transition-all group font-medium text-caption uppercase tracking-[0.16em] border border-surface-border hover:border-status-danger/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
         >
           <LogOut className="w-4 h-4 transition-transform group-hover:-translate-x-1" aria-hidden="true" />
           <span>Oturumu Kapat</span>
@@ -167,7 +167,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
 
         <button
           onClick={() => setIsAboutModalOpen(true)}
-          className="mt-2 text-[10px] text-text-tertiary/60 hover:text-executive-gold transition-colors font-medium tracking-widest uppercase text-center"
+          className="mt-2 text-micro text-text-tertiary/60 hover:text-[color:var(--gold-text)] transition-colors font-medium tracking-widest uppercase text-center"
         >
           MAKAM v2.3.0
         </button>

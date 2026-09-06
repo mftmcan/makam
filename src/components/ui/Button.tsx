@@ -27,13 +27,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       // ui/ActionButton'ın 'warning' varyantıyla aynı ton — Button'da eskiden
       // yoktu (bkz. tasarım denetimi: ActionButton'ın taşınma vesilesiyle
       // eklendi, gelecekte iki ayrı bileşen yerine tek noktadan kullanılabilsin).
-      warning: 'bg-executive-gold/10 text-executive-gold border border-executive-gold/20 hover:bg-executive-gold/20',
+      // text-executive-gold DEĞİL text-[color:var(--gold-text)]: tint zemin
+      // üzerinde düz altın metin AA'yı ihlal ediyordu (bkz. ui/Badge.tsx).
+      warning: 'bg-executive-gold/10 text-[color:var(--gold-text)] border border-executive-gold/20 hover:bg-executive-gold/20',
     };
 
     const sizes = {
-      sm: 'px-5 py-2.5 text-[10px] tracking-[0.2em]',
-      md: 'px-8 py-4 text-[11px] tracking-[0.3em]',
-      lg: 'px-12 py-5 text-[13px] tracking-[0.18em]',
+      sm: 'px-5 py-2.5 text-micro tracking-[0.2em]',
+      md: 'px-8 py-4 text-caption tracking-[0.3em]',
+      lg: 'px-12 py-5 text-body tracking-[0.18em]',
     };
 
     return (

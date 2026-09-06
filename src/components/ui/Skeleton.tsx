@@ -127,12 +127,41 @@ export const AuditLogListSkeleton = () => (
 
 /**
  * DashboardSkeleton — Dashboard tam sayfa yükleme iskeleti
+ *
+ * Gerçek Dashboard'un üç bölümünü aynı sırayla ve aynı oranlarda taklit eder
+ * (bkz. tasarım denetimi — eskiden 4 kartlı sabit bir ızgara vardı, gerçek
+ * ekran sağlık banner'ı + 6 kartlı ızgara + grafik alanından oluşuyordu, bu da
+ * yükleme anındaki düzenin gerçek içerikten farklı görünüp CLS hissi
+ * yaratmasına yol açıyordu): Stratejik Sağlık Endeksi banner'ı, 6 kartlık
+ * StatCard ızgarası (Dashboard.tsx:242 ile aynı breakpoint'ler) ve
+ * Performans Analitiği grafik kartı.
  */
 export const DashboardSkeleton = () => (
   <div className="flex flex-col gap-5 py-4 max-w-[1440px] mx-auto" aria-label="Yükleniyor..." role="status">
-    {/* KPI kartları */}
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      {[...Array(4)].map((_, i) => (
+    {/* Stratejik Sağlık Endeksi banner'ı */}
+    <div className="makam-card p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-12 w-12" rounded="lg" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-3 w-40" />
+          <Skeleton className="h-2.5 w-32" />
+        </div>
+      </div>
+      <div className="flex items-center gap-8">
+        <div className="flex flex-col gap-2 items-start md:items-end">
+          <Skeleton className="h-2.5 w-24" />
+          <Skeleton className="h-4 w-20" />
+        </div>
+        <div className="flex flex-col gap-1.5 items-center">
+          <Skeleton className="h-8 w-16" />
+          <Skeleton className="h-2.5 w-20" />
+        </div>
+      </div>
+    </div>
+
+    {/* StatCard ızgarası — mobil: 2 sütun, tablet: 3, masaüstü: 6 (Dashboard.tsx ile aynı) */}
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {[...Array(6)].map((_, i) => (
         <div key={i} className="makam-card p-5 flex flex-col gap-3">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-8 w-16" />
@@ -140,12 +169,21 @@ export const DashboardSkeleton = () => (
         </div>
       ))}
     </div>
-    {/* Büyük kart */}
-    <div className="makam-card p-6 flex flex-col gap-4">
-      <Skeleton className="h-4 w-40" />
-      {[...Array(5)].map((_, i) => (
-        <TableRowSkeleton key={i} />
-      ))}
+
+    {/* Performans Analitiği grafik kartı */}
+    <div className="makam-card p-4 flex flex-col gap-3">
+      <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-3 w-36" />
+          <Skeleton className="h-2.5 w-20" />
+        </div>
+        <Skeleton className="h-7 w-20" rounded="full" />
+      </div>
+      <Skeleton className="h-[160px] sm:h-[200px] lg:h-[220px] w-full" rounded="lg" />
+      <div className="flex items-center gap-3 pt-2 border-t border-executive-blue/[0.04]">
+        <Skeleton className="h-2.5 w-20" />
+        <Skeleton className="h-2.5 w-20" />
+      </div>
     </div>
   </div>
 );

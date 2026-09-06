@@ -1,12 +1,5 @@
 import { create } from 'zustand';
 import { subscribeWithSelector, persist } from 'zustand/middleware';
-import type { TaskStatus } from '../types';
-
-interface TaskFilter {
-  status: TaskStatus | 'ALL';
-  priority: string;
-  search: string;
-}
 
 export interface ToastItem {
   id: string;
@@ -22,6 +15,13 @@ export interface ToastItem {
  * URL'dir (react-router). Bkz. kod denetimi P1-6: ikisi birlikte tutulduğunda
  * derin link, tarayıcı geri tuşu ve sayfa yenileme sessizce bozuluyordu.
  * Karşılıkları: `useActiveTab()`, `useSelectedTaskId()`, `useTaskNavigation()`.
+ *
+ * AYNI GEREKÇEYLE TaskBoard'un arama/öncelik/durum/sorumlu FİLTRELERİ de
+ * BURADA TUTULMAZ. Eskiden bir `filter`/`setFilter`/`resetFilter` üçlüsü
+ * vardı ama TaskBoard.tsx onu HİÇ okumuyordu (bkz. tasarım denetimi F20) —
+ * kendi bileşen-içi `useState`'ini tutuyordu, bu yüzden filtreler sekme
+ * değiştirip dönünce sıfırlanıyor, paylaşılamıyordu. Karşılığı artık
+ * `useTaskBoardFilters()` (URL tabanlı, `src/hooks/useTaskBoardFilters.ts`).
  */
 interface UIStore {
   // Görev form modalı (App seviyesi)
@@ -38,16 +38,16 @@ interface UIStore {
   // Tema
   theme: 'light' | 'dark' | 'system';
 
-  // Filtreleme
-  filter: TaskFilter;
+  // Toast bildirim sesi — açık ofis ortamında kapatılabilir olması gerekir
+  // (bkz. tasarım denetimi F10: eskiden hiçbir aç/kapa yoktu).
+  soundEnabled: boolean;
 
   // Toast bildirimleri
   toasts: ToastItem[];
 
   // Aksiyonlar — mevcut
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
-  setFilter: (partial: Partial<TaskFilter>) => void;
-  resetFilter: () => void;
+  setSoundEnabled: (enabled: boolean) => void;
   addToast: (toast: Omit<ToastItem, 'id'>) => void;
   removeToast: (id: string) => void;
 
@@ -59,12 +59,6 @@ interface UIStore {
   setIsNotificationsOpen: (open: boolean) => void;
   closeAllModals: () => void;
 }
-
-const DEFAULT_FILTER: TaskFilter = {
-  status: 'ALL',
-  priority: 'ALL',
-  search: '',
-};
 
 export const useUIStore = create<UIStore>()(
   persist(
@@ -78,26 +72,19 @@ export const useUIStore = create<UIStore>()(
       // Bildirim paneli
       isNotificationsOpen: false,
 
-      // Filtreleme
-      filter: DEFAULT_FILTER,
-
       // Toastlar
       toasts: [],
 
       // Tema
       theme: 'system',
 
+      // Toast bildirim sesi
+      soundEnabled: true,
+
       // ─── Tema ───────────────────────────────────────────────────────────────
 
       setTheme: (theme) => set({ theme }),
-
-    // ─── Filtreleme ──────────────────────────────────────────────────────────
-
-    setFilter: (partial) => set((state) => ({
-      filter: { ...state.filter, ...partial },
-    })),
-
-    resetFilter: () => set({ filter: DEFAULT_FILTER }),
+      setSoundEnabled: (enabled) => set({ soundEnabled: enabled }),
 
     // ─── Toast ──────────────────────────────────────────────────────────────
 
@@ -131,6 +118,6 @@ export const useUIStore = create<UIStore>()(
   })),
   {
     name: 'makam-ui-settings',
-    partialize: (state) => ({ theme: state.theme }),
+    partialize: (state) => ({ theme: state.theme, soundEnabled: state.soundEnabled }),
   }
 ));

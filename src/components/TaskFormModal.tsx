@@ -2,6 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { format, parse, isBefore, startOfDay } from 'date-fns';
 import { Task, User, Department, TaskPrioritySchema } from '../types';
 import { PRIORITY_LABELS, ROLE_LABELS } from '../constants';
 import { cn } from '../lib/utils';
@@ -10,7 +11,18 @@ import { DatePicker } from './ui/DatePicker';
 import { Button } from './ui/Button';
 import { logger } from '../lib/logger';
 
-const taskSchema = z.object({
+const DEADLINE_FORMAT = 'yyyy-MM-dd';
+
+/**
+ * Şema, `originalDeadline` (düzenleme modunda görevin MEVCUT mühleti,
+ * DEADLINE_FORMAT'ta) parametresine göre üretilir: bir SLA takip uygulamasında
+ * geçmiş tarihe mühlet vermek görevi anında CRISIS adayı yapıyordu (bkz.
+ * tasarım denetimi F26), bu yüzden YENİ seçilen bir tarih bugünden önce
+ * olamaz. Ancak zaten aşılmış (SLA ihlali) bir görevi düzenlerken mühlete
+ * DOKUNULMAMIŞSA bu kural devreye girmez — aksi halde gecikmiş bir görevin
+ * yalnızca başlığını düzeltmek bile imkansız hale gelirdi.
+ */
+const createTaskSchema = (originalDeadline?: string) => z.object({
   title: z.string().min(1, 'Başlık zorunludur.').trim(),
   description: z.string().min(1, 'Açıklama zorunludur.').trim(),
   assigneeId: z.string().min(1, 'Sorumlu seçimi zorunludur.'),
@@ -31,9 +43,17 @@ const taskSchema = z.object({
 }, {
   message: "İrtibatlı kişi, sorumlu kişi ile aynı olamaz.",
   path: ["coordinatorId"]
+}).refine(data => {
+  if (data.deadline === originalDeadline) return true;
+  const parsed = parse(data.deadline, DEADLINE_FORMAT, new Date());
+  if (Number.isNaN(parsed.getTime())) return true; // format hatası ayrı kuralca zaten yakalanır
+  return !isBefore(startOfDay(parsed), startOfDay(new Date()));
+}, {
+  message: "Mühlet bugünden önce olamaz.",
+  path: ["deadline"]
 });
 
-type TaskFormValues = z.infer<typeof taskSchema>;
+type TaskFormValues = z.infer<ReturnType<typeof createTaskSchema>>;
 
 interface TaskFormModalProps {
   users: User[];
@@ -46,10 +66,17 @@ interface TaskFormModalProps {
   initialTitle?: string;
   onSubmit: (taskData: Partial<Task>) => Promise<void> | void;
   onClose: () => void;
+  /** Formun `isDirty` durumu her değiştiğinde çağrılır — kapatan taraf
+   *  (AuthenticatedApp) bunu, kirli bir formu Escape/backdrop ile sessizce
+   *  kapatmadan önce onay istemek için kullanır (bkz. tasarım denetimi F31). */
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
-export const TaskFormModal = ({ users, currentUser, departments = [], task, parentId, initialTitle, onSubmit, onClose }: TaskFormModalProps) => {
+export const TaskFormModal = ({ users, currentUser, departments = [], task, parentId, initialTitle, onSubmit, onClose, onDirtyChange }: TaskFormModalProps) => {
   const isSubTask = Boolean(parentId);
+  const originalDeadlineStr = task?.deadline ? new Date(task.deadline).toISOString().split('T')[0] : undefined;
+  const taskSchema = React.useMemo(() => createTaskSchema(originalDeadlineStr), [originalDeadlineStr]);
+  const todayStr = format(new Date(), DEADLINE_FORMAT);
 
   const {
     register,
@@ -57,7 +84,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
     watch,
     setValue,
     setError,
-    formState: { errors, isSubmitting }
+    formState: { errors, isSubmitting, isDirty }
   } = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
@@ -67,12 +94,18 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
       coordinatorId: task?.coordinatorId || '',
       departmentId: task?.departmentId || '',
       priority: task?.priority || 'Medium',
-      deadline: task?.deadline ? new Date(task.deadline).toISOString().split('T')[0] : '',
+      deadline: originalDeadlineStr || '',
     }
   });
 
   const assigneeId = watch('assigneeId');
   const deadline = watch('deadline');
+
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty);
+    // Form kapanınca (unmount) dirty bayrağı çağırana asılı kalmamalı.
+    return () => onDirtyChange?.(false);
+  }, [isDirty, onDirtyChange]);
 
   const getAssignableRoles = (role?: string) => {
     if (role === 'Admin') return ['Admin', 'Manager', 'Staff'];
@@ -193,8 +226,8 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
       <div className="flex flex-col gap-8">
         {/* Başlık */}
         <div className="flex flex-col gap-3">
-          <label htmlFor="task-title-input" className="text-[10px] font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
-            <Target className="w-3.5 h-3.5 text-executive-gold stroke-[1.2]" />
+          <label htmlFor="task-title-input" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+            <Target className="w-3.5 h-3.5 text-[color:var(--gold-text)] stroke-[1.2]" />
             Operasyonel Hedef
           </label>
           <input
@@ -202,22 +235,26 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
             type="text"
             placeholder="Talimat Başlığı"
             {...register('title')}
+            aria-invalid={errors.title ? true : undefined}
+            aria-describedby={errors.title ? "task-title-error" : undefined}
             className={cn(
               "text-[28px] font-light text-text-heading font-serif tracking-tight outline-none bg-field-surface placeholder:text-text-muted/30 w-full border-b border-text-muted/20 pb-3 transition-colors focus:border-executive-blue/50 rounded-t-sm focus-visible:ring-2 focus-visible:ring-executive-blue/40 focus-visible:ring-offset-2",
               errors.title && "border-status-danger/50 focus:border-status-danger/50"
             )}
           />
-          {errors.title && <span className="text-status-danger text-[10px] px-1 uppercase tracking-wider">{errors.title.message}</span>}
+          {errors.title && <span id="task-title-error" role="alert" className="text-status-danger text-micro px-1 uppercase tracking-wider">{errors.title.message}</span>}
         </div>
         
         {/* Açıklama */}
         <div className="flex flex-col gap-3">
-          <label htmlFor="task-description-textarea" className="text-[10px] font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+          <label htmlFor="task-description-textarea" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
             <FileText className="w-3.5 h-3.5 text-executive-blue stroke-[1.2]" />
             Kapsam & Detaylar
           </label>
           <textarea
             id="task-description-textarea"
+            aria-invalid={errors.description ? true : undefined}
+            aria-describedby={errors.description ? "task-description-error" : undefined}
             className={cn(
               "w-full min-h-[140px] resize-none bg-field-surface border border-executive-blue/[0.05] text-text-heading placeholder:text-text-muted/30 rounded-xl px-5 py-4 text-[14px] font-light leading-relaxed transition-all outline-none focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
               errors.description && "border-status-danger/50"
@@ -225,24 +262,24 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
             placeholder="İşin detaylarını ve başarı kriterlerini tanımlayın..."
             {...register('description')}
           />
-          {errors.description && <span className="text-status-danger text-[10px] px-1 uppercase tracking-wider">{errors.description.message}</span>}
+          {errors.description && <span id="task-description-error" role="alert" className="text-status-danger text-micro px-1 uppercase tracking-wider">{errors.description.message}</span>}
         </div>
 
         {/* Görevlendirmeler */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="flex flex-col gap-3">
-             <label htmlFor="task-assignee-select" className="text-[10px] font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+             <label htmlFor="task-assignee-select" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
                <Users className="w-3.5 h-3.5 text-executive-blue stroke-[1.2]" />
                Sorumlu
              </label>
              {isSubTask && (
-               <p className="text-[9px] text-status-warning/80 px-1 tracking-wide flex items-center gap-1.5">
+               <p className="text-micro text-status-warning/80 px-1 tracking-wide flex items-center gap-1.5">
                  <AlertCircle className="w-3 h-3 flex-shrink-0" />
                  Alt talimatlar yalnızca memurlara atanabilir.
                </p>
              )}
              {currentAssigneeOutOfScope && (
-               <p className="text-[9px] text-status-warning/80 px-1 tracking-wide flex items-center gap-1.5">
+               <p className="text-micro text-status-warning/80 px-1 tracking-wide flex items-center gap-1.5">
                  <AlertCircle className="w-3 h-3 flex-shrink-0" />
                  Mevcut sorumlu ({currentAssignee?.fullName}) sizin atayabileceğiniz rol dışında — değiştirmezseniz aynı kalır.
                </p>
@@ -250,8 +287,10 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
              <select
               id="task-assignee-select"
               {...register('assigneeId')}
+              aria-invalid={errors.assigneeId ? true : undefined}
+              aria-describedby={errors.assigneeId ? "task-assignee-error" : undefined}
               className={cn(
-                "w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 outline-none text-[13px] font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
+                "w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 outline-none text-body font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
                 errors.assigneeId && "border-status-danger/50"
               )}
             >
@@ -260,19 +299,21 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
                 <option key={m.uid} value={m.uid} className="bg-surface-base text-text-heading">{m.fullName}</option>
               ))}
             </select>
-            {errors.assigneeId && <span className="text-status-danger text-[10px] px-1 uppercase tracking-wider">{errors.assigneeId.message}</span>}
+            {errors.assigneeId && <span id="task-assignee-error" role="alert" className="text-status-danger text-micro px-1 uppercase tracking-wider">{errors.assigneeId.message}</span>}
           </div>
 
           <div className="flex flex-col gap-3">
-             <label htmlFor="task-coordinator-select" className="text-[10px] font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+             <label htmlFor="task-coordinator-select" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
                <Users className="w-3.5 h-3.5 text-text-muted/40 stroke-[1.2]" />
                İrtibatlı
              </label>
              <select
               id="task-coordinator-select"
               {...register('coordinatorId')}
+              aria-invalid={errors.coordinatorId ? true : undefined}
+              aria-describedby={errors.coordinatorId ? "task-coordinator-error" : undefined}
               className={cn(
-                "w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 outline-none text-[13px] font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
+                "w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 outline-none text-body font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
                 errors.coordinatorId && "border-status-danger/50"
               )}
             >
@@ -282,9 +323,9 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
               ))}
             </select>
              {errors.coordinatorId ? (
-                <span className="text-status-danger text-[10px] px-1 uppercase tracking-wider">{errors.coordinatorId.message}</span>
+                <span id="task-coordinator-error" role="alert" className="text-status-danger text-micro px-1 uppercase tracking-wider">{errors.coordinatorId.message}</span>
              ) : (
-                <p className="text-[9px] text-text-muted/40 px-1 tracking-wide">
+                <p className="text-micro text-text-muted/40 px-1 tracking-wide">
                   Sorumludan farklı biri seçilmelidir.
                 </p>
              )}
@@ -292,19 +333,21 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
 
           {needsExplicitDepartment && (
             <div className="flex flex-col gap-3 md:col-span-2">
-              <label htmlFor="task-department-select" className="text-[10px] font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
-                <Building className="w-3.5 h-3.5 text-executive-gold stroke-[1.2]" />
+              <label htmlFor="task-department-select" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+                <Building className="w-3.5 h-3.5 text-[color:var(--gold-text)] stroke-[1.2]" />
                 Sorumlu Birim
               </label>
-              <p className="text-[9px] text-status-warning/80 px-1 tracking-wide flex items-center gap-1.5">
+              <p className="text-micro text-status-warning/80 px-1 tracking-wide flex items-center gap-1.5">
                 <AlertCircle className="w-3 h-3 flex-shrink-0" />
                 Seçilen sorumlu bir birime bağlı değil — talimatın hangi birime ait olduğunu belirtmelisiniz.
               </p>
               <select
                 id="task-department-select"
                 {...register('departmentId')}
+                aria-invalid={errors.departmentId ? true : undefined}
+                aria-describedby={errors.departmentId ? "task-department-error" : undefined}
                 className={cn(
-                  "w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 outline-none text-[13px] font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
+                  "w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 outline-none text-body font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
                   errors.departmentId && "border-status-danger/50"
                 )}
               >
@@ -313,29 +356,31 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
                   <option key={d.id} value={d.id} className="bg-surface-base text-text-heading">{d.name}</option>
                 ))}
               </select>
-              {errors.departmentId && <span className="text-status-danger text-[10px] px-1 uppercase tracking-wider">{errors.departmentId.message}</span>}
+              {errors.departmentId && <span id="task-department-error" role="alert" className="text-status-danger text-micro px-1 uppercase tracking-wider">{errors.departmentId.message}</span>}
             </div>
           )}
 
           <div className="flex flex-col gap-3">
-             <label htmlFor="task-priority-select" className="text-[10px] font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
-               <AlertCircle className="w-3.5 h-3.5 text-executive-gold stroke-[1.2]" />
+             <label htmlFor="task-priority-select" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+               <AlertCircle className="w-3.5 h-3.5 text-[color:var(--gold-text)] stroke-[1.2]" />
                Öncelik
              </label>
              <select
               id="task-priority-select"
               {...register('priority')}
-              className="w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 outline-none text-[13px] font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5"
+              aria-invalid={errors.priority ? true : undefined}
+              aria-describedby={errors.priority ? "task-priority-error" : undefined}
+              className="w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 outline-none text-body font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5"
             >
               {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
                 <option key={value} value={value} className="bg-surface-base text-text-heading">{label}</option>
               ))}
             </select>
-            {errors.priority && <span className="text-status-danger text-[10px] px-1 uppercase tracking-wider">{errors.priority.message}</span>}
+            {errors.priority && <span id="task-priority-error" role="alert" className="text-status-danger text-micro px-1 uppercase tracking-wider">{errors.priority.message}</span>}
           </div>
 
           <div className="flex flex-col gap-3">
-            <label htmlFor="task-deadline" className="text-[10px] font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+            <label htmlFor="task-deadline" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
               <Calendar className="w-3.5 h-3.5 text-executive-blue stroke-[1.2]" />
               SLA Mühleti
             </label>
@@ -344,13 +389,16 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
               value={deadline}
               onChange={(v) => setValue('deadline', v, { shouldValidate: true, shouldDirty: true })}
               ariaLabel="SLA mühleti"
+              minDate={todayStr}
+              ariaInvalid={!!errors.deadline}
+              ariaDescribedBy={errors.deadline ? "task-deadline-error" : undefined}
               icon={<Calendar className="w-3.5 h-3.5 text-executive-blue/60 stroke-[1.2] flex-shrink-0" aria-hidden="true" />}
               triggerClassName={cn(
-                "w-full flex items-center gap-3 bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 text-[13px] transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
+                "w-full flex items-center gap-3 bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 text-body transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
                 errors.deadline && "border-status-danger/50"
               )}
             />
-            {errors.deadline && <span className="text-status-danger text-[10px] px-1 uppercase tracking-wider">{errors.deadline.message}</span>}
+            {errors.deadline && <span id="task-deadline-error" role="alert" className="text-status-danger text-micro px-1 uppercase tracking-wider">{errors.deadline.message}</span>}
           </div>
         </div>
       </div>

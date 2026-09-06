@@ -91,8 +91,13 @@ describe('conflictDetectionService', () => {
       conflictDetectionService.detectConflict(new Error('VERSION_MISMATCH'), 'task-42', 'Aylık Rapor', 7);
 
       expect(handler).toHaveBeenCalledOnce();
+      // context verilmediğinde servis kendi varsayılan ConflictContext'ini
+      // üretir (bkz. tasarım denetimi F7 — offlineQueue.ts'teki senkron-replay
+      // çağrıları için, App.tsx'in canlı düzenleme yolu her zaman gerçek bir
+      // context sağlar).
       expect(handler).toHaveBeenCalledWith({
         taskId: 'task-42', taskTitle: 'Aylık Rapor', expectedVersion: 7, serverVersion: 8,
+        attemptedChangeSummary: expect.any(String), retry: expect.any(Function),
       });
     });
 

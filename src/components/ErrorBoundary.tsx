@@ -90,18 +90,18 @@ export class ErrorBoundary extends Component<Props, State> {
 
           <div className="flex flex-col gap-2">
             <h3 className="text-lg font-light text-text-heading tracking-tight font-serif uppercase">Modül Yüklenemedi</h3>
-            <p className="text-text-muted text-[13px] font-light leading-relaxed">
+            <p className="text-text-muted text-body font-light leading-relaxed">
               {message}
             </p>
             {isFirebaseError && (
               <div className="inline-flex mx-auto mt-2 px-4 py-1.5 bg-status-danger/10 border border-status-danger/20 rounded-full">
-                <p className="text-[9px] text-status-danger font-medium uppercase tracking-[0.16em]">
+                <p className="text-micro text-status-danger font-medium uppercase tracking-[0.16em]">
                   Yetki Doğrulama Hatası (RBAC Protocol)
                 </p>
               </div>
             )}
             {this.state.supportReference && (
-              <p className="text-text-muted/60 text-[10px] font-mono mt-1">
+              <p className="text-text-muted/60 text-micro font-mono mt-1">
                 Destek Referansı: {this.state.supportReference}
               </p>
             )}
@@ -137,13 +137,13 @@ export class ErrorBoundary extends Component<Props, State> {
             </p>
             {isFirebaseError && (
               <div className="inline-flex mx-auto mt-4 px-6 py-2 bg-status-danger/10 border border-status-danger/20 rounded-full">
-                <p className="text-[10px] text-status-danger font-medium uppercase tracking-[0.16em]">
+                <p className="text-micro text-status-danger font-medium uppercase tracking-[0.16em]">
                   Yetki Doğrulama Hatası (RBAC Protocol)
                 </p>
               </div>
             )}
             {this.state.supportReference && (
-              <p className="text-text-muted/60 text-[11px] font-mono mt-1">
+              <p className="text-text-muted/60 text-caption font-mono mt-1">
                 Destek Referansı: {this.state.supportReference}
               </p>
             )}

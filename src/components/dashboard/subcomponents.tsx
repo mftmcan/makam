@@ -24,7 +24,7 @@ export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index 
   const accentColor = {
     blue:   { bg: 'bg-executive-blue/5',   text: 'text-executive-blue' },
     green:  { bg: 'bg-status-success/10',  text: 'text-status-success' },
-    orange: { bg: 'bg-executive-gold/10',  text: 'text-executive-gold' },
+    orange: { bg: 'bg-executive-gold/10',  text: 'text-[color:var(--gold-text)]' },
     red:    { bg: 'bg-status-danger/10',   text: 'text-status-danger' },
     gray:   { bg: 'bg-surface-glass',      text: 'text-text-muted' },
   }[color];
@@ -58,7 +58,7 @@ export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index 
 
       {/* Label + Value */}
       <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-        <span className="text-[9px] font-semibold text-text-tertiary uppercase tracking-[0.08em] leading-tight whitespace-normal">{label}</span>
+        <span className="text-micro font-semibold text-text-tertiary uppercase tracking-[0.08em] leading-tight whitespace-normal">{label}</span>
         <div className="flex items-baseline gap-1 min-w-0">
           {/* value === 0 iken diğer aktif sayılarla (ör. Tamamlanan: 5) aynı
               görsel ağırlıkta duruyordu — sıfır değerler artık soluk, aktif
@@ -70,10 +70,10 @@ export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index 
               value === 0 ? 'text-text-tertiary/60' : 'text-executive-blue'
             )}
           />
-          {max > 0 && <span className="text-[10px] text-text-tertiary font-light truncate min-w-0">/ {max}</span>}
+          {max > 0 && <span className="text-micro text-text-tertiary font-light truncate min-w-0">/ {max}</span>}
           {delta !== 0 && (
             <span className={cn(
-              "text-[10px] font-bold px-1 py-0.5 rounded-md ml-1 flex items-center gap-0.5 shrink-0",
+              "text-micro font-bold px-1 py-0.5 rounded-md ml-1 flex items-center gap-0.5 shrink-0",
               delta > 0
                 ? (color === 'red' || color === 'orange' ? "bg-status-danger/10 text-status-danger" : "bg-status-success/10 text-status-success")
                 : (color === 'red' || color === 'orange' ? "bg-status-success/10 text-status-success" : "bg-status-danger/10 text-status-danger")
@@ -137,7 +137,7 @@ export const InterventionRow = ({ item, users, onView, index = 0 }: Intervention
         <div className={cn('w-11 h-11 rounded-xl border flex items-center justify-center font-display text-[16px] tabular-nums', riskTone[item.level])}>
           {item.score}
         </div>
-        <span className="text-[10px] text-text-tertiary uppercase tracking-[0.2em]">Risk</span>
+        <span className="text-micro text-text-tertiary uppercase tracking-[0.2em]">Risk</span>
       </div>
 
       <div className="min-w-0 flex flex-col gap-1.5">
@@ -145,14 +145,14 @@ export const InterventionRow = ({ item, users, onView, index = 0 }: Intervention
           <Badge variant={item.level === 'critical' || item.level === 'high' ? 'danger' : item.level === 'medium' ? 'warning' : 'default'}>
             {laneLabel[item.lane]}
           </Badge>
-          <span className="text-[12px] font-medium text-executive-blue line-clamp-1 font-display">{item.task.title}</span>
+          <span className="text-body-sm font-medium text-executive-blue line-clamp-1 font-display">{item.task.title}</span>
         </div>
         <div className="flex items-center gap-2 min-w-0">
           <Avatar name={assignee?.fullName ?? '?'} photoURL={assignee?.photoURL} size="sm" />
-          <span className="text-[9px] text-text-muted truncate">{assignee?.fullName ?? 'Sorumlu bulunamadı'}</span>
-          <span className="text-[9px] text-text-tertiary truncate">· {item.reasons.join(' · ')}</span>
+          <span className="text-micro text-text-muted truncate">{assignee?.fullName ?? 'Sorumlu bulunamadı'}</span>
+          <span className="text-micro text-text-tertiary truncate">· {item.reasons.join(' · ')}</span>
         </div>
-        <span className="text-[9px] font-medium text-text-heading uppercase tracking-[0.18em]">{item.action}</span>
+        <span className="text-micro font-medium text-text-heading uppercase tracking-[0.18em]">{item.action}</span>
       </div>
 
       <div className="flex items-center justify-center">
@@ -190,8 +190,8 @@ export const PerformanceRow = ({ profile, index = 0 }: PerformanceRowProps) => {
     >
       <Avatar name={profile.user.fullName} photoURL={profile.user.photoURL} size="md" />
       <div className="min-w-0 flex flex-col gap-1">
-        <span className="text-[12px] font-medium text-executive-blue truncate font-display">{profile.user.fullName}</span>
-        <div className="flex flex-wrap gap-2 text-[10px] text-text-tertiary uppercase tracking-[0.15em]">
+        <span className="text-body-sm font-medium text-executive-blue truncate font-display">{profile.user.fullName}</span>
+        <div className="flex flex-wrap gap-2 text-micro text-text-tertiary uppercase tracking-[0.15em]">
           <span>{profile.activeCount} aktif</span>
           <span>{profile.completedCount} icra</span>
           <span>{profile.overdueCount} gecikmiş</span>
@@ -200,8 +200,8 @@ export const PerformanceRow = ({ profile, index = 0 }: PerformanceRowProps) => {
         </div>
       </div>
       <div className={cn('w-12 h-10 rounded-xl border flex flex-col items-center justify-center', loadTone)}>
-        <span className="text-[13px] font-semibold tabular-nums leading-none">{profile.loadScore}</span>
-        <span className="text-[10px] uppercase tracking-[0.16em]">Yük</span>
+        <span className="text-body font-semibold tabular-nums leading-none">{profile.loadScore}</span>
+        <span className="text-micro uppercase tracking-[0.16em]">Yük</span>
       </div>
     </motion.div>
   );
@@ -225,9 +225,9 @@ export const CustomTooltip = React.memo(({ active, payload, label }: CustomToolt
   if (active && payload && payload.length) {
     return (
       <div className="bg-makam-glass backdrop-blur-xl border border-surface-border p-3 rounded-2xl shadow-xl flex flex-col gap-1.5 min-w-[120px] text-left">
-        <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider">{label}</span>
+        <span className="text-micro font-bold text-text-tertiary uppercase tracking-wider">{label}</span>
         <div className="h-px bg-executive-blue/[0.05]" />
-        <div className="flex flex-col gap-1 text-[11px] font-medium">
+        <div className="flex flex-col gap-1 text-caption font-medium">
           {payload.map((entry) => (
             <div key={entry.name} className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-1.5">

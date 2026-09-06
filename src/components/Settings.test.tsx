@@ -41,7 +41,7 @@ const renderSettings = () =>
 
 /** Gizli dosya girdisine bir yedek dosyası bırakıp onay modalını açar. */
 async function openRestoreModal(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: /Veri Yönetimi/i }));
+  await user.click(screen.getByRole('tab', { name: /Veri Yönetimi/i }));
   const fileInput = document.getElementById('restore-upload') as HTMLInputElement;
   const file = new File([BACKUP_JSON], 'MAKAM-Backup.json', { type: 'application/json' });
   await user.upload(fileInput, file);

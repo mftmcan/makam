@@ -1,7 +1,25 @@
 import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
 import { Timestamp } from 'firebase/firestore';
 import type { User } from '../types';
+
+/**
+ * tailwind-merge kendi tema uzantılarımızı (bkz. index.css @theme:
+ * --text-micro/caption/body-sm/body) tanımıyor; varsayılan config bunları
+ * boyut değil RENK sınıfı sanıp gerçek bir `text-[color:var(...)]`/
+ * `text-status-*` sınıfını SESSİZCE eliyordu (bkz. tasarım denetimi 3.1
+ * sonrası bulunan gerçek regresyon: TaskDetails'teki "SÜRECİ BAŞLAT" butonu
+ * altın zemin üzerinde mirasla gelen düşük kontrastlı bir renge düşüyordu).
+ * Bu dört ismi açıkça `font-size` grubuna eklemek, boyut/renk çakışma
+ * tespitinin doğru grupta kalmasını sağlar.
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      'font-size': ['text-micro', 'text-caption', 'text-body-sm', 'text-body'],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

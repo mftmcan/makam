@@ -45,19 +45,19 @@ const VARIANTS: Record<FormalDocumentVariant, VariantConfig> = {
     panelShadow: 'shadow-[0_40px_90px_-24px_rgba(0,0,0,0.18)]',
     blobPrimary: 'bg-executive-gold/5',
     iconBg: 'bg-executive-gold/10',
-    iconColor: 'text-executive-gold',
+    iconColor: 'text-[color:var(--gold-text)]',
     icon: Award,
     title: 'Liyakat Belgesi',
     subtitle: 'Makam Başarı Takdiri',
     dividerColor: 'bg-executive-gold/30',
     bodyBorder: 'border-makam-border/5',
-    sectionLabelColor: 'text-executive-gold',
+    sectionLabelColor: 'text-[color:var(--gold-text)]',
     dateLabel: 'TARİH',
     sealIcon: ShieldCheck,
     sealIconColor: 'text-executive-gold/30',
     sealRing: 'border-executive-gold/20',
     sealDashedRing: 'border-executive-gold/20',
-    sealLabelColor: 'text-executive-gold',
+    sealLabelColor: 'text-[color:var(--gold-text)]',
     buttonVariant: 'primary',
     closeAriaLabel: 'Liyakat belgesini kapat',
     closeHoverColor: 'hover:text-executive-blue',
@@ -147,7 +147,7 @@ export const FormalDocumentModal = ({ variant, onClose, children }: FormalDocume
             <h2 id={c.titleId} className="text-2xl md:text-3xl font-light text-text-heading tracking-[0.3em] font-serif uppercase">{c.title}</h2>
             <div className="flex items-center justify-center gap-3 md:gap-4">
               <div className={`h-[1px] w-12 ${c.dividerColor}`} />
-              <span className={`text-[10px] ${c.sectionLabelColor} font-medium tracking-[0.3em] uppercase`}>{c.subtitle}</span>
+              <span className={`text-micro ${c.sectionLabelColor} font-medium tracking-[0.3em] uppercase`}>{c.subtitle}</span>
               <div className={`h-[1px] w-12 ${c.dividerColor}`} />
             </div>
           </div>
@@ -158,7 +158,7 @@ export const FormalDocumentModal = ({ variant, onClose, children }: FormalDocume
 
           <div className="flex flex-col md:flex-row items-center justify-between w-full px-4 md:px-12 pt-4 gap-8 md:gap-0">
              <div className="flex flex-col items-center md:items-start gap-2">
-                <span className="text-[10px] text-text-muted font-medium uppercase tracking-[0.3em]">{c.dateLabel}</span>
+                <span className="text-micro text-text-muted font-medium uppercase tracking-[0.3em]">{c.dateLabel}</span>
                 <span className="text-[14px] text-text-heading font-light font-serif">{formatLongDate()}</span>
              </div>
              <div className="flex flex-col items-center gap-3 shrink-0">
@@ -173,10 +173,10 @@ export const FormalDocumentModal = ({ variant, onClose, children }: FormalDocume
                       <div className={`w-12 h-12 md:w-16 md:h-16 border border-dashed ${c.sealDashedRing} rounded-full animate-[spin_20s_linear_infinite]`} />
                    </div>
                 </div>
-                <span className={`text-[10px] ${c.sealLabelColor} font-medium uppercase tracking-[0.3em]`}>RESMİ MÜHÜR</span>
+                <span className={`text-micro ${c.sealLabelColor} font-medium uppercase tracking-[0.3em]`}>RESMİ MÜHÜR</span>
              </div>
              <div className="flex flex-col items-center md:items-end gap-2">
-                <span className="text-[10px] text-text-muted font-medium uppercase tracking-[0.3em]">ONAY MAKAMI</span>
+                <span className="text-micro text-text-muted font-medium uppercase tracking-[0.3em]">ONAY MAKAMI</span>
                 <span className="text-[14px] text-text-heading font-light font-serif">Stratejik Denetim Kurulu</span>
              </div>
           </div>
@@ -185,7 +185,7 @@ export const FormalDocumentModal = ({ variant, onClose, children }: FormalDocume
             variant={c.buttonVariant}
             size="lg"
             onClick={onClose}
-            className="mt-4 md:mt-6 tracking-[0.3em] text-[10px] md:text-[11px] w-full md:w-auto"
+            className="mt-4 md:mt-6 tracking-[0.3em] text-micro md:text-caption w-full md:w-auto"
           >
             DİZGEYE DÖN
           </Button>

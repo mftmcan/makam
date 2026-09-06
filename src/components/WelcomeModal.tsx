@@ -81,7 +81,7 @@ export function WelcomeModal({ user }: WelcomeModalProps) {
     <>
       <Modal isOpen={isWelcomeOpen} onClose={dismiss} title="Hoş Geldiniz" size="sm">
         <div className="flex flex-col gap-4">
-          <p className="text-[12px] text-text-muted font-light leading-relaxed">
+          <p className="text-body-sm text-text-muted font-light leading-relaxed">
             Sayın <strong className="font-medium text-text-heading">{user.fullName}</strong>, MAKAM&rsquo;a{' '}
             <strong className="font-medium text-text-heading">{ROLE_LABELS[user.role]}</strong> rolüyle hoş geldiniz.
           </p>
@@ -89,8 +89,8 @@ export function WelcomeModal({ user }: WelcomeModalProps) {
           <ul className="flex flex-col gap-2.5">
             {points.map((point) => (
               <li key={point} className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-executive-gold stroke-[1.5] mt-0.5 flex-shrink-0" aria-hidden="true" />
-                <span className="text-[11px] text-text-muted font-light leading-relaxed">{point}</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-[color:var(--gold-text)] stroke-[1.5] mt-0.5 flex-shrink-0" aria-hidden="true" />
+                <span className="text-caption text-text-muted font-light leading-relaxed">{point}</span>
               </li>
             ))}
           </ul>

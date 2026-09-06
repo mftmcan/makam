@@ -48,7 +48,7 @@ export const Login = ({ onLogin, isLoading }: LoginProps) => {
                 </div>
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[16px] font-normal text-text-heading tracking-tight font-display">Kurumsal Güvenlik</span>
-                  <p className="text-[10px] text-text-muted font-medium uppercase tracking-[0.2em] opacity-60">Uçtan Uca Yetki Denetimi</p>
+                  <p className="text-micro text-text-muted font-medium uppercase tracking-[0.2em] opacity-60">Uçtan Uca Yetki Denetimi</p>
                 </div>
               </motion.div>
               
@@ -57,12 +57,12 @@ export const Login = ({ onLogin, isLoading }: LoginProps) => {
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 className="flex items-center gap-5 group"
               >
-                <div className="w-12 h-12 rounded-full bg-makam-glass border border-makam-border/5 flex items-center justify-center text-executive-gold group-hover:bg-executive-gold group-hover:text-[color:var(--btn-primary-text)] transition-all duration-500 shadow-inner">
+                <div className="w-12 h-12 rounded-full bg-makam-glass border border-makam-border/5 flex items-center justify-center text-[color:var(--gold-text)] group-hover:bg-executive-gold group-hover:text-[color:var(--btn-primary-text)] transition-all duration-500 shadow-inner">
                   <Activity className="w-5 h-5 stroke-[1.2]" />
                 </div>
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[16px] font-normal text-text-heading tracking-tight font-display">Stratejik Analiz</span>
-                  <p className="text-[10px] text-text-muted font-medium uppercase tracking-[0.2em] opacity-60">Anlık Operasyonel Veri Akışı</p>
+                  <p className="text-micro text-text-muted font-medium uppercase tracking-[0.2em] opacity-60">Anlık Operasyonel Veri Akışı</p>
                 </div>
               </motion.div>
             </div>
@@ -72,7 +72,7 @@ export const Login = ({ onLogin, isLoading }: LoginProps) => {
               whileTap={{ scale: 0.98 }}
               onClick={onLogin}
               disabled={isLoading}
-              className="makam-button-primary w-full h-14 text-[13px] tracking-[0.16em] font-medium group cursor-pointer"
+              className="makam-button-primary w-full h-14 text-body tracking-[0.16em] font-medium group cursor-pointer"
             >
               {isLoading ? 'DİZGEYE BAĞLANILIYOR...' : (
                 <span className="flex items-center justify-center gap-2">
@@ -84,7 +84,7 @@ export const Login = ({ onLogin, isLoading }: LoginProps) => {
           </div>
 
           <div className="flex flex-col items-center gap-3 opacity-40">
-            <p className="text-[9px] text-text-muted font-medium uppercase tracking-[0.22em] text-center leading-loose">
+            <p className="text-micro text-text-muted font-medium uppercase tracking-[0.22em] text-center leading-loose">
               HİZMETİÇİ<br />STRATEJİK KARAR YÖNETİM DİZGESİ
             </p>
             <div className="w-12 h-[1px] bg-makam-border/10" />

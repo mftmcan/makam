@@ -42,6 +42,14 @@ export function useTaskNavigation() {
   return useMemo(() => ({
     openTask: (taskId: string) => { void navigate(`/tasks/${taskId}`); },
     closeTask: () => { void navigate('/tasks'); },
-    goToTab: (tab: AppTabId) => { void navigate(tabPath(tab)); },
+    // `params` — ör. Reports'taki bir yöneticinin satırından "/tasks?assignee=uid"
+    // üretmek için (bkz. tasarım denetimi F12: eskiden filtre uygulanmadan
+    // düz "/tasks"a gidiliyordu, tooltip'in vaat ettiği kırılım hiç
+    // gerçekleşmiyordu). TaskBoard bu parametreleri useTaskBoardFilters ile okur.
+    goToTab: (tab: AppTabId, params?: Record<string, string>) => {
+      const path = tabPath(tab);
+      const query = params ? new URLSearchParams(params).toString() : '';
+      void navigate(query ? `${path}?${query}` : path);
+    },
   }), [navigate]);
 }

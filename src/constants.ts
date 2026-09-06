@@ -116,7 +116,7 @@ export function normalizeSessionTimeoutMs(value: unknown): number {
 export const PRIORITY_COLORS: Record<TaskPriority, string> = {
   Low: 'bg-surface-border/[0.04] text-text-muted border-surface-border/50',
   Medium: 'bg-executive-blue/[0.04] text-executive-blue/80 border-executive-blue/[0.08]',
-  High: 'bg-executive-gold/[0.05] text-executive-gold border-executive-gold/15',
+  High: 'bg-executive-gold/[0.05] text-[color:var(--gold-text)] border-executive-gold/15',
   Urgent: 'bg-status-danger/[0.05] text-status-danger border-status-danger/10',
 };
 
@@ -144,3 +144,14 @@ export const STATUS_BADGE_VARIANT: Record<TaskStatus, 'default' | 'success' | 'w
   CANCELLED: 'default',
   CRISIS: 'danger',
 };
+
+/** Boş-durum metinleri — eskiden her ekran aynı koşul için kendi metnini
+ *  yazıyordu (ör. Reports'ta "Veri bulunamadı" vs "Yönetici kaydı
+ *  bulunamadı." — aynı boş managerPerformance listesi için mobil/masaüstü
+ *  görünümlerinde İKİ farklı metin, bkz. tasarım denetimi F22). Tek kaynağa
+ *  taşındı ki aynı koşul her zaman aynı cümleyle anlatılsın. */
+export const EMPTY_STATE_MESSAGES = {
+  NO_DATA_IN_RANGE: 'Seçili aralıkta talimat yok',
+  NO_MANAGER_RECORDS: 'Yönetici kaydı bulunamadı',
+  NO_DATA_SHORT: 'Veri Yok',
+} as const;

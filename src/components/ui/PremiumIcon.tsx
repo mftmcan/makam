@@ -40,7 +40,7 @@ export const PremiumIcon = ({
   };
 
   const variants = {
-    gold: 'bg-gradient-to-br from-executive-gold/20 to-executive-gold/5 text-executive-gold border-executive-gold/20 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.08)]',
+    gold: 'bg-gradient-to-br from-executive-gold/20 to-executive-gold/5 text-[color:var(--gold-text)] border-executive-gold/20 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.08)]',
     blue: 'bg-gradient-to-br from-executive-blue/20 to-executive-blue/5 text-executive-blue border-executive-blue/20 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.08)]',
     glass: 'bg-makam-glass backdrop-blur-md text-text-muted border-surface-border shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]'
   };
@@ -66,7 +66,7 @@ export const PremiumIcon = ({
         style={{ clipPath: clipPathUrl }}
         className={cn(
           "relative flex items-center justify-center border transition-all duration-500 rounded-[14px]",
-          "will-change-transform transform-gpu backface-visibility-hidden retina-perfect", // GPU acceleration for subpixel aliasing
+          "will-change-transform transform-gpu backface-hidden", // GPU acceleration for subpixel aliasing
           sizes[size],
           active
             ? "bg-gradient-to-br from-white to-[#F5F3EF] text-[color:var(--btn-primary-text)] border-white/70 shadow-[inset_0_1.5px_2.5px_rgba(255,255,255,0.85),inset_0_-1px_1.5px_rgba(0,0,0,0.1),0_10px_24px_rgba(22,21,19,0.12)] ring-1 ring-executive-gold/20"

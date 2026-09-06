@@ -12,12 +12,27 @@ import { taskService } from './taskService';
 import { userService } from './userService';
 import { blockerService } from './blockerService';
 import { notificationService } from './notificationService';
+import type { ConflictContext } from './conflictDetectionService';
 import { offlineQueue } from '../lib/offlineQueue';
 import { getSLAConfigForPriority, calculateDeadline } from '../lib/sla';
 import { useUIStore } from '../store/uiStore';
 import { useSelectedTaskId, useTaskNavigation } from '../hooks/useTaskRoute';
 import { STATUS_LABELS } from '../constants';
 import type { Task, TaskStatus, TaskBlocker, TaskPriority, User, UserRole } from '../types';
+
+/** Çakışma modalının "sizin değişikliğiniz" satırı için `updateTask`'a
+ *  geçirilen kısmi güncellemeyi okunabilir bir özete çevirir — alan adlarının
+ *  Türkçe karşılıkları TaskFormModal'daki etiketlerle eşleşir. */
+const TASK_FIELD_LABELS: Partial<Record<keyof Task, string>> = {
+  title: 'Başlık', description: 'Açıklama', assigneeId: 'Sorumlu', coordinatorId: 'İrtibatlı',
+  departmentId: 'Birim', priority: 'Öncelik', deadline: 'Mühlet',
+};
+function summarizeTaskEdit(data: Partial<Task>): string {
+  const labels = (Object.keys(data) as (keyof Task)[])
+    .map(key => TASK_FIELD_LABELS[key])
+    .filter((label): label is string => Boolean(label));
+  return labels.length > 0 ? `${labels.join(', ')} alanlarını güncellemek` : 'Bu talimatı güncellemek';
+}
 
 // ─── Statü emoji haritası ─────────────────────────────────────────────────────
 const STATUS_EMOJI: Partial<Record<TaskStatus, string>> = {
@@ -34,7 +49,7 @@ interface UseAppHandlersOptions {
   user: User | null;
   tasks: Task[];
   blockers: TaskBlocker[];
-  onError: (err: unknown, op: string, path: string | null) => void;
+  onError: (err: unknown, op: string, path: string | null, conflictContext?: ConflictContext) => void;
 }
 
 // ─── Yardımcılar ─────────────────────────────────────────────────────────────
@@ -124,7 +139,7 @@ export function useAppHandlers({
         );
       }
       if (!options?.silent) {
-        toast('🔄 Çevrimdışı Güncelleme', `Durum lokal kuyrukta güncellendi: ${newStatus}`, 'warning', taskId);
+        toast('🔄 Çevrimdışı Güncelleme', `Durum lokal kuyrukta güncellendi: ${STATUS_LABELS[newStatus] ?? newStatus}`, 'warning', taskId);
       }
       return;
     }
@@ -152,7 +167,13 @@ export function useAppHandlers({
       }
     } catch (err) {
       if (options?.silent) throw err;
-      onError(err, 'update', `tasks/${taskId}`);
+      onError(err, 'update', `tasks/${taskId}`, {
+        attemptedChangeSummary: `Durumu "${STATUS_LABELS[newStatus] ?? newStatus}" yapmak`,
+        // Çakışma modalında "Benimkini Uygula" — taze lockVersion (tasks[]
+        // artık çakışmaya neden olan sunucu yazımını onSnapshot ile almış
+        // olmalı) ile AYNI hedef duruma yeniden dener.
+        retry: () => { void updateTaskStatus(taskId, newStatus, evidence, evidenceType, options); },
+      });
     }
   }, [user, tasks, blockers, toast, addToast, onError]);
 
@@ -220,7 +241,10 @@ export function useAppHandlers({
       if (!options?.silent) setIsEditModalOpen(false);
     } catch (err) {
       if (options?.silent) throw err;
-      onError(err, 'update', `tasks/${taskId}`);
+      onError(err, 'update', `tasks/${taskId}`, {
+        attemptedChangeSummary: summarizeTaskEdit(data),
+        retry: () => { void updateTask(taskId, data, options); },
+      });
     }
   }, [user, tasks, setIsEditModalOpen, toast, onError]);
 

@@ -27,6 +27,15 @@ interface ModalBehaviorOptions {
   containerRef: React.RefObject<HTMLElement | null>;
   /** Modal açıldığında odaklanılacak eleman (genellikle kapat butonu) */
   initialFocusRef?: React.RefObject<HTMLElement | null>;
+  /**
+   * `#root`'u (arka plandaki uygulama) inert yapar. YALNIZCA `document.body`'ye
+   * portal edilen (bkz. `createPortal`) tam modallar için `true` verin — bu
+   * hook'u paylaşan MobileDock/FormalDocumentModal gibi `#root` İÇİNDE render
+   * olan hafif paneller için `true` verilirse panelin kendi içeriği de inert
+   * olup tamamen etkileşimsiz kalır (bkz. tasarım denetimi F33). Varsayılan
+   * `false`.
+   */
+  applyInert?: boolean;
 }
 
 /**
@@ -34,7 +43,7 @@ interface ModalBehaviorOptions {
  * ve açılışta odaklama. `ui/Modal` shell'ini kullanmayan tam-özel modallar
  * (CertificateModal, WarningModal) da bu hook'u paylaşır.
  */
-export const useModalBehavior = ({ isOpen, onClose, containerRef, initialFocusRef }: ModalBehaviorOptions) => {
+export const useModalBehavior = ({ isOpen, onClose, containerRef, initialFocusRef, applyInert = false }: ModalBehaviorOptions) => {
   const idRef = useRef<symbol | null>(null);
   if (idRef.current === null) idRef.current = Symbol('modal');
 
@@ -49,6 +58,14 @@ export const useModalBehavior = ({ isOpen, onClose, containerRef, initialFocusRe
     const id = idRef.current!;
     modalStack.push(id);
     document.body.style.overflow = 'hidden';
+    // Arka plandaki uygulama içeriği (#root) ekran okuyucular için erişilebilir
+    // kalıyordu — aria-modal="true" bunu VoiceOver gibi bazı tarayıcı/AT
+    // kombinasyonlarında engellemiyor (bkz. tasarım denetimi F33). Scroll
+    // kilidiyle aynı ref-count mantığı: yalnızca İLK modal açıldığında inert
+    // eklenir, yalnızca SON modal kapandığında kaldırılır. applyInert=false
+    // olan çağıranlar (#root İÇİNDE render olanlar) bu adımı atlar.
+    const rootEl = applyInert ? document.getElementById('root') : null;
+    if (rootEl && modalStack.length === 1) rootEl.setAttribute('inert', '');
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Yalnızca en üstteki modal klavye olaylarını yönetir
@@ -95,8 +112,11 @@ export const useModalBehavior = ({ isOpen, onClose, containerRef, initialFocusRe
       window.clearTimeout(focusTimer);
       document.removeEventListener('keydown', handleKeyDown);
       modalStack = modalStack.filter(entry => entry !== id);
-      // Scroll kilidi yalnızca son modal kapanınca kalkar
-      if (modalStack.length === 0) document.body.style.overflow = '';
+      // Scroll kilidi ve inert yalnızca son modal kapanınca kalkar
+      if (modalStack.length === 0) {
+        document.body.style.overflow = '';
+        rootEl?.removeAttribute('inert');
+      }
     };
     // containerRef ve initialFocusRef sabit ref nesneleridir
   }, [isOpen]);
@@ -127,8 +147,10 @@ export const Modal = ({ isOpen, onClose, title, ariaLabel, children, footer, siz
     setMounted(true);
   }, []);
 
-  // Escape, focus-trap, scroll-lock ve açılış odağı (paylaşılan davranış)
-  useModalBehavior({ isOpen, onClose, containerRef: modalRef, initialFocusRef: closeButtonRef });
+  // Escape, focus-trap, scroll-lock ve açılış odağı (paylaşılan davranış).
+  // applyInert: true — bu bileşen document.body'ye portal edildiği için #root
+  // (arka plandaki uygulama) güvenle inert yapılabilir (bkz. F33).
+  useModalBehavior({ isOpen, onClose, containerRef: modalRef, initialFocusRef: closeButtonRef, applyInert: true });
 
   const sizes: Record<string, string> = {
     sm: 'max-w-md',

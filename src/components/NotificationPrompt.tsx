@@ -112,6 +112,7 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({ userId }
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-executive-blue/20 backdrop-blur-sm z-[200]"
             onClick={handleDismiss}
+            aria-hidden="true"
           />
 
           {/* Card — mobilde alt, desktop'ta orta */}
@@ -157,7 +158,7 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({ userId }
                       <h3 className="text-[17px] font-medium text-executive-blue font-serif tracking-tight">
                         Kurumsal Bildirim Dizgesi
                       </h3>
-                      <p className="text-[12px] text-text-muted leading-relaxed">
+                      <p className="text-body-sm text-text-muted leading-relaxed">
                         İl müftülüğü talimatlarını ve kritik görev güncellemelerini
                         anında alın. Hiçbir resmî işlemi kaçırmayın.
                       </p>
@@ -174,7 +175,7 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({ userId }
                           <div className="w-5 h-5 rounded-full bg-status-success/10 border border-status-success/20 flex items-center justify-center flex-shrink-0">
                             <Zap className="w-2.5 h-2.5 text-status-success stroke-[2]" />
                           </div>
-                          <span className="text-[11px] text-text-muted">{item}</span>
+                          <span className="text-caption text-text-muted">{item}</span>
                         </div>
                       ))}
                     </div>
@@ -183,13 +184,13 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({ userId }
                     <div className="flex flex-col gap-2 w-full">
                       <button
                         onClick={handleActivate}
-                        className="w-full h-11 bg-executive-gold text-[color:var(--btn-primary-text)] text-[11px] font-medium uppercase tracking-[0.3em] rounded-xl hover:bg-executive-gold-hover active:scale-[0.98] transition-all shadow-lg shadow-executive-gold/20"
+                        className="w-full h-11 bg-executive-gold text-[color:var(--btn-primary-text)] text-caption font-medium uppercase tracking-[0.3em] rounded-xl hover:bg-executive-gold-hover active:scale-[0.98] transition-all shadow-lg shadow-executive-gold/20"
                       >
                         Bildirimlere İzin Ver
                       </button>
                       <button
                         onClick={handleDismiss}
-                        className="w-full h-9 text-[10px] font-medium text-text-tertiary hover:text-text-muted uppercase tracking-[0.25em] transition-colors"
+                        className="w-full h-9 text-micro font-medium text-text-tertiary hover:text-text-muted uppercase tracking-[0.25em] transition-colors"
                       >
                         Daha Sonra
                       </button>
@@ -212,7 +213,7 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({ userId }
                     </motion.div>
                     <div className="flex flex-col gap-1">
                       <h3 className="text-[16px] font-medium text-executive-blue font-serif">Etkinleştirildi!</h3>
-                      <p className="text-[11px] text-text-muted">
+                      <p className="text-caption text-text-muted">
                         Kurumsal bildirimler başarıyla etkinleştirildi.
                       </p>
                     </div>

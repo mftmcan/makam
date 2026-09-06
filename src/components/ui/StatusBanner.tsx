@@ -13,7 +13,7 @@ export const StatusBanner = ({ status }: { status: { type: 'success' | 'error' |
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        'flex items-center gap-3 p-3 rounded-xl border text-[11px] font-medium',
+        'flex items-center gap-3 p-3 rounded-xl border text-caption font-medium',
         status.type === 'loading' ? 'bg-executive-blue/[0.03] border-executive-blue/10 text-executive-blue' :
         status.type === 'success' ? 'bg-status-success/10 border-status-success/20 text-status-success' :
         'bg-status-danger/10 border-status-danger/20 text-status-danger'

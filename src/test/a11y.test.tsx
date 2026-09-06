@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
+import { Panel } from '../components/ui/Panel';
 import { ExecutiveToast, type ToastData } from '../components/ExecutiveToast';
 
 expect.extend(toHaveNoViolations);
@@ -38,11 +38,12 @@ describe('Bileşen erişilebilirliği (axe-core)', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('Card a11y ihlali içermemeli', async () => {
+  it('Panel a11y ihlali içermemeli', async () => {
     const { container } = render(
-      <Card title="Aktif Görevler" description="Bu ay tamamlanan görev sayısı">
-        <p>42</p>
-      </Card>
+      <Panel>
+        <h3>Aktif Görevler</h3>
+        <p>Bu ay tamamlanan görev sayısı: 42</p>
+      </Panel>
     );
     expect(await axe(container)).toHaveNoViolations();
   });

@@ -19,7 +19,7 @@ interface HistoryTabProps {
 
 export const HistoryTab = ({ loadingLogs, logsError, localLogs, users, onRetry }: HistoryTabProps) => (
   <div role="tabpanel" id="task-tabpanel-history" aria-labelledby="task-tab-history" className="flex flex-col gap-4">
-    <h4 className="text-[9px] font-medium text-text-muted uppercase tracking-[0.18em]">Operasyonel Denetim İzleri</h4>
+    <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Operasyonel Denetim İzleri</h4>
     <div className="flex flex-col gap-3">
       {loadingLogs ? (
         <div className="py-16 flex justify-center items-center">
@@ -28,12 +28,12 @@ export const HistoryTab = ({ loadingLogs, logsError, localLogs, users, onRetry }
       ) : logsError ? (
         <div className="py-12 px-4 flex flex-col items-center justify-center gap-3 bg-status-danger/5 border border-dashed border-status-danger/20 rounded-2xl text-center">
           <AlertTriangle className="w-5 h-5 text-status-danger" aria-hidden="true" />
-          <span className="text-[10px] text-status-danger font-medium uppercase tracking-[0.18em]">
+          <span className="text-micro text-status-danger font-medium uppercase tracking-[0.18em]">
             Denetim izleri yüklenemedi
           </span>
           <button
             onClick={onRetry}
-            className="text-[11px] px-3 py-1.5 rounded-full text-executive-blue font-bold uppercase tracking-widest hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
+            className="text-caption px-3 py-1.5 rounded-full text-executive-blue font-bold uppercase tracking-widest hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
           >
             Tekrar Dene
           </button>
@@ -56,10 +56,10 @@ export const HistoryTab = ({ loadingLogs, logsError, localLogs, users, onRetry }
               </div>
               <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[12px] font-medium text-text-heading">
+                  <span className="text-body-sm font-medium text-text-heading">
                     {actor?.fullName || (isSystemActor ? 'Dizge' : log.changedBy) || 'Dizge'}
                   </span>
-                  <span className="text-[9px] text-text-muted tabular-nums">
+                  <span className="text-micro text-text-muted tabular-nums">
                     {format(log.timestamp, 'd MMM HH:mm', { locale: tr })}
                   </span>
                 </div>
@@ -72,12 +72,12 @@ export const HistoryTab = ({ loadingLogs, logsError, localLogs, users, onRetry }
                       const label = AUDIT_FIELD_LABELS[field] ?? field;
                       return (
                         <div key={field} className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[10px] font-medium text-text-tertiary uppercase tracking-[0.2em] bg-surface-glass px-1.5 py-0.5 rounded border border-surface-border">
+                          <span className="text-micro font-medium text-text-tertiary uppercase tracking-[0.2em] bg-surface-glass px-1.5 py-0.5 rounded border border-surface-border">
                             {label}
                           </span>
-                          <span className="text-[9px] text-status-danger/70 line-through">{formatAuditValue(field, change.old, users)}</span>
+                          <span className="text-micro text-status-danger/70 line-through">{formatAuditValue(field, change.old, users)}</span>
                           <ArrowRight className="w-2.5 h-2.5 text-text-tertiary flex-shrink-0" />
-                          <span className="text-[9px] font-medium text-status-success">{formatAuditValue(field, change.new, users)}</span>
+                          <span className="text-micro font-medium text-status-success">{formatAuditValue(field, change.new, users)}</span>
                         </div>
                       );
                     })}

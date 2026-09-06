@@ -1,8 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X, Info, CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { createAudioContext } from '../lib/audio';
-import { motion } from 'motion/react';
+import { motion, useAnimationControls } from 'motion/react';
+import { useUIStore } from '../store/uiStore';
+
+const TOAST_DURATION_MS = 6000;
 
 export interface ToastData {
   id: string;
@@ -20,12 +23,42 @@ interface ExecutiveToastProps {
 }
 
 export const ExecutiveToast: React.FC<ExecutiveToastProps> = ({ toast, onClose, onClick }) => {
+  const soundEnabled = useUIStore((state) => state.soundEnabled);
+
   const handleToastClick = () => {
     if (toast.onClick) {
       toast.onClick();
     } else {
       onClick(toast.taskId);
     }
+  };
+
+  const progressControls = useAnimationControls();
+  const remainingRef = useRef(TOAST_DURATION_MS);
+  const startedAtRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startTimer = (duration: number) => {
+    startedAtRef.current = Date.now();
+    timerRef.current = setTimeout(() => onClose(toast.id), duration);
+    void progressControls.start({ width: '0%' }, { duration: duration / 1000, ease: 'linear' });
+  };
+
+  const pauseTimer = () => {
+    if (timerRef.current === null) return;
+    clearTimeout(timerRef.current);
+    timerRef.current = null;
+    remainingRef.current = Math.max(remainingRef.current - (Date.now() - startedAtRef.current), 0);
+    progressControls.stop();
+  };
+
+  const resumeTimer = () => {
+    if (timerRef.current !== null) return;
+    if (remainingRef.current <= 0) {
+      onClose(toast.id);
+      return;
+    }
+    startTimer(remainingRef.current);
   };
 
   useEffect(() => {
@@ -38,33 +71,33 @@ export const ExecutiveToast: React.FC<ExecutiveToastProps> = ({ toast, onClose, 
     // kapatılır — ikisi de tetiklenirse close() ikinci çağrıda hata
     // fırlatabilir, bu yüzden sessizce yutulur.
     let audioCtx: AudioContext | null = null;
-    try {
-      audioCtx = createAudioContext();
-      if (!audioCtx) throw new Error('AudioContext desteklenmiyor');
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
+    if (soundEnabled) {
+      try {
+        audioCtx = createAudioContext();
+        if (!audioCtx) throw new Error('AudioContext desteklenmiyor');
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
 
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
-      gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+        gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
 
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.4);
-      oscillator.onended = () => { audioCtx?.close().catch(() => {}); };
-    } catch {
-      console.warn('Audio feedback blocked');
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.4);
+        oscillator.onended = () => { audioCtx?.close().catch(() => {}); };
+      } catch {
+        console.warn('Audio feedback blocked');
+      }
     }
 
-    const timer = setTimeout(() => {
-      onClose(toast.id);
-    }, 6000);
+    startTimer(TOAST_DURATION_MS);
 
     return () => {
-      clearTimeout(timer);
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
       audioCtx?.close().catch(() => {});
     };
   }, [toast.id, onClose]);
@@ -108,6 +141,17 @@ export const ExecutiveToast: React.FC<ExecutiveToastProps> = ({ toast, onClose, 
           handleToastClick();
         }
       }}
+      onMouseEnter={pauseTimer}
+      onMouseLeave={resumeTimer}
+      onFocus={pauseTimer}
+      onBlur={(e) => {
+        // Odak toast içindeki başka bir elemana (ör. kapat butonuna) taşınıyorsa
+        // hâlâ toast'la etkileşimdeyiz demektir — yalnızca odak tamamen dışarı
+        // çıktığında zamanlayıcıyı devam ettir.
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          resumeTimer();
+        }
+      }}
     >
       <div className="p-6">
         <div className="flex items-start gap-5">
@@ -120,10 +164,10 @@ export const ExecutiveToast: React.FC<ExecutiveToastProps> = ({ toast, onClose, 
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-medium text-text-heading uppercase tracking-[0.2em] font-serif">
+            <p className="text-caption font-medium text-text-heading uppercase tracking-[0.2em] font-serif">
               {toast.title}
             </p>
-            <p className="mt-1 text-[13px] font-light text-text-muted leading-relaxed">
+            <p className="mt-1 text-body font-light text-text-muted leading-relaxed">
               {toast.body}
             </p>
           </div>
@@ -140,10 +184,9 @@ export const ExecutiveToast: React.FC<ExecutiveToastProps> = ({ toast, onClose, 
         </div>
       </div>
       <div className="h-1 w-full bg-makam-border/5">
-        <motion.div 
+        <motion.div
           initial={{ width: "100%" }}
-          animate={{ width: "0%" }}
-          transition={{ duration: 6, ease: "linear" }}
+          animate={progressControls}
           className={cn(
             "h-full bg-gradient-to-r",
             toast.type === 'danger' ? "from-status-danger to-status-danger/40" : "from-executive-blue to-executive-gold"

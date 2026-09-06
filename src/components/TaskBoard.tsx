@@ -13,8 +13,10 @@ import { TaskCardSkeleton } from './ui/Skeleton';
 import { Badge } from './ui/Badge';
 import { EmptyState } from './ui/EmptyState';
 import { Button } from './ui/Button';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 import { useDataStore } from '../store/dataStore';
 import { useUIStore } from '../store/uiStore';
+import type { TaskBoardFilters } from '../hooks/useTaskBoardFilters';
 import { isTaskInCrisis } from '../lib/executiveMetrics';
 
 // Sanallaştırma (react-window) sabitleri — büyük görev listelerinde (ör.
@@ -32,6 +34,10 @@ const DESKTOP_LIST_MAX_HEIGHT = 640;
 const DESKTOP_GRID_TEMPLATE = '40px 180px minmax(0,1fr) 190px 130px 160px 64px';
 const MOBILE_ROW_HEIGHT = 80;
 const MOBILE_LIST_MAX_HEIGHT = 560;
+// pendingTaskIds verilmediğinde (ör. testlerde) her render'da YENİ bir Set
+// oluşturmamak için paylaşılan sabit — aksi halde referans her seferinde
+// değişip aşağıdaki useMemo'ların hiç önbelleklenmesini engellerdi.
+const EMPTY_PENDING_TASK_IDS = new Set<string>();
 
 interface TaskRowData {
   tasks: Task[];
@@ -40,9 +46,26 @@ interface TaskRowData {
   /** Toplu seçim (P2-18) — seçili görev id'leri ve tekil satır toggle'ı. */
   selectedIds: Set<string>;
   onToggleSelect: (taskId: string) => void;
+  /** Çevrimdışı kuyrukta bu talimatı hedefleyen bekleyen bir mutasyon varsa
+   *  (bkz. tasarım denetimi F8) — satırda "Senkron Bekliyor" rozeti gösterir.
+   *  Eskiden iyimser olarak listeye bindirilen bu değişiklikler sunucuya
+   *  ulaşmamış olsa bile "kesinleşmiş" görünüyordu. */
+  pendingTaskIds: Set<string>;
 }
 
-function MobileTaskRow({ index, style, ariaAttributes, tasks, usersById, onViewTask, selectedIds, onToggleSelect }: RowComponentProps<TaskRowData>): ReactElement | null {
+function SyncPendingBadge() {
+  return (
+    <span
+      title="Senkron bekliyor — bu değişiklik henüz sunucuya ulaşmadı"
+      className="inline-flex items-center gap-1 text-micro font-bold uppercase tracking-[0.15em] px-1.5 py-0.5 rounded-full bg-executive-gold/10 text-[color:var(--gold-text)] border border-executive-gold/20 flex-shrink-0"
+    >
+      <span className="w-1 h-1 rounded-full bg-executive-gold animate-pulse" aria-hidden="true" />
+      Senkron Bekliyor
+    </span>
+  );
+}
+
+function MobileTaskRow({ index, style, ariaAttributes, tasks, usersById, onViewTask, selectedIds, onToggleSelect, pendingTaskIds }: RowComponentProps<TaskRowData>): ReactElement | null {
   const task = tasks[index];
   if (!task) return null;
   const assignee = usersById.get(task.assigneeId);
@@ -89,13 +112,16 @@ function MobileTaskRow({ index, style, ariaAttributes, tasks, usersById, onViewT
           'bg-surface-border'
         )} />
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-medium text-executive-blue line-clamp-1 tracking-tight font-serif group-hover:text-executive-blue">
-            {task.title}
-          </p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="text-body font-medium text-executive-blue line-clamp-1 tracking-tight font-serif group-hover:text-executive-blue min-w-0">
+              {task.title}
+            </p>
+            {pendingTaskIds.has(task.id) && <SyncPendingBadge />}
+          </div>
           <div className="flex items-center gap-2 mt-1 min-w-0">
-            <span className="text-[9px] text-text-tertiary truncate min-w-0">{assignee?.fullName || 'Atanmamış'}</span>
+            <span className="text-micro text-text-tertiary truncate min-w-0">{assignee?.fullName || 'Atanmamış'}</span>
             <span className={cn(
-              'text-[8px] font-medium uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-md whitespace-nowrap flex-shrink-0',
+              'text-micro font-medium uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-md whitespace-nowrap flex-shrink-0',
               isCrisis ? 'bg-status-danger/10 text-status-danger' : 'bg-surface-glass text-text-tertiary'
             )}>
               {isCrisis ? 'SLA İhlali' : format(task.deadline, 'd MMM', { locale: tr })}
@@ -108,15 +134,20 @@ function MobileTaskRow({ index, style, ariaAttributes, tasks, usersById, onViewT
   );
 }
 
-function DesktopTaskRow({ index, style, ariaAttributes, tasks, usersById, onViewTask, selectedIds, onToggleSelect }: RowComponentProps<TaskRowData>): ReactElement | null {
+function DesktopTaskRow({ index, style, tasks, usersById, onViewTask, selectedIds, onToggleSelect, pendingTaskIds }: RowComponentProps<TaskRowData>): ReactElement | null {
   const task = tasks[index];
   if (!task) return null;
   const assignee = usersById.get(task.assigneeId);
   const isCrisis = isTaskInCrisis(task, Date.now());
   const isSelected = selectedIds.has(task.id);
+  // react-window'un ariaAttributes'ı (role="listitem" + aria-posinset/
+  // aria-setsize) BİLİNÇLİ OLARAK hiç spread edilmez: role aşağıda "row"a
+  // çevrilir ve posinset/setsize yalnızca listitem/treegrid satırları için
+  // geçerlidir — role="row" ile birlikte kullanıldığında "aria-allowed-attr"
+  // (serious) ihlaline dönüşüyordu (bkz. tasarım denetimi F3, canlı taramada
+  // bulundu).
   return (
     <div
-      {...ariaAttributes}
       role="row"
       tabIndex={0}
       onClick={() => onViewTask(task)}
@@ -172,10 +203,13 @@ function DesktopTaskRow({ index, style, ariaAttributes, tasks, usersById, onView
       {/* Title + description */}
       <div role="cell" className="px-4 py-3 min-w-0">
         <div className="flex flex-col gap-0.5 max-w-[320px]">
-          <span className="text-[13px] font-medium text-executive-blue group-hover:text-executive-blue tracking-tight font-serif line-clamp-1">
-            {task.title}
-          </span>
-          <span className="text-[10px] text-text-tertiary font-light line-clamp-1">{task.description}</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-body font-medium text-executive-blue group-hover:text-executive-blue tracking-tight font-serif line-clamp-1 min-w-0">
+              {task.title}
+            </span>
+            {pendingTaskIds.has(task.id) && <SyncPendingBadge />}
+          </div>
+          <span className="text-micro text-text-tertiary font-light line-clamp-1">{task.description}</span>
         </div>
       </div>
 
@@ -188,7 +222,7 @@ function DesktopTaskRow({ index, style, ariaAttributes, tasks, usersById, onView
             photoURL={assignee?.photoURL}
             size="xs"
           />
-          <span className="text-[11px] font-normal text-executive-blue tracking-tight whitespace-nowrap">
+          <span className="text-caption font-normal text-executive-blue tracking-tight whitespace-nowrap">
             {assignee?.fullName || 'Atanmamış'}
           </span>
         </div>
@@ -213,19 +247,23 @@ function DesktopTaskRow({ index, style, ariaAttributes, tasks, usersById, onView
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-1.5">
             <Clock className={cn('w-3 h-3 stroke-[1.2]', isCrisis ? 'text-status-danger animate-pulse' : 'text-text-tertiary')} />
-            <span className={cn('text-[11px] font-light tabular-nums tracking-tight', isCrisis ? 'text-status-danger' : 'text-executive-blue')}>
+            <span className={cn('text-caption font-light tabular-nums tracking-tight', isCrisis ? 'text-status-danger' : 'text-executive-blue')}>
               {format(task.deadline, 'd MMM yyyy', { locale: tr })}
             </span>
           </div>
-          {isCrisis && <span className="text-[8px] font-medium text-status-danger uppercase tracking-[0.2em]">SLA İhlali</span>}
+          {isCrisis && <span className="text-micro font-medium text-status-danger uppercase tracking-[0.2em]">SLA İhlali</span>}
         </div>
       </div>
 
-      {/* Arrow */}
+      {/* Arrow — yalnızca dekoratif: satırın kendisi zaten role="row" + onClick
+          ile tıklanabilir/klavye-erişilebilir, bu ok ayrı bir eylem taşımaz.
+          <button> olması axe-core'da "button-name" (critical) ihlaliydi —
+          erişilebilir adı yoktu (bkz. tasarım denetimi, F1'in canlı ortamda
+          bulunan yan etkisi). */}
       <div role="cell" className="px-4 py-3 text-right">
-        <button className="w-7 h-7 rounded-full bg-makam-glass border border-executive-blue/[0.05] flex items-center justify-center text-text-tertiary group-hover:bg-executive-gold group-hover:text-[color:var(--btn-primary-text)] group-hover:border-transparent transition-all duration-300 shadow-sm ml-auto">
+        <div aria-hidden="true" className="w-7 h-7 rounded-full bg-makam-glass border border-executive-blue/[0.05] flex items-center justify-center text-text-tertiary group-hover:bg-executive-gold group-hover:text-[color:var(--btn-primary-text)] group-hover:border-transparent transition-all duration-300 shadow-sm ml-auto">
           <ArrowRight className="w-3 h-3 stroke-[2]" />
-        </button>
+        </div>
       </div>
     </div>
   );
@@ -250,6 +288,19 @@ interface TaskBoardProps {
   ) => Promise<void>;
   /** Toplu yeniden atama (P2-18) — useAppHandlers.updateTask, AYNEN kullanılır. */
   updateTask: (taskId: string, data: Partial<Task>, options?: { silent?: boolean }) => Promise<void>;
+  /** Arama/öncelik/durum/sorumlu filtreleri — AuthenticatedApp'te
+   *  `useTaskBoardFilters` (URL tabanlı) tarafından yönetilir ve buraya
+   *  kontrollü prop olarak geçirilir. TaskBoard kendisi router'dan BİLİNÇLİ
+   *  OLARAK habersiz kalır (bkz. CLAUDE.md — testleri Router sarmalayıcısı
+   *  gerektirmesin diye); bu yüzden useSearchParams burada DEĞİL, çağıranda
+   *  kullanılır (bkz. tasarım denetimi F20 — eskiden bileşen-içi useState'ti,
+   *  sekme değiştirip dönünce veya Reports'tan bir sorumluya filtrelenmiş
+   *  gelindiğinde (bkz. F12) sıfırlanıyordu). */
+  filters: TaskBoardFilters;
+  onFiltersChange: (partial: Partial<TaskBoardFilters>) => void;
+  /** Çevrimdışı kuyrukta bekleyen mutasyonların hedef talimat id'leri (bkz.
+   *  tasarım denetimi F8) — verilmezse hiçbir satırda rozet gösterilmez. */
+  pendingTaskIds?: Set<string>;
 }
 
 export const TaskBoard = ({
@@ -257,13 +308,15 @@ export const TaskBoard = ({
   onAddTask, onViewTask,
   isLoading = false,
   updateTaskStatus, updateTask,
+  filters, onFiltersChange,
+  pendingTaskIds = EMPTY_PENDING_TASK_IDS,
 }: TaskBoardProps) => {
-  const [search, setSearch] = useState('');
+  const { search, priority: priorityFilter, status: statusFilter, assignee: assigneeFilter } = filters;
+  const setSearch = useCallback((value: string) => onFiltersChange({ search: value }), [onFiltersChange]);
+  const setPriorityFilter = useCallback((value: string) => onFiltersChange({ priority: value }), [onFiltersChange]);
+  const setStatusFilter = useCallback((value: string) => onFiltersChange({ status: value }), [onFiltersChange]);
+  const setAssigneeFilter = useCallback((value: string) => onFiltersChange({ assignee: value }), [onFiltersChange]);
   const [showSubtasks, setShowSubtasks] = useState(true);
-  const [priorityFilter, setPriorityFilter] = useState<string>('All');
-  const [assigneeFilter, setAssigneeFilter] = useState<string>('All');
-  // #12 — Durum filtresi
-  const [statusFilter, setStatusFilter] = useState<string>('All');
   // Selector bazlı okuma — whole-store `useDataStore()` tasks/stats/blockers
   // gibi ilgisiz her alan değişiminde gereksiz yeniden render'a yol açıyordu
   // (bkz. AppHeader.tsx'teki aynı desen / kod denetimi).
@@ -327,11 +380,8 @@ export const TaskBoard = ({
   const hasActiveFilter = priorityFilter !== 'All' || assigneeFilter !== 'All' || statusFilter !== 'All' || search !== '';
 
   const resetFilters = useCallback(() => {
-    setPriorityFilter('All');
-    setAssigneeFilter('All');
-    setStatusFilter('All');
-    setSearch('');
-  }, []);
+    onFiltersChange({ priority: 'All', assignee: 'All', status: 'All', search: '' });
+  }, [onFiltersChange]);
 
   // ── Toplu Seçim / Toplu İşlem (P2-18) ─────────────────────────────────────
   // NOT: Ek bir rol bazlı seçim kısıtlaması burada UYGULANMIYOR — yukarıdaki
@@ -346,6 +396,13 @@ export const TaskBoard = ({
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [bulkStatusTarget, setBulkStatusTarget] = useState<TaskStatus | ''>('');
   const [bulkAssigneeTarget, setBulkAssigneeTarget] = useState<string>('');
+  // COMPLETED/CANCELLED terminal (geri dönüşsüz) durumlar — en yüksek etkili
+  // toplu işlem eskiden en zayıf korumaya sahipti (tekil silme modal onayı
+  // isterken N görevi toplu terminal duruma geçirmek hiç onay istemiyordu,
+  // bkz. tasarım denetimi F9). Yalnızca terminal hedeflerde yazarak doğrulama
+  // araya girer; geri alınabilir geçişler (BLOCKED/IN_PROGRESS vb.) eskisi
+  // gibi doğrudan uygulanır.
+  const [isBulkTerminalConfirmOpen, setIsBulkTerminalConfirmOpen] = useState(false);
   const addToast = useUIStore(s => s.addToast);
 
   const toggleSelect = useCallback((taskId: string) => {
@@ -457,6 +514,19 @@ export const TaskBoard = ({
     }
   }, [bulkStatusTarget, selectedTasks, updateTaskStatus, summarizeBulkResult]);
 
+  const isBulkStatusTargetTerminal = bulkStatusTarget === 'COMPLETED' || bulkStatusTarget === 'CANCELLED';
+  const bulkTerminalConfirmPhrase = bulkStatusTarget
+    ? `${selectedTasks.length} TALİMATI ${STATUS_LABELS[bulkStatusTarget].toUpperCase()}`
+    : '';
+
+  const handleBulkStatusButtonClick = useCallback(() => {
+    if (isBulkStatusTargetTerminal) {
+      setIsBulkTerminalConfirmOpen(true);
+      return;
+    }
+    void handleBulkStatusApply();
+  }, [isBulkStatusTargetTerminal, handleBulkStatusApply]);
+
   const handleBulkReassignApply = useCallback(async () => {
     if (!bulkAssigneeTarget || selectedTasks.length === 0) return;
     const targets = selectedTasks;
@@ -505,12 +575,12 @@ export const TaskBoard = ({
 
   const rowKey = useCallback((index: number, data: TaskRowData) => data.tasks[index]?.id ?? index, []);
   const mobileRowProps = useMemo<TaskRowData>(
-    () => ({ tasks: filteredTasks, usersById, onViewTask, selectedIds, onToggleSelect: toggleSelect }),
-    [filteredTasks, usersById, onViewTask, selectedIds, toggleSelect]
+    () => ({ tasks: filteredTasks, usersById, onViewTask, selectedIds, onToggleSelect: toggleSelect, pendingTaskIds }),
+    [filteredTasks, usersById, onViewTask, selectedIds, toggleSelect, pendingTaskIds]
   );
   const desktopRowProps = useMemo<TaskRowData>(
-    () => ({ tasks: filteredTasks, usersById, onViewTask, selectedIds, onToggleSelect: toggleSelect }),
-    [filteredTasks, usersById, onViewTask, selectedIds, toggleSelect]
+    () => ({ tasks: filteredTasks, usersById, onViewTask, selectedIds, onToggleSelect: toggleSelect, pendingTaskIds }),
+    [filteredTasks, usersById, onViewTask, selectedIds, toggleSelect, pendingTaskIds]
   );
   const mobileListHeight = Math.min(filteredTasks.length * MOBILE_ROW_HEIGHT, MOBILE_LIST_MAX_HEIGHT);
   const desktopListHeight = Math.min(filteredTasks.length * DESKTOP_ROW_HEIGHT, DESKTOP_LIST_MAX_HEIGHT);
@@ -525,10 +595,10 @@ export const TaskBoard = ({
             <Layers className="w-4 h-4 text-[color:var(--executive-blue-text)] stroke-[1.5]" />
           </div>
           <div>
-            <span className="text-[10px] font-semibold text-executive-blue uppercase tracking-[0.22em] block leading-none">
+            <span className="text-micro font-semibold text-executive-blue uppercase tracking-[0.22em] block leading-none">
               OPERASYONEL DENETİM
             </span>
-            <span className="text-[9px] text-text-tertiary uppercase tracking-[0.18em]">
+            <span className="text-micro text-text-tertiary uppercase tracking-[0.18em]">
               {filteredTasks.length} Talimat
             </span>
           </div>
@@ -538,11 +608,14 @@ export const TaskBoard = ({
           {/* Subtask toggle — compact pill */}
           <div className="flex items-center gap-2 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-full px-3 h-9 shadow-sm">
             <Layers className={cn('w-3.5 h-3.5 stroke-[1.5] transition-colors', showSubtasks ? 'text-executive-blue' : 'text-text-tertiary')} />
-            <span className="text-[9px] font-medium text-text-tertiary uppercase tracking-[0.25em] hidden sm:block">Alt Talimatlar</span>
+            <span className="text-micro font-medium text-text-tertiary uppercase tracking-[0.25em] hidden sm:block">Alt Talimatlar</span>
             <button
               onClick={() => setShowSubtasks(!showSubtasks)}
+              role="switch"
+              aria-checked={showSubtasks}
+              aria-label="Alt talimatları göster"
               className={cn(
-                'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300',
+                'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2',
                 showSubtasks ? 'bg-executive-blue' : 'bg-surface-border'
               )}
             >
@@ -556,7 +629,7 @@ export const TaskBoard = ({
           {/* Add task button */}
           <button
             onClick={onAddTask}
-            className="flex items-center gap-1.5 px-4 h-9 rounded-full bg-executive-gold text-[color:var(--btn-primary-text)] text-[9px] font-semibold uppercase tracking-[0.16em] shadow-lg shadow-executive-gold/15 hover:shadow-xl hover:bg-executive-gold-hover hover:scale-[1.01] active:scale-[0.98] transition-all duration-300"
+            className="flex items-center gap-1.5 px-4 h-9 rounded-full bg-executive-gold text-[color:var(--btn-primary-text)] text-micro font-semibold uppercase tracking-[0.16em] shadow-lg shadow-executive-gold/15 hover:shadow-xl hover:bg-executive-gold-hover hover:scale-[1.01] active:scale-[0.98] transition-all duration-300"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2]" />
             <span className="hidden sm:block">Yeni Talimat</span>
@@ -575,7 +648,7 @@ export const TaskBoard = ({
             aria-label="Talimatları ara"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 h-8 bg-makam-glass border border-executive-blue/[0.05] rounded-xl focus:ring-4 focus:ring-executive-blue/[0.04] focus:border-executive-blue/20 transition-all text-[12px] font-light text-executive-blue placeholder:text-text-tertiary outline-none"
+            className="w-full pl-9 pr-3 h-8 bg-makam-glass border border-executive-blue/[0.05] rounded-xl focus:ring-4 focus:ring-executive-blue/[0.04] focus:border-executive-blue/20 transition-all text-body-sm font-light text-executive-blue placeholder:text-text-tertiary outline-none"
           />
         </div>
 
@@ -591,7 +664,7 @@ export const TaskBoard = ({
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
             aria-label="Öncelik filtresi"
-            className="bg-transparent border-none text-[9px] font-medium text-text-muted uppercase tracking-[0.12em] sm:tracking-[0.25em] focus:ring-0 cursor-pointer outline-none min-w-0 w-full"
+            className="bg-transparent border-none text-micro font-medium text-text-muted uppercase tracking-[0.12em] sm:tracking-[0.25em] focus:ring-0 cursor-pointer outline-none min-w-0 w-full"
           >
             <option value="All" className="bg-surface-base text-text-heading">TÜM ÖNCELİKLER</option>
             {Object.entries(PRIORITY_LABELS).map(([val, label]) => (
@@ -611,7 +684,7 @@ export const TaskBoard = ({
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             aria-label="Durum filtresi"
-            className="bg-transparent border-none text-[9px] font-medium text-text-muted uppercase tracking-[0.12em] sm:tracking-[0.25em] focus:ring-0 cursor-pointer outline-none min-w-0 w-full"
+            className="bg-transparent border-none text-micro font-medium text-text-muted uppercase tracking-[0.12em] sm:tracking-[0.25em] focus:ring-0 cursor-pointer outline-none min-w-0 w-full"
           >
             <option value="All" className="bg-surface-base text-text-heading">TÜM DURUMLAR</option>
             {Object.entries(STATUS_LABELS).map(([val, label]) => (
@@ -631,7 +704,7 @@ export const TaskBoard = ({
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
             aria-label="Sorumlu filtresi"
-            className="bg-transparent border-none text-[9px] font-medium text-text-muted uppercase tracking-[0.12em] sm:tracking-[0.25em] focus:ring-0 cursor-pointer outline-none min-w-0 w-full"
+            className="bg-transparent border-none text-micro font-medium text-text-muted uppercase tracking-[0.12em] sm:tracking-[0.25em] focus:ring-0 cursor-pointer outline-none min-w-0 w-full"
           >
             <option value="All" className="bg-surface-base text-text-heading">TÜM SORUMLULAR</option>
             {users.map(u => (
@@ -643,7 +716,7 @@ export const TaskBoard = ({
         {hasActiveFilter && (
           <button
             onClick={resetFilters}
-            className="text-[9px] font-medium text-status-danger/70 hover:text-status-danger px-3 uppercase tracking-[0.12em] sm:tracking-[0.25em] transition-colors h-8 flex items-center justify-center gap-1 flex-1 sm:flex-none"
+            className="text-micro font-medium text-status-danger/70 hover:text-status-danger px-3 uppercase tracking-[0.12em] sm:tracking-[0.25em] transition-colors h-8 flex items-center justify-center gap-1 flex-1 sm:flex-none"
           >
             <X className="w-3 h-3" /> Sıfırla
           </button>
@@ -657,14 +730,14 @@ export const TaskBoard = ({
             <button
               onClick={selectAllFiltered}
               disabled={filteredTasks.every(t => selectedIds.has(t.id))}
-              className="text-[9px] font-medium text-executive-blue/70 hover:text-executive-blue px-2.5 h-8 rounded-lg hover:bg-executive-blue/5 uppercase tracking-[0.12em] sm:tracking-[0.2em] transition-colors disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
+              className="text-micro font-medium text-executive-blue/70 hover:text-executive-blue px-2.5 h-8 rounded-lg hover:bg-executive-blue/5 uppercase tracking-[0.12em] sm:tracking-[0.2em] transition-colors disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
             >
               Tümünü Seç
             </button>
             <button
               onClick={clearSelection}
               disabled={selectedIds.size === 0}
-              className="text-[9px] font-medium text-text-tertiary hover:text-status-danger px-2.5 h-8 rounded-lg hover:bg-status-danger/5 uppercase tracking-[0.12em] sm:tracking-[0.2em] transition-colors disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
+              className="text-micro font-medium text-text-tertiary hover:text-status-danger px-2.5 h-8 rounded-lg hover:bg-status-danger/5 uppercase tracking-[0.12em] sm:tracking-[0.2em] transition-colors disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
             >
               Seçimi Temizle
             </button>
@@ -711,16 +784,20 @@ export const TaskBoard = ({
           >
             {['', 'Durum', 'Talimat Tanımı', 'Sorumlu', 'Önem', 'Mühlet', ''].map((h, i) => (
               <div key={`${h}-${i}`} role="columnheader" className={cn(
-                'px-4 py-3 text-[8px] font-semibold text-text-tertiary uppercase tracking-[0.18em]',
+                'px-4 py-3 text-micro font-semibold text-text-tertiary uppercase tracking-[0.18em]',
                 h === '' && i > 0 && 'text-right'
               )}>
                 {h}
               </div>
             ))}
           </div>
-          <div role="rowgroup">
-            {isLoading ? (
-              [...Array(7)].map((_, i) => (
+          {isLoading ? (
+            // Dekoratif yükleme iskeleti — gerçek satır/sütun verisi taşımaz,
+            // bu yüzden role="rowgroup"/"row" ATANMAZ (bkz. tasarım denetimi:
+            // react-window'un kendi role="list" varsayılanının BENZER şekilde
+            // role="table" içinde geçersiz olması). Ekran okuyucudan tamamen gizlenir.
+            <div aria-hidden="true">
+              {[...Array(7)].map((_, i) => (
                 <div key={i} style={{ gridTemplateColumns: DESKTOP_GRID_TEMPLATE }} className="grid animate-pulse">
                   {[...Array(7)].map((__, j) => (
                     <div key={j} className="px-4 py-3.5">
@@ -728,20 +805,33 @@ export const TaskBoard = ({
                     </div>
                   ))}
                 </div>
-              ))
-            ) : filteredTasks.length === 0 ? (
-              emptyStateNode
-            ) : (
-              <List
-                rowComponent={DesktopTaskRow}
-                rowCount={filteredTasks.length}
-                rowHeight={DESKTOP_ROW_HEIGHT}
-                rowProps={desktopRowProps}
-                rowKey={rowKey}
-                style={{ height: desktopListHeight }}
-              />
-            )}
-          </div>
+              ))}
+            </div>
+          ) : filteredTasks.length === 0 ? (
+            <div role="rowgroup">
+              <div role="row"><div role="cell">{emptyStateNode}</div></div>
+            </div>
+          ) : (
+            // role="rowgroup" doğrudan List'e VERİLİR (react-window'un kendi
+            // hardcoded role="list" varsayılanını ezer) — eskiden bu List'i
+            // saran ayrı bir <div role="rowgroup"> vardı ve List'in kendi
+            // role="list" konteyneri bunun İÇİNE yerleşiyordu: role="row"
+            // çocukları role="list" için geçersiz (list yalnızca listitem
+            // kabul eder) VE role="table" > role="rowgroup" > role="list"
+            // zincirinde "row" için gereken doğrudan grid/rowgroup/table
+            // atası kayboluyordu — axe-core'un ilk kez taradığı bu ekranda
+            // (bkz. tasarım denetimi F3) iki ayrı "critical" ihlal olarak
+            // çıktı (aria-required-children, aria-required-parent).
+            <List
+              role="rowgroup"
+              rowComponent={DesktopTaskRow}
+              rowCount={filteredTasks.length}
+              rowHeight={DESKTOP_ROW_HEIGHT}
+              rowProps={desktopRowProps}
+              rowKey={rowKey}
+              style={{ height: desktopListHeight }}
+            />
+          )}
         </div>
       </motion.div>
 
@@ -751,7 +841,7 @@ export const TaskBoard = ({
           <button
             onClick={handleLoadMore}
             disabled={isLoadingMore}
-            className="flex items-center gap-2 px-6 py-2 bg-makam-glass backdrop-blur-xl border border-executive-blue/10 rounded-full text-[10px] font-medium text-executive-blue uppercase tracking-widest hover:bg-executive-blue hover:text-[color:var(--executive-blue-text)] transition-all shadow-sm disabled:opacity-60 disabled:pointer-events-none"
+            className="flex items-center gap-2 px-6 py-2 bg-makam-glass backdrop-blur-xl border border-executive-blue/10 rounded-full text-micro font-medium text-executive-blue uppercase tracking-widest hover:bg-executive-blue hover:text-[color:var(--executive-blue-text)] transition-all shadow-sm disabled:opacity-60 disabled:pointer-events-none"
           >
             {isLoadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
             Daha Fazla Talimat Yükle
@@ -772,7 +862,7 @@ export const TaskBoard = ({
         >
           <div className="flex flex-col gap-3 bg-makam-glass backdrop-blur-[30px] backdrop-saturate-[180%] border border-surface-border rounded-2xl shadow-[0_12px_40px_-10px_rgba(22,21,19,0.14),0_0_0_0.5px_rgba(22,21,19,0.04)] p-4">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold text-executive-blue uppercase tracking-[0.14em]">
+              <span className="text-caption font-semibold text-executive-blue uppercase tracking-[0.14em]">
                 {selectedIds.size} Talimat Seçildi
               </span>
               <button
@@ -793,7 +883,7 @@ export const TaskBoard = ({
                   onChange={(e) => setBulkStatusTarget(e.target.value as TaskStatus | '')}
                   disabled={isBulkProcessing || bulkStatusOptions.length === 0}
                   aria-label="Toplu durum hedefi"
-                  className="flex-1 min-w-0 h-9 px-3 rounded-xl bg-makam-glass border border-executive-blue/[0.08] text-[11px] text-executive-blue outline-none disabled:opacity-50"
+                  className="flex-1 min-w-0 h-9 px-3 rounded-xl bg-makam-glass border border-executive-blue/[0.08] text-caption text-executive-blue outline-none disabled:opacity-50"
                 >
                   <option value="">
                     {bulkStatusOptions.length === 0 ? 'Bu durumdan geçiş yok' : 'Durum seçin…'}
@@ -806,13 +896,13 @@ export const TaskBoard = ({
                   size="sm" variant="secondary"
                   isLoading={isBulkProcessing}
                   disabled={!bulkStatusTarget}
-                  onClick={handleBulkStatusApply}
+                  onClick={handleBulkStatusButtonClick}
                 >
                   Uygula
                 </Button>
               </div>
             ) : (
-              <p className="text-[10px] text-text-tertiary leading-relaxed">
+              <p className="text-micro text-text-tertiary leading-relaxed">
                 Seçili talimatlar farklı durumlarda — toplu durum değişikliği yalnızca hepsi AYNI mevcut durumdayken kullanılabilir.
               </p>
             )}
@@ -825,7 +915,7 @@ export const TaskBoard = ({
                   onChange={(e) => setBulkAssigneeTarget(e.target.value)}
                   disabled={isBulkProcessing}
                   aria-label="Toplu yeniden atama hedefi"
-                  className="flex-1 min-w-0 h-9 px-3 rounded-xl bg-makam-glass border border-executive-blue/[0.08] text-[11px] text-executive-blue outline-none disabled:opacity-50"
+                  className="flex-1 min-w-0 h-9 px-3 rounded-xl bg-makam-glass border border-executive-blue/[0.08] text-caption text-executive-blue outline-none disabled:opacity-50"
                 >
                   <option value="">Yeniden ata…</option>
                   {assignableUsers.map(u => (
@@ -845,6 +935,19 @@ export const TaskBoard = ({
           </div>
         </div>
       )}
+
+      {/* Terminal (COMPLETED/CANCELLED) toplu geçişler geri alınamaz ve durum
+          makinesinde bu iki durumdan çıkış yoktur — yazarak doğrulama, bu en
+          yüksek etkili toplu işleme en az tekil silme kadar sürtünme ekler. */}
+      <ConfirmDialog
+        isOpen={isBulkTerminalConfirmOpen}
+        onClose={() => setIsBulkTerminalConfirmOpen(false)}
+        onConfirm={() => { setIsBulkTerminalConfirmOpen(false); void handleBulkStatusApply(); }}
+        title="Toplu Durum Değişikliğini Onayla"
+        message={bulkStatusTarget ? `${selectedTasks.length} talimatı "${STATUS_LABELS[bulkStatusTarget]}" durumuna geçirmek üzeresiniz. Bu durum geri dönüşsüzdür — talimatlar bu işlemden sonra yeniden açılamaz.` : ''}
+        confirmLabel="Toplu Geçişi Uygula"
+        confirmPhrase={bulkTerminalConfirmPhrase}
+      />
     </div>
   );
 };

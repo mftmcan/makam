@@ -15,10 +15,11 @@ import { SettingsCard } from './ui/SettingsCard';
 import { ActionButton } from './ui/ActionButton';
 import { StatusBanner } from './ui/StatusBanner';
 import { Skeleton } from './ui/Skeleton';
-import { Modal } from './ui/Modal';
-import { Button } from './ui/Button';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { SegmentedTabs } from './ui/SegmentedTabs';
 import { Input } from './ui/Input';
 import { logger } from '../lib/logger';
+import { useUIStore } from '../store/uiStore';
 import { DEFAULT_SESSION_TIMEOUT_MS, SESSION_TIMEOUT_MIN_MS, SESSION_TIMEOUT_MAX_MS } from '../constants';
 
 interface SettingsProps {
@@ -30,6 +31,15 @@ interface SettingsProps {
   isLoading?: boolean;
   /** Yürürlükteki oturum zaman aşımı (system/settings). Verilmezse varsayılan. */
   sessionTimeoutMs?: number;
+  /**
+   * Verilirse aktif alt sekme dışarıdan kontrol edilir (bkz. tasarım denetimi
+   * F32 — AuthenticatedApp bunu `useTabSearchParam` ile `?tab=`e bağlar, bir
+   * ayar sekmesi derin link/yenileme sonrası kalıcı olsun diye). Verilmezse
+   * bileşen kendi iç state'ini kullanır — Settings.test.tsx gibi router
+   * bağlamı olmayan çağıranlar etkilenmez.
+   */
+  activeSubTab?: 'general' | 'sla' | 'security' | 'data';
+  onActiveSubTabChange?: (tab: 'general' | 'sla' | 'security' | 'data') => void;
 }
 
 const AUDIT_LOG_EXPORT_PAGE_SIZE = 500;
@@ -64,8 +74,13 @@ const SettingsSkeleton = () => (
 );
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, isLoading = false, sessionTimeoutMs = DEFAULT_SESSION_TIMEOUT_MS }: SettingsProps) => {
-  const [activeSubTab, setActiveSubTab] = useState<'general' | 'sla' | 'security' | 'data'>('general');
+export const Settings = ({
+  tasks, users, blockers, triggerToast, currentUser, isLoading = false, sessionTimeoutMs = DEFAULT_SESSION_TIMEOUT_MS,
+  activeSubTab: controlledActiveSubTab, onActiveSubTabChange,
+}: SettingsProps) => {
+  const [internalActiveSubTab, setInternalActiveSubTab] = useState<'general' | 'sla' | 'security' | 'data'>('general');
+  const activeSubTab = controlledActiveSubTab ?? internalActiveSubTab;
+  const setActiveSubTab = onActiveSubTabChange ?? setInternalActiveSubTab;
   const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error' | 'loading'; message: string } | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
@@ -75,14 +90,10 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
   // bir onay modalı gösterilir; dosya içeriği yalnızca kullanıcı onaylarsa
   // işlenir (bkz. kod denetimi).
   const [pendingRestore, setPendingRestore] = useState<{ content: string; fileName: string } | null>(null);
-  // Yazarak doğrulama: onay butonu, kullanıcı RESTORE_CONFIRM_PHRASE'i harfi
-  // harfine yazana kadar pasif kalır. Tek bir "Onayla" butonu, uygulamanın en
-  // yıkıcı ve GERİ DÖNÜŞÜ OLMAYAN işlemi (tüm personel/talimat/engel verisinin
-  // üzerine yazma) için yetersiz bir sürtünme sağlıyordu — refleksle tıklanan
-  // bir onay tüm dizgeyi eski bir yedeğe döndürebilirdi (bkz. kod denetimi).
-  const [restoreConfirmText, setRestoreConfirmText] = useState('');
   const restoreFileInputRef = React.useRef<HTMLInputElement>(null);
   const { isInstallable, isInstalled, install } = usePWAInstall();
+  const soundEnabled = useUIStore((state) => state.soundEnabled);
+  const setSoundEnabled = useUIStore((state) => state.setSoundEnabled);
 
   const isAdmin = useIsAdmin(currentUser);
 
@@ -364,20 +375,17 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
 
   const cancelRestore = () => {
     setPendingRestore(null);
-    setRestoreConfirmText('');
     if (restoreFileInputRef.current) restoreFileInputRef.current.value = '';
   };
 
-  const isRestoreConfirmed = restoreConfirmText === RESTORE_CONFIRM_PHRASE;
-
   const confirmRestore = async () => {
-    // Buton zaten disabled ama koşul burada da tekrarlanır: klavye/otomasyon
-    // yoluyla tetiklenen bir çağrı, yalnızca görsel bir disabled durumuna
-    // güvenmemeli (Settings.tsx'teki isAdmin çift kontrolüyle aynı gerekçe).
-    if (!currentUser || !pendingRestore || !isRestoreConfirmed) return;
+    // ConfirmDialog'un yazarak-doğrulama modu zaten Onayla butonunu gerçek
+    // (native) disabled yapıyor — bu bir görsel stil değil, disabled bir
+    // <button> klavye/senkron .click() ile de tetiklenemez. Yine de
+    // pendingRestore null ise (ör. çağrı sırası bozulursa) sessizce çık.
+    if (!currentUser || !pendingRestore) return;
     const { content, fileName } = pendingRestore;
     setPendingRestore(null);
-    setRestoreConfirmText('');
     setImportStatus({ type: 'loading', message: 'Dizge Geri Yükleniyor...' });
     try {
       await settingsService.restoreBackup(content, currentUser.uid, fileName, (percent) => {
@@ -446,16 +454,16 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
           <SettingsIcon className="w-4 h-4 text-[color:var(--executive-blue-text)] stroke-[1.5]" />
         </div>
         <div>
-          <span className="text-[10px] font-medium text-executive-blue uppercase tracking-[0.4em] block leading-none">
+          <span className="text-micro font-medium text-executive-blue uppercase tracking-[0.4em] block leading-none">
             DİZGE YAPILANDIRMASI
           </span>
-          <span className="text-[9px] text-text-tertiary uppercase tracking-[0.3em]">Konfigürasyon & Veri Yönetimi</span>
+          <span className="text-micro text-text-tertiary uppercase tracking-[0.3em]">Konfigürasyon & Veri Yönetimi</span>
         </div>
       </div>
 
       {/* ── Offline Banner ─────────────────────────────────────────── */}
       {!isOnline && (
-        <div className="flex items-center gap-2.5 p-3 bg-status-danger/10 border border-status-danger/20 text-status-danger rounded-2xl text-[10px] font-semibold uppercase tracking-[0.15em] animate-pulse">
+        <div className="flex items-center gap-2.5 p-3 bg-status-danger/10 border border-status-danger/20 text-status-danger rounded-2xl text-micro font-semibold uppercase tracking-[0.15em] animate-pulse">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>Çevrimdışı moddasınız. Veritabanı ve SLA işlemleri geçici olarak kısıtlanmıştır.</span>
         </div>
@@ -468,64 +476,29 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
       <div className="flex flex-col md:flex-row gap-6 mt-2">
         
         {/* Left Sidebar Tabs Selector — mobilde bu yatay kaydırılan bir
-            şerit, masaüstünde dikey bir sütun (bkz. md:flex-col). Sekme
-            butonları eskiden koşulsuz `w-full` idi: masaüstündeki dikey
-            sütunda (w-56) bu doğruydu ama mobil yatay şeritte her buton
-            konteynerin TAM genişliğini kaplayıp tek seferde yalnızca bir
-            sekme gösteriyor, kullanıcıyı sonrakini görmek için tam bir
-            kaydırma yapmaya zorluyordu (bkz. mobil tasarım denetimi) —
-            mobilde artık içeriğe göre daralıyor, md:'de yine tam genişlik. */}
-        <div className="flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible pb-3 md:pb-0 shrink-0 md:w-56 border-b md:border-b-0 md:border-r border-surface-border">
-          <button
-            onClick={() => setActiveSubTab('general')}
-            className={cn(
-              "px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] text-left transition-all shrink-0 w-auto whitespace-nowrap md:w-full md:whitespace-normal",
-              activeSubTab === 'general' 
-                ? "bg-executive-blue text-[color:var(--executive-blue-text)] shadow-[0_4px_12px_rgba(30,41,59,0.15)]"
-                : "text-text-muted hover:text-text-heading hover:bg-executive-blue/[0.03]"
-            )}
-          >
-            Genel & Görünüm
-          </button>
-          
-          {isAdmin && (
-            <>
-              <button
-                onClick={() => setActiveSubTab('sla')}
-                className={cn(
-                  "px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] text-left transition-all shrink-0 w-auto whitespace-nowrap md:w-full md:whitespace-normal",
-                  activeSubTab === 'sla' 
-                    ? "bg-executive-blue text-[color:var(--executive-blue-text)] shadow-[0_4px_12px_rgba(30,41,59,0.15)]"
-                    : "text-text-muted hover:text-text-heading hover:bg-executive-blue/[0.03]"
-                )}
-              >
-                SLA Kuralları
-              </button>
-              <button
-                onClick={() => setActiveSubTab('security')}
-                className={cn(
-                  "px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] text-left transition-all shrink-0 w-auto whitespace-nowrap md:w-full md:whitespace-normal",
-                  activeSubTab === 'security'
-                    ? "bg-executive-blue text-[color:var(--executive-blue-text)] shadow-[0_4px_12px_rgba(30,41,59,0.15)]"
-                    : "text-text-muted hover:text-text-heading hover:bg-executive-blue/[0.03]"
-                )}
-              >
-                Oturum Güvenliği
-              </button>
-              <button
-                onClick={() => setActiveSubTab('data')}
-                className={cn(
-                  "px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] text-left transition-all shrink-0 w-auto whitespace-nowrap md:w-full md:whitespace-normal",
-                  activeSubTab === 'data' 
-                    ? "bg-executive-blue text-[color:var(--executive-blue-text)] shadow-[0_4px_12px_rgba(30,41,59,0.15)]"
-                    : "text-text-muted hover:text-text-heading hover:bg-executive-blue/[0.03]"
-                )}
-              >
-                Veri Yönetimi
-              </button>
-            </>
-          )}
-        </div>
+            şerit, masaüstünde dikey bir sütun. Sekme butonları eskiden
+            koşulsuz `w-full` idi: masaüstündeki dikey sütunda (w-56) bu
+            doğruydu ama mobil yatay şeritte her buton konteynerin TAM
+            genişliğini kaplayıp tek seferde yalnızca bir sekme gösteriyor,
+            kullanıcıyı sonrakini görmek için tam bir kaydırma yapmaya
+            zorluyordu (bkz. mobil tasarım denetimi) — mobilde artık içeriğe
+            göre daralıyor, md:'de yine tam genişlik (bkz. ui/SegmentedTabs
+            variant="sidebar"). */}
+        <SegmentedTabs
+          variant="sidebar"
+          ariaLabel="Ayarlar bölümleri"
+          activeId={activeSubTab}
+          onChange={(id) => setActiveSubTab(id as typeof activeSubTab)}
+          className="pb-3 md:pb-0 shrink-0 md:w-56 border-b md:border-b-0 md:border-r border-surface-border"
+          tabs={[
+            { id: 'general', label: 'Genel & Görünüm' },
+            ...(isAdmin ? [
+              { id: 'sla', label: 'SLA Kuralları' },
+              { id: 'security', label: 'Oturum Güvenliği' },
+              { id: 'data', label: 'Veri Yönetimi' },
+            ] : []),
+          ]}
+        />
 
         {/* Right Tab Content Panel */}
         <div className="flex-1 min-w-0">
@@ -536,9 +509,29 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
               
               {/* Notification and Audio System Test */}
               <SettingsCard title="Bildirim & Ses Testi" description="Akustik & görsel doğrulaması" icon={Bell} accentColor="amber" index={0}>
-                <p className="text-[11px] text-text-muted font-light leading-relaxed">
+                <p className="text-caption text-text-muted font-light leading-relaxed">
                   Dizge ses sentezleyici çanını ve yerel bildirim motorunun (In-App Toast ve PWA Push) çalışma durumunu anında test edin.
                 </p>
+                <div className="flex items-center justify-between gap-3 p-2.5 bg-surface-glass border border-surface-border rounded-xl">
+                  <span className="text-micro font-medium text-text-heading uppercase tracking-[0.15em]">
+                    Bildirim Sesi
+                  </span>
+                  <button
+                    onClick={() => setSoundEnabled(!soundEnabled)}
+                    role="switch"
+                    aria-checked={soundEnabled}
+                    aria-label="Bildirim sesini aç/kapat"
+                    className={cn(
+                      'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2',
+                      soundEnabled ? 'bg-executive-blue' : 'bg-surface-border'
+                    )}
+                  >
+                    <span className={cn(
+                      'pointer-events-none inline-block h-4 w-4 rounded-full bg-surface-elevated shadow-sm ring-0 transition duration-300',
+                      soundEnabled ? 'translate-x-4' : 'translate-x-0'
+                    )} />
+                  </button>
+                </div>
                 <ActionButton
                   variant="warning"
                   onClick={handleTestNotifications}
@@ -549,14 +542,14 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
               {/* PWA Installation */}
               <SettingsCard title="Cihaza Yükle (PWA)" description="Masaüstü & Mobil Uygulama" icon={Smartphone} accentColor="gold" index={1}>
                 <div className="flex flex-col gap-2.5">
-                  <p className="text-[11px] text-text-muted font-light leading-relaxed">
+                  <p className="text-caption text-text-muted font-light leading-relaxed">
                     MAKAM dizgesini bilgisayarınıza veya telefonunuza bağımsız bir uygulama olarak yükleyebilirsiniz. Bu sayede daha hızlı erişim sağlar ve tam ekran deneyimi yaşarsınız.
                   </p>
 
                   {isInstalled ? (
                     <div className="flex items-center gap-2 p-2.5 bg-status-success/10 border border-status-success/20 rounded-xl">
                       <CheckCircle2 className="w-3.5 h-3.5 text-status-success flex-shrink-0" />
-                      <span className="text-[9px] text-status-success font-medium uppercase tracking-[0.2em]">
+                      <span className="text-micro text-status-success font-medium uppercase tracking-[0.2em]">
                         Uygulama zaten yüklü ve aktif!
                       </span>
                     </div>
@@ -567,16 +560,16 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
                       label={<><Smartphone className="w-3.5 h-3.5 stroke-[2]" />Uygulamayı Şimdi Yükle</>}
                     />
                   ) : (
-                    <div className="flex flex-col gap-2 p-3 bg-surface-glass border border-surface-border rounded-xl text-[10px] text-text-muted font-normal leading-relaxed">
+                    <div className="flex flex-col gap-2 p-3 bg-surface-glass border border-surface-border rounded-xl text-micro text-text-muted font-normal leading-relaxed">
                       <div className="flex items-start gap-2">
-                        <AlertCircle className="w-3.5 h-3.5 text-executive-gold flex-shrink-0 mt-0.5 animate-pulse" />
+                        <AlertCircle className="w-3.5 h-3.5 text-[color:var(--gold-text)] flex-shrink-0 mt-0.5 animate-pulse" />
                         <div>
                           <span className="font-semibold text-text-heading block mb-0.5">Yükleme Kılavuzu</span>
                           <span>Tarayıcınız otomatik yükleme butonunu şu an desteklemiyor olabilir. Alternatif yükleme adımları:</span>
                         </div>
                       </div>
                       <div className="h-px bg-executive-blue/[0.04] my-1" />
-                      <ul className="list-disc pl-4 flex flex-col gap-1 text-[9px] text-text-tertiary">
+                      <ul className="list-disc pl-4 flex flex-col gap-1 text-micro text-text-tertiary">
                         <li><strong>iOS (iPhone/iPad):</strong> Safari tarayıcısında alt menüdeki <span className="text-text-muted font-semibold">Paylaş</span> butonuna tıklayıp, gelen menüden <span className="text-text-muted font-semibold">"Ana Ekrana Ekle"</span> seçeneğini seçin.</li>
                         <li><strong>Android (Chrome):</strong> Sağ üstteki üç noktaya tıklayıp <span className="text-text-muted font-semibold">"Uygulamayı yükle"</span> veya <span className="text-text-muted font-semibold">"Ana ekrana ekle"</span> seçeneğini seçin.</li>
                         <li><strong>Masaüstü (Chrome/Edge):</strong> Adres çubuğunun sağ tarafındaki <span className="text-text-muted font-semibold">"Yükle" (küçük monitör/ok)</span> simgesine tıklayın.</li>
@@ -600,7 +593,7 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
                 accentColor="gold" 
                 index={0}
               >
-                <p className="text-[11px] text-text-muted font-light leading-relaxed mb-1">
+                <p className="text-caption text-text-muted font-light leading-relaxed mb-1">
                   Görevin tanımlandığı andan itibaren tamamlanması gereken iş günü veya mesai saati mühlet limitleri (Mesai: 09:00 - 18:00).
                 </p>
 
@@ -634,7 +627,7 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
                 {!isOnline ? (
                   <div className="flex items-start gap-2 p-2.5 bg-status-danger/10 border border-status-danger/20 rounded-xl">
                     <AlertCircle className="w-3.5 h-3.5 text-status-danger flex-shrink-0 mt-0.5" />
-                    <p className="text-[9px] text-status-danger font-semibold uppercase tracking-[0.15em] leading-relaxed">
+                    <p className="text-micro text-status-danger font-semibold uppercase tracking-[0.15em] leading-relaxed">
                       SLA sürelerini güncellemek için internet bağlantısı gereklidir.
                     </p>
                   </div>
@@ -660,7 +653,7 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
                 accentColor="slate"
                 index={0}
               >
-                <p className="text-[11px] text-text-muted font-light leading-relaxed mb-1">
+                <p className="text-caption text-text-muted font-light leading-relaxed mb-1">
                   Kullanıcı belirtilen süre boyunca hiçbir işlem yapmazsa oturumu güvenlik gereği
                   otomatik olarak kapatılır. Kapanmadan bir dakika önce ekranda "Devam Et" seçeneği
                   sunulur. Bu ayar tüm personel için geçerlidir.
@@ -681,7 +674,7 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
                       ? `Süre ${sessionTimeoutMinBound.min}-${sessionTimeoutMinBound.max} dakika aralığında olmalıdır.`
                       : undefined}
                   />
-                  <span className="text-[10px] text-text-tertiary px-1 leading-relaxed">
+                  <span className="text-micro text-text-tertiary px-1 leading-relaxed">
                     Yürürlükteki değer: {Math.round(sessionTimeoutMs / 60000)} dakika.
                   </span>
                 </div>
@@ -689,7 +682,7 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
                 {!isOnline ? (
                   <div className="flex items-start gap-2 p-2.5 bg-status-danger/10 border border-status-danger/20 rounded-xl">
                     <AlertCircle className="w-3.5 h-3.5 text-status-danger flex-shrink-0 mt-0.5" />
-                    <p className="text-[9px] text-status-danger font-semibold uppercase tracking-[0.15em] leading-relaxed">
+                    <p className="text-micro text-status-danger font-semibold uppercase tracking-[0.15em] leading-relaxed">
                       Oturum güvenliği ayarını değiştirmek için internet bağlantısı gereklidir.
                     </p>
                   </div>
@@ -713,7 +706,7 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
                 
                 {/* Export */}
                 <SettingsCard title="Arşivleme" description="Dizge yedeği oluştur" icon={Download} accentColor="slate" index={0}>
-                  <p className="text-[11px] text-text-muted font-light leading-relaxed">
+                  <p className="text-caption text-text-muted font-light leading-relaxed">
                     Tüm talimat, personel ve denetim verilerini tek bir JSON dosyasına aktarır.
                   </p>
                   <ActionButton
@@ -726,7 +719,7 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
 
                 {/* Import / Restore */}
                 <SettingsCard title="Geri Yükleme" description="Yedekten dizgeyi döndür" icon={RotateCcw} accentColor="amber" index={1}>
-                  <p className="text-[11px] text-text-muted font-light leading-relaxed">
+                  <p className="text-caption text-text-muted font-light leading-relaxed">
                     Daha önce alınan bir yedek dosyasından dizgeyi geri yükler (Çalışma zamanı Zod doğrulaması içerir).
                   </p>
 
@@ -735,7 +728,7 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
                   {!isOnline ? (
                     <div className="flex items-start gap-2 p-2.5 bg-status-danger/10 border border-status-danger/20 rounded-xl">
                       <AlertCircle className="w-3.5 h-3.5 text-status-danger flex-shrink-0 mt-0.5" />
-                      <p className="text-[9px] text-status-danger font-semibold uppercase tracking-[0.15em] leading-relaxed">
+                      <p className="text-micro text-status-danger font-semibold uppercase tracking-[0.15em] leading-relaxed">
                         Dizgeyi geri yüklemek için internet bağlantısı gereklidir.
                       </p>
                     </div>
@@ -749,7 +742,7 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
 
                       <div className="flex items-start gap-2.5 p-3.5 border-l-[3px] border-status-danger bg-status-danger/[0.06] rounded-r-xl">
                         <AlertCircle className="w-4 h-4 text-status-danger flex-shrink-0 mt-0.5 stroke-[1.5]" />
-                        <p className="text-[12.5px] text-text-heading font-normal leading-relaxed">
+                        <p className="text-body-sm text-text-heading font-normal leading-relaxed">
                           Bu işlem mevcut verilerin üzerine yazacaktır. Kayıtlar toplu halde (chunk) yazılır — işlem yarıda kesilirse veritabanı kısmen güncellenmiş durumda kalabilir. Geri yüklemeden önce güncel bir yedek almanız önerilir.
                         </p>
                       </div>
@@ -759,14 +752,14 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
 
                 {/* Export Audit Logs */}
                 <SettingsCard title="Denetim İzlerini Arşivle" description="Dizge log dışa aktarımı" icon={ShieldCheck} accentColor="slate" index={2}>
-                  <p className="text-[11px] text-text-muted font-light leading-relaxed">
+                  <p className="text-caption text-text-muted font-light leading-relaxed">
                     Tüm dizge erişim ve değişim loglarını yerel bir JSON dosyasına aktarır. Denetim izleri kanıt bütünlüğü gereği değiştirilemez/silinemez olduğundan bu işlem veritabanından hiçbir kaydı kaldırmaz.
                   </p>
 
                   {!isOnline ? (
                     <div className="flex items-start gap-2 p-2.5 bg-status-danger/10 border border-status-danger/20 rounded-xl">
                       <AlertCircle className="w-3.5 h-3.5 text-status-danger flex-shrink-0 mt-0.5" />
-                      <p className="text-[9px] text-status-danger font-semibold uppercase tracking-[0.15em] leading-relaxed">
+                      <p className="text-micro text-status-danger font-semibold uppercase tracking-[0.15em] leading-relaxed">
                         Denetim izlerini dışa aktarmak için internet bağlantısı gereklidir.
                       </p>
                     </div>
@@ -782,7 +775,7 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
 
                 {/* System Optimization */}
                 <SettingsCard title="Dizge Optimizasyonu" description="Önbellek & bildirim temizliği" icon={Database} accentColor="slate" index={3}>
-                  <p className="text-[11px] text-text-muted font-light leading-relaxed">
+                  <p className="text-caption text-text-muted font-light leading-relaxed">
                     Okunmuş bildirimleri ve geçici önbelleği temizleyerek dizge performansını artırır.
                   </p>
                   <ActionButton
@@ -805,42 +798,20 @@ export const Settings = ({ tasks, users, blockers, triggerToast, currentUser, is
       </div>
 
       {/* ── Yedekten Geri Yükleme Onayı ──────────────────────────────── */}
-      <Modal isOpen={!!pendingRestore} onClose={cancelRestore} title="Yedekten Geri Yükle">
-        <div className="flex flex-col gap-4">
-          <p className="text-[13px] text-text-muted font-light leading-relaxed">
-            <strong className="text-status-danger font-medium">{pendingRestore?.fileName}</strong> dosyasından dizgeyi geri yüklemek üzeresiniz. Bu işlem mevcut TÜM personel, talimat ve engel verilerinin üzerine yazacaktır ve <strong className="text-status-danger font-medium">geri alınamaz</strong>.
-          </p>
-
-          <div className="flex flex-col gap-2">
-            <label htmlFor="restore-confirm-input" className="text-[12px] text-text-heading font-normal leading-relaxed">
-              Onaylamak için aşağıdaki kutuya <strong className="text-status-danger font-semibold tracking-wide">{RESTORE_CONFIRM_PHRASE}</strong> yazın.
-            </label>
-            <Input
-              id="restore-confirm-input"
-              value={restoreConfirmText}
-              onChange={(e) => setRestoreConfirmText(e.target.value)}
-              placeholder={RESTORE_CONFIRM_PHRASE}
-              autoComplete="off"
-              spellCheck={false}
-              aria-describedby="restore-confirm-help"
-              // Enter ile kazara gönderimi engelle — onay yalnızca butonla verilir.
-              onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-            />
-            <span id="restore-confirm-help" className="text-[10px] text-text-tertiary px-1 leading-relaxed">
-              {isRestoreConfirmed
-                ? 'Doğrulama tamamlandı — geri yükleme başlatılabilir.'
-                : 'Doğrulama metni birebir eşleşmeden geri yükleme başlatılamaz.'}
-            </span>
-          </div>
-
-          <div className="flex justify-end gap-2.5 pt-4 border-t border-executive-blue/[0.04]">
-            <Button variant="secondary" onClick={cancelRestore}>İptal</Button>
-            <Button variant="danger" onClick={confirmRestore} disabled={!isRestoreConfirmed}>
-              Geri Yüklemeyi Onayla
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      {/* Yazarak doğrulama kullanılır: uygulamanın en yıkıcı ve GERİ DÖNÜŞÜ
+          OLMAYAN işlemi (tüm personel/talimat/engel verisinin üzerine yazma)
+          için tek butonluk bir onay yetersiz sürtünme sağlıyordu — refleksle
+          tıklanan bir onay tüm dizgeyi eski bir yedeğe döndürebilirdi (bkz.
+          kod denetimi). */}
+      <ConfirmDialog
+        isOpen={!!pendingRestore}
+        onClose={cancelRestore}
+        onConfirm={() => { void confirmRestore(); }}
+        title="Yedekten Geri Yükle"
+        message={<><strong className="text-status-danger font-medium">{pendingRestore?.fileName}</strong> dosyasından dizgeyi geri yüklemek üzeresiniz. Bu işlem mevcut TÜM personel, talimat ve engel verilerinin üzerine yazacaktır ve <strong className="text-status-danger font-medium">geri alınamaz</strong>.</>}
+        confirmLabel="Geri Yüklemeyi Onayla"
+        confirmPhrase={RESTORE_CONFIRM_PHRASE}
+      />
     </div>
   );
 };

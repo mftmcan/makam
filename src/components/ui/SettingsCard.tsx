@@ -21,8 +21,8 @@ export const SettingsCard = ({ title, description, icon: Icon, accentColor = 'sl
   const colors = {
     slate: { icon: 'bg-executive-blue/5 text-executive-blue', border: 'border-surface-border' },
     red:   { icon: 'bg-status-danger/10 text-status-danger', border: 'border-status-danger/20 bg-status-danger/[0.03]' },
-    amber: { icon: 'bg-executive-gold/10 text-executive-gold', border: 'border-executive-gold/20 bg-executive-gold/[0.03]' },
-    gold:  { icon: 'bg-executive-gold/10 text-executive-gold', border: 'border-executive-gold/20' },
+    amber: { icon: 'bg-executive-gold/10 text-[color:var(--gold-text)]', border: 'border-executive-gold/20 bg-executive-gold/[0.03]' },
+    gold:  { icon: 'bg-executive-gold/10 text-[color:var(--gold-text)]', border: 'border-executive-gold/20' },
   }[accentColor];
 
   return (
@@ -44,9 +44,9 @@ export const SettingsCard = ({ title, description, icon: Icon, accentColor = 'sl
           <Icon className="w-4 h-4 stroke-[1.5]" />
         </div>
         <div className="flex flex-col gap-0.5">
-          <h3 className="text-[12px] font-medium text-executive-blue tracking-tight font-serif">{title}</h3>
+          <h3 className="text-body-sm font-medium text-executive-blue tracking-tight font-serif">{title}</h3>
           {description && (
-            <p className="text-[9px] text-text-tertiary uppercase tracking-[0.25em]">{description}</p>
+            <p className="text-micro text-text-tertiary uppercase tracking-[0.25em]">{description}</p>
           )}
         </div>
       </div>

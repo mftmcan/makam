@@ -6,6 +6,8 @@ import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Modal } from './ui/Modal';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { SegmentedTabs } from './ui/SegmentedTabs';
 import { Avatar } from './ui/Avatar';
 import { Badge } from './ui/Badge';
 import { cn, formatTimeAgo, formatDateTimeShort } from '../lib/utils';
@@ -79,17 +81,17 @@ function VirtualizedUserRow({
         <Avatar name={user.fullName} photoURL={user.photoURL} size="md" className="flex-shrink-0" />
 
         <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-          <span className="text-[12.5px] font-medium text-executive-blue truncate tracking-tight font-serif">
+          <span className="text-body-sm font-medium text-executive-blue truncate tracking-tight font-serif">
             {user.fullName}
           </span>
-          <div className="flex items-center gap-1.5 text-[9px] text-text-tertiary min-w-0">
+          <div className="flex items-center gap-1.5 text-micro text-text-tertiary min-w-0">
             <Mail className="w-2.5 h-2.5 flex-shrink-0 opacity-60" />
             <span className="truncate">{user.email}</span>
           </div>
         </div>
 
         <span className={cn(
-          'hidden sm:inline-flex items-center gap-1 text-[8px] font-medium uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border flex-shrink-0',
+          'hidden sm:inline-flex items-center gap-1 text-micro font-medium uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border flex-shrink-0',
           rc.bg, rc.text, rc.border
         )}>
           <Shield className="w-2.5 h-2.5 stroke-[1.5]" />
@@ -97,7 +99,7 @@ function VirtualizedUserRow({
         </span>
 
         {user.departmentId && (
-          <span className="hidden md:inline-flex items-center gap-1 text-[8px] font-medium uppercase tracking-[0.2em] px-2 py-0.5 rounded-full bg-transparent text-text-tertiary border border-surface-border flex-shrink-0 max-w-[130px]">
+          <span className="hidden md:inline-flex items-center gap-1 text-micro font-medium uppercase tracking-[0.2em] px-2 py-0.5 rounded-full bg-transparent text-text-tertiary border border-surface-border flex-shrink-0 max-w-[130px]">
             <Building className="w-2.5 h-2.5 flex-shrink-0" />
             <span className="truncate">{user.departmentId}</span>
           </span>
@@ -105,7 +107,7 @@ function VirtualizedUserRow({
 
         {userTaskCount > 0 && (
           <span className={cn(
-            'hidden lg:inline-flex items-center gap-1 text-[8px] font-medium uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border flex-shrink-0',
+            'hidden lg:inline-flex items-center gap-1 text-micro font-medium uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border flex-shrink-0',
             userTaskCount >= 5 ? 'bg-status-danger/[0.08] text-status-danger border-status-danger/25' :
             userTaskCount >= 3 ? 'bg-status-warning/[0.08] text-status-warning border-status-warning/25' :
             'bg-status-success/[0.08] text-status-success border-status-success/25'
@@ -439,38 +441,28 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
             <Building className="w-4 h-4 text-[color:var(--btn-primary-text)] stroke-[1.5]" />
           </div>
           <div>
-            <span className="text-[10px] font-medium text-executive-blue uppercase tracking-[0.4em] block leading-none">KURUMSAL ORGANİZASYON</span>
-            <span className="text-[9px] text-text-tertiary uppercase tracking-[0.3em]">{users.length} Personel</span>
+            <span className="text-micro font-medium text-executive-blue uppercase tracking-[0.4em] block leading-none">KURUMSAL ORGANİZASYON</span>
+            <span className="text-micro text-text-tertiary uppercase tracking-[0.3em]">{users.length} Personel</span>
           </div>
         </div>
         
         <div className="flex items-center gap-3 flex-wrap">
           {/* View mode switcher toggle */}
-          <div className="flex bg-surface-glass p-0.5 rounded-full border border-executive-blue/[0.04] items-center gap-0.5">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-[8.5px] uppercase tracking-wider font-bold transition-all duration-300 cursor-pointer",
-                viewMode === 'grid' ? "bg-executive-blue text-[color:var(--executive-blue-text)] shadow-sm" : "text-text-muted hover:text-text-heading"
-              )}
-            >
-              Kadro Listesi
-            </button>
-            <button
-              onClick={() => setViewMode('tree')}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-[8.5px] uppercase tracking-wider font-bold transition-all duration-300 cursor-pointer",
-                viewMode === 'tree' ? "bg-executive-blue text-[color:var(--executive-blue-text)] shadow-sm" : "text-text-muted hover:text-text-heading"
-              )}
-            >
-              Şema Görünümü
-            </button>
-          </div>
+          <SegmentedTabs
+            variant="pill"
+            ariaLabel="Kadro görünümü"
+            activeId={viewMode}
+            onChange={(id) => setViewMode(id as typeof viewMode)}
+            tabs={[
+              { id: 'grid', label: 'Kadro Listesi' },
+              { id: 'tree', label: 'Şema Görünümü' },
+            ]}
+          />
 
           {isAdmin && (
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-1.5 px-4 h-9 rounded-full bg-executive-gold text-[color:var(--btn-primary-text)] text-[9px] font-medium uppercase tracking-[0.3em] shadow-lg shadow-executive-gold/20 hover:shadow-xl hover:bg-executive-gold-hover hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+              className="flex items-center gap-1.5 px-4 h-9 rounded-full bg-executive-gold text-[color:var(--btn-primary-text)] text-micro font-medium uppercase tracking-[0.3em] shadow-lg shadow-executive-gold/20 hover:shadow-xl hover:bg-executive-gold-hover hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
             >
               <UserPlus className="w-3.5 h-3.5 stroke-[2]" />
               <span className="hidden sm:block">Yeni Kadro</span>
@@ -483,7 +475,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
       <div className="flex flex-col gap-3 p-3.5 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-text-muted uppercase tracking-wider font-bold">Kadro Kapasite Endeksi:</span>
+            <span className="text-micro text-text-muted uppercase tracking-wider font-bold">Kadro Kapasite Endeksi:</span>
             {hasCapacityData ? (
               <>
                 <div className="w-24 h-1.5 bg-executive-blue/5 rounded-full overflow-hidden">
@@ -497,13 +489,13 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                     style={{ width: `${capacityPercent}%` }}
                   />
                 </div>
-                <span className="text-[11px] font-bold text-text-heading">%{capacityPercent}</span>
+                <span className="text-caption font-bold text-text-heading">%{capacityPercent}</span>
               </>
             ) : (
-              <span className="text-[10px] text-text-tertiary">Kapasite verisi için en az 1 aktif talimat gerekli</span>
+              <span className="text-micro text-text-tertiary">Kapasite verisi için en az 1 aktif talimat gerekli</span>
             )}
           </div>
-          <div className="flex gap-4 text-[10px] text-text-muted uppercase tracking-wider font-bold">
+          <div className="flex gap-4 text-micro text-text-muted uppercase tracking-wider font-bold">
             <span>Müsait Kadro: <span className="text-status-success font-bold">{availableStaffCount}</span></span>
             <span>Aşırı Yüklü: <span className={overloadedStaffCount > 0 ? "text-status-danger font-bold animate-pulse" : "text-text-muted font-bold"}>{overloadedStaffCount}</span></span>
           </div>
@@ -516,7 +508,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
           <div className="flex flex-wrap gap-2.5 pt-3 border-t border-executive-blue/[0.04]">
             {departmentCapacity.map(row => (
               <div key={row.department} className="flex items-center gap-2 px-2.5 py-1.5 bg-surface-glass border border-surface-border rounded-xl">
-                <span className="text-[9px] text-text-muted uppercase tracking-wider font-bold truncate max-w-[110px]">{row.department}</span>
+                <span className="text-micro text-text-muted uppercase tracking-wider font-bold truncate max-w-[110px]">{row.department}</span>
                 <div className="w-14 h-1 bg-executive-blue/5 rounded-full overflow-hidden flex-shrink-0">
                   <div
                     className={cn(
@@ -528,7 +520,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                     style={{ width: `${row.percent}%` }}
                   />
                 </div>
-                <span className="text-[9px] font-bold text-text-heading tabular-nums">%{row.percent}</span>
+                <span className="text-micro font-bold text-text-heading tabular-nums">%{row.percent}</span>
               </div>
             ))}
           </div>
@@ -577,9 +569,8 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 28, delay: i * 0.04 }}
                 whileHover={{ y: -2, scale: 1.005 }}
-                onClick={() => setSelectedUser(user)}
                 className={cn(
-                  "group flex flex-col gap-3 p-4 bg-makam-glass backdrop-blur-xl border-x border-b border-surface-border rounded-2xl shadow-[0_1px_8px_rgba(22,21,19,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:bg-surface-elevated hover:border-surface-border transition-all duration-300 cursor-pointer relative border-t-2",
+                  "group flex flex-col p-4 bg-makam-glass backdrop-blur-xl border-x border-b border-surface-border rounded-2xl shadow-[0_1px_8px_rgba(22,21,19,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:bg-surface-elevated hover:border-surface-border transition-all duration-300 relative border-t-2",
                   userTaskCount >= 5 ? "border-t-status-danger" : "border-t-surface-border"
                 )}
               >
@@ -607,6 +598,19 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                   </div>
                 )}
 
+                {/* Kart içeriğinin tamamı gerçek bir <button> — Edit/Sil ile birlikte
+                    dış konteynere role="button" verilmesi axe-core'un "nested-interactive"
+                    (serious) kuralını ihlal ediyordu: bir buton-rolü elemanın içinde
+                    başka odaklanabilir bir eleman olamaz (bkz. tasarım denetimi F1
+                    düzeltmesinin canlı ortamda bulunan yan etkisi). Gerçek <button>
+                    kullanmak hem bu ihlali giderir hem Enter/Space'i bedavaya native
+                    olarak halleder — ayrı bir onKeyDown gerekmez. */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedUser(user)}
+                  aria-label={`${user.fullName} detaylarını görüntüle`}
+                  className="flex flex-col gap-3 text-left w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-inset rounded-2xl -m-4 p-4"
+                >
                 {/* Top: avatar + name */}
                 <div className="flex items-center gap-3">
                   <Avatar
@@ -616,10 +620,10 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                     className="group-hover:scale-105 group-hover:rotate-3 transition-all duration-300"
                   />
                   <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                    <h4 className="text-[13px] font-medium text-executive-blue truncate tracking-tight font-serif group-hover:text-executive-blue transition-colors">
+                    <h4 className="text-body font-medium text-executive-blue truncate tracking-tight font-serif group-hover:text-executive-blue transition-colors">
                       {user.fullName}
                     </h4>
-                    <div className="flex items-center gap-1.5 text-[9px] text-text-tertiary truncate">
+                    <div className="flex items-center gap-1.5 text-micro text-text-tertiary truncate">
                       <Mail className="w-2.5 h-2.5 flex-shrink-0 opacity-60" />
                       <span className="truncate">{user.email}</span>
                     </div>
@@ -633,7 +637,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className={cn(
-                      'inline-flex items-center gap-1 text-[8px] font-medium uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border',
+                      'inline-flex items-center gap-1 text-micro font-medium uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border',
                       rc.bg, rc.text, rc.border
                     )}>
                       <Shield className="w-2.5 h-2.5 stroke-[1.5]" />
@@ -644,7 +648,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                       // ghost/outline: zemin dolgusu yok, yalnızca ince kenarlık
                       // (bkz. kod denetimi — rol ile departman rozeti aynı gri
                       // yoğunlukta olduğunda ilk bakışta ayırt edilemiyordu).
-                      <span className="inline-flex items-center gap-1 text-[8px] font-medium uppercase tracking-[0.2em] px-2 py-0.5 rounded-full bg-transparent text-text-tertiary border border-surface-border">
+                      <span className="inline-flex items-center gap-1 text-micro font-medium uppercase tracking-[0.2em] px-2 py-0.5 rounded-full bg-transparent text-text-tertiary border border-surface-border">
                         <Building className="w-2.5 h-2.5" />
                         {user.departmentId}
                       </span>
@@ -652,7 +656,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                   </div>
                   {userTaskCount > 0 && (
                     <span className={cn(
-                      "inline-flex items-center gap-1 text-[8px] font-medium uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border transition-all duration-300",
+                      "inline-flex items-center gap-1 text-micro font-medium uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border transition-all duration-300",
                       userTaskCount >= 5 ? "bg-status-danger/[0.08] text-status-danger border-status-danger/25 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.15)]" :
                       userTaskCount >= 3 ? "bg-status-warning/[0.08] text-status-warning border-status-warning/25" :
                       "bg-status-success/[0.08] text-status-success border-status-success/25"
@@ -662,16 +666,17 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                     </span>
                   )}
                 </div>
+                </button>
               </motion.div>
             );
           })}
         </div>
         )
       ) : (
-        <div className="flex flex-col items-center gap-12 py-8 overflow-x-auto w-full no-scrollbar select-none bg-makam-glass border border-surface-border rounded-3xl p-6">
+        <div className="flex flex-col items-center gap-12 py-8 overflow-x-auto w-full custom-scrollbar select-none bg-makam-glass border border-surface-border rounded-3xl p-6">
           {/* Level 1: Admins */}
           <div className="flex flex-col items-center gap-2">
-            <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-status-danger bg-status-danger/10 border border-status-danger/20 px-2.5 py-1 rounded-full">Yönetim Kurulu</span>
+            <span className="text-micro font-bold uppercase tracking-[0.3em] text-status-danger bg-status-danger/10 border border-status-danger/20 px-2.5 py-1 rounded-full">Yönetim Kurulu</span>
             <div className="flex flex-wrap justify-center gap-6 mt-2">
               {users.filter(u => u.role === 'Admin').map(u => (
                 <OrgNodeCard key={u.uid} user={u} tasks={tasks} onSelect={setSelectedUser} />
@@ -684,7 +689,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
 
           {/* Level 2: Managers */}
           <div className="flex flex-col items-center gap-4 w-full">
-            <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-executive-blue bg-executive-blue/5 border border-executive-blue/10 px-2.5 py-1 rounded-full">Birim Yöneticileri</span>
+            <span className="text-micro font-bold uppercase tracking-[0.3em] text-executive-blue bg-executive-blue/5 border border-executive-blue/10 px-2.5 py-1 rounded-full">Birim Yöneticileri</span>
             <div className="flex flex-wrap justify-center gap-8 mt-2 w-full">
               {users.filter(u => u.role === 'Manager').map(u => {
                 const staffInDept = staffByDepartment.get(u.departmentId ?? '') ?? [];
@@ -697,7 +702,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                         {/* max-w sabit 400px'ti — dış konteynerin overflow-x-auto
                             (bkz. mobil tasarım denetimi) tam da bunun gibi bir
                             kadro grubunun mobil ekrandan (~360-400px) geniş
-                            olduğu durumlar için bir kaçış yoluydu, ama no-scrollbar
+                            olduğu durumlar için bir kaçış yoluydu, ama custom-scrollbar
                             ile kaydırma ipucu görünmez olduğundan içerik sessizce
                             "kesilmiş" görünüyordu. Sınır artık viewport'u da
                             hesaba katıyor, gerçek taşmayı büyük ölçüde önler. */}
@@ -719,7 +724,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
             <>
               <div className="w-[1px] h-8 bg-executive-blue/15" />
               <div className="flex flex-col items-center gap-2">
-                <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-text-tertiary bg-surface-glass border border-surface-border px-2.5 py-1 rounded-full">Bağımsız Kadro</span>
+                <span className="text-micro font-bold uppercase tracking-[0.3em] text-text-tertiary bg-surface-glass border border-surface-border px-2.5 py-1 rounded-full">Bağımsız Kadro</span>
                 <div className="flex flex-wrap justify-center gap-3 mt-2">
                   {independentStaff.map(u => (
                     <OrgNodeCard key={u.uid} user={u} tasks={tasks} onSelect={setSelectedUser} isMini />
@@ -770,7 +775,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                     {canEditOrViewOwnAudit && (
                       <button
                         onClick={() => { setSelectedUser(null); handleEdit(selectedUser); }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-elevated border border-executive-blue/[0.06] rounded-xl text-[9px] font-medium text-text-muted hover:text-executive-blue hover:bg-surface-glass transition-all shadow-sm flex-shrink-0"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-elevated border border-executive-blue/[0.06] rounded-xl text-micro font-medium text-text-muted hover:text-executive-blue hover:bg-surface-glass transition-all shadow-sm flex-shrink-0"
                       >
                         <Edit2 className="w-3 h-3" />
                         Düzenle
@@ -778,18 +783,18 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                     )}
                   </div>
                   <div className="flex items-center gap-3 flex-wrap">
-                    <span className="text-[10px] text-text-tertiary flex items-center gap-1">
+                    <span className="text-micro text-text-tertiary flex items-center gap-1">
                       <Mail className="w-2.5 h-2.5" />
                       {selectedUser.email}
                     </span>
-                    <span className="text-[10px] text-text-tertiary flex items-center gap-1">
+                    <span className="text-micro text-text-tertiary flex items-center gap-1">
                       <Building className="w-2.5 h-2.5" />
                       {selectedUser.departmentId || 'Genel Merkez'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap mt-0.5">
                     <span className={cn(
-                      'inline-flex items-center gap-1 text-[8px] font-medium uppercase tracking-[0.25em] px-2 py-0.5 rounded-full border',
+                      'inline-flex items-center gap-1 text-micro font-medium uppercase tracking-[0.25em] px-2 py-0.5 rounded-full border',
                       rc.bg, rc.text, rc.border
                     )}>
                       <Shield className="w-2.5 h-2.5" />
@@ -800,13 +805,13 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                   {/* Operational Score Metrikleri */}
                   <div className="grid grid-cols-2 gap-3 mt-3.5">
                     <div className="p-2.5 bg-makam-glass border border-surface-border rounded-xl flex flex-col gap-0.5">
-                      <span className="text-[8px] text-text-tertiary uppercase tracking-wider font-bold">Bitirilen Talimat</span>
-                      <span className="text-[13px] font-bold text-executive-blue font-serif">{completedTasks.length} Talimat</span>
+                      <span className="text-micro text-text-tertiary uppercase tracking-wider font-bold">Bitirilen Talimat</span>
+                      <span className="text-body font-bold text-executive-blue font-serif">{completedTasks.length} Talimat</span>
                     </div>
                     <div className="p-2.5 bg-makam-glass border border-surface-border rounded-xl flex flex-col gap-0.5">
-                      <span className="text-[8px] text-text-tertiary uppercase tracking-wider font-bold">SLA Uyum Başarısı</span>
+                      <span className="text-micro text-text-tertiary uppercase tracking-wider font-bold">SLA Uyum Başarısı</span>
                       <span className={cn(
-                        "text-[13px] font-bold font-serif",
+                        "text-body font-bold font-serif",
                         slaSuccessRate >= 80 ? "text-status-success" :
                         slaSuccessRate >= 50 ? "text-status-warning" :
                         "text-status-danger"
@@ -822,7 +827,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                     <button
                       onClick={() => setModalTab('tasks')}
                       className={cn(
-                        "flex-1 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all duration-300 cursor-pointer text-center",
+                        "flex-1 py-1.5 rounded-lg text-micro uppercase tracking-wider font-bold transition-all duration-300 cursor-pointer text-center",
                         modalTab === 'tasks' ? "bg-executive-blue text-[color:var(--executive-blue-text)] shadow-sm" : "text-text-muted hover:text-text-heading"
                       )}
                     >
@@ -832,7 +837,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                       <button
                         onClick={() => setModalTab('logs')}
                         className={cn(
-                          "flex-1 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all duration-300 cursor-pointer text-center",
+                          "flex-1 py-1.5 rounded-lg text-micro uppercase tracking-wider font-bold transition-all duration-300 cursor-pointer text-center",
                           modalTab === 'logs' ? "bg-executive-blue text-[color:var(--executive-blue-text)] shadow-sm" : "text-text-muted hover:text-text-heading"
                         )}
                       >
@@ -847,8 +852,8 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
               {modalTab === 'tasks' || !canEditOrViewOwnAudit ? (
                 <div>
                   <div className="flex items-center gap-2 mb-3 mt-1">
-                    <Target className="w-3.5 h-3.5 text-executive-gold" />
-                    <span className="text-[9px] font-medium text-text-tertiary uppercase tracking-[0.35em]">
+                    <Target className="w-3.5 h-3.5 text-[color:var(--gold-text)]" />
+                    <span className="text-micro font-medium text-text-tertiary uppercase tracking-[0.35em]">
                       Sorumluluk Alanı — {userAllTasks.length} Talimat
                     </span>
                   </div>
@@ -874,20 +879,20 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                              <Activity className="w-3.5 h-3.5 stroke-[1.3]" />}
                           </div>
                           <div className="flex flex-col gap-1.5 flex-1 min-w-0 items-start">
-                            <span className="text-[12px] font-medium text-executive-blue line-clamp-1 font-serif tracking-tight">
+                            <span className="text-body-sm font-medium text-executive-blue line-clamp-1 font-serif tracking-tight">
                               {task.title}
                             </span>
                             <Badge variant={STATUS_BADGE_VARIANT[task.status] ?? 'default'}>
                               {STATUS_LABELS[task.status] || task.status}
                             </Badge>
                           </div>
-                          <span className="text-[9px] text-text-tertiary flex-shrink-0">{formatTimeAgo(task.updatedAt, task.status)}</span>
+                          <span className="text-micro text-text-tertiary flex-shrink-0">{formatTimeAgo(task.updatedAt, task.status)}</span>
                         </motion.div>
                       ))
                     ) : (
                       <div className="py-12 flex flex-col items-center justify-center rounded-xl border border-dashed border-executive-blue/[0.05] bg-surface-glass">
                         <CheckCircle2 className="w-8 h-8 text-surface-border/50 stroke-[1] mb-2" />
-                        <span className="text-[9px] text-text-tertiary uppercase tracking-[0.35em]">Kayıtlı Talimat Yok</span>
+                        <span className="text-micro text-text-tertiary uppercase tracking-[0.35em]">Kayıtlı Talimat Yok</span>
                       </div>
                     )}
                   </div>
@@ -895,8 +900,8 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
               ) : (
                 <div>
                   <div className="flex items-center gap-2 mb-3 mt-1">
-                    <History className="w-3.5 h-3.5 text-executive-gold" />
-                    <span className="text-[9px] font-medium text-text-tertiary uppercase tracking-[0.35em]">
+                    <History className="w-3.5 h-3.5 text-[color:var(--gold-text)]" />
+                    <span className="text-micro font-medium text-text-tertiary uppercase tracking-[0.35em]">
                       Denetim İzi — {userLogs.length} Kayıt
                     </span>
                   </div>
@@ -919,10 +924,10 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                             className="flex flex-col gap-2 p-3 bg-makam-glass border border-surface-border rounded-xl"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-[11px] font-medium text-executive-blue truncate max-w-[220px] font-serif">
+                              <span className="text-caption font-medium text-executive-blue truncate max-w-[220px] font-serif">
                                 {relatedTask?.title || 'Bilinmeyen Talimat'}
                               </span>
-                              <span className="text-[8px] text-text-tertiary font-mono">
+                              <span className="text-micro text-text-tertiary font-mono">
                                 {formatDateTimeShort(log.timestamp)}
                               </span>
                             </div>
@@ -935,19 +940,19 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                                   const label = AUDIT_FIELD_LABELS[field] ?? field;
                                   return (
                                     <div key={field} className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="text-[7.5px] font-medium text-text-tertiary uppercase tracking-[0.2em] bg-surface-glass px-1 py-0.5 rounded border border-surface-border">
+                                      <span className="text-micro font-medium text-text-tertiary uppercase tracking-[0.2em] bg-surface-glass px-1 py-0.5 rounded border border-surface-border">
                                         {label}
                                       </span>
-                                      <span className="text-[8.5px] text-status-danger/70 line-through">{formatAuditValue(field, change.old, users)}</span>
+                                      <span className="text-micro text-status-danger/70 line-through">{formatAuditValue(field, change.old, users)}</span>
                                       <ArrowRight className="w-2 h-2 text-text-tertiary flex-shrink-0" />
-                                      <span className="text-[8.5px] font-medium text-status-success">{formatAuditValue(field, change.new, users)}</span>
+                                      <span className="text-micro font-medium text-status-success">{formatAuditValue(field, change.new, users)}</span>
                                     </div>
                                   );
                                 })}
                               </div>
                             ) : (
                               <div className="flex items-center gap-1.5">
-                                <span className="text-[7.5px] font-medium text-text-tertiary uppercase tracking-[0.2em] bg-surface-glass px-1 py-0.5 rounded border border-surface-border">Durum</span>
+                                <span className="text-micro font-medium text-text-tertiary uppercase tracking-[0.2em] bg-surface-glass px-1 py-0.5 rounded border border-surface-border">Durum</span>
                                 <Badge variant={STATUS_BADGE_VARIANT[log.newValue as TaskStatus] ?? 'default'}>
                                   {STATUS_LABELS[log.newValue as TaskStatus] ?? String(log.newValue)}
                                 </Badge>
@@ -959,7 +964,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                     ) : (
                       <div className="py-12 flex flex-col items-center justify-center rounded-xl border border-dashed border-executive-blue/[0.05] bg-surface-glass">
                         <History className="w-8 h-8 text-surface-border/50 stroke-[1] mb-2" />
-                        <span className="text-[9px] text-text-tertiary uppercase tracking-[0.35em]">Kayıtlı İşlem Yok</span>
+                        <span className="text-micro text-text-tertiary uppercase tracking-[0.35em]">Kayıtlı İşlem Yok</span>
                       </div>
                     )}
                   </div>
@@ -976,13 +981,13 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
           {addUserError && (
             <div className="flex items-start gap-2 p-2.5 bg-status-danger/10 border border-status-danger/20 rounded-xl">
               <AlertTriangle className="w-3.5 h-3.5 text-status-danger flex-shrink-0 mt-0.5" />
-              <p className="text-[10px] text-status-danger font-semibold uppercase tracking-[0.1em] leading-relaxed">{addUserError}</p>
+              <p className="text-micro text-status-danger font-semibold uppercase tracking-[0.1em] leading-relaxed">{addUserError}</p>
             </div>
           )}
           <Input label="Tam İsim" placeholder="Örn: Ali Yılmaz" value={newName} onChange={(e) => setNewName(e.target.value)} required />
           <Input label="E-posta" placeholder="orn@makam.com" type="email" value={newEmail} onChange={(e) => { setNewEmail(e.target.value); setAddUserError(''); }} required />
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="add-user-role-select" className="text-[9px] font-medium text-text-tertiary uppercase tracking-[0.35em] px-0.5">Yetki Seviyesi</label>
+            <label htmlFor="add-user-role-select" className="text-micro font-medium text-text-tertiary uppercase tracking-[0.35em] px-0.5">Yetki Seviyesi</label>
             <Select id="add-user-role-select" value={newRole} onChange={(e) => setNewRole(e.target.value as UserRole)} options={[
               { value: 'Staff', label: ROLE_LABELS.Staff },
               { value: 'Manager', label: ROLE_LABELS.Manager },
@@ -1012,7 +1017,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
             <>
               <Input label="E-posta" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required />
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="edit-user-role-select" className="text-[9px] font-medium text-text-tertiary uppercase tracking-[0.35em] px-0.5">Yetki Seviyesi</label>
+                <label htmlFor="edit-user-role-select" className="text-micro font-medium text-text-tertiary uppercase tracking-[0.35em] px-0.5">Yetki Seviyesi</label>
                 <Select id="edit-user-role-select" value={editRole} onChange={(e) => setEditRole(e.target.value as UserRole)} options={[
                   { value: 'Staff', label: ROLE_LABELS.Staff },
                   { value: 'Manager', label: ROLE_LABELS.Manager },
@@ -1031,7 +1036,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
           ) : (
             <div className="flex items-start gap-2 p-2.5 bg-surface-glass border border-surface-border rounded-xl">
               <Shield className="w-3.5 h-3.5 text-text-tertiary flex-shrink-0 mt-0.5" />
-              <p className="text-[9px] text-text-tertiary font-medium uppercase tracking-[0.15em] leading-relaxed">
+              <p className="text-micro text-text-tertiary font-medium uppercase tracking-[0.15em] leading-relaxed">
                 E-posta, yetki seviyesi ve departman yalnızca Admin tarafından değiştirilebilir.
               </p>
             </div>
@@ -1044,31 +1049,23 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
       </Modal>
 
       {/* ── Delete Modal ──────────────────────────────────────── */}
-      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Kadrodan Çıkar">
-        <div className="flex flex-col gap-4">
-          <p className="text-[13px] text-text-muted font-light leading-relaxed">
-            <strong className="text-status-danger font-medium">{userToDelete?.fullName}</strong> isimli personeli dizgeden çıkarmak istediğinize emin misiniz?
-          </p>
-          {userToDelete && (() => {
-            const activeTaskCount = tasks.filter(t =>
-              (t.assigneeId === userToDelete.uid || t.assigneeId === userToDelete.email) &&
-              t.status !== 'COMPLETED' && t.status !== 'CANCELLED'
-            ).length;
-            return activeTaskCount > 0 ? (
-              <div className="flex items-start gap-2 p-2.5 bg-status-danger/10 border border-status-danger/20 rounded-xl">
-                <AlertTriangle className="w-3.5 h-3.5 text-status-danger flex-shrink-0 mt-0.5" />
-                <p className="text-[10px] text-status-danger font-semibold uppercase tracking-[0.1em] leading-relaxed">
-                  Bu personelin üzerinde {activeTaskCount} aktif talimat var. Silme işleminden sonra bu talimatlar sahipsiz kalacaktır — devam etmeden önce sorumluluğu başka bir personele devretmeniz önerilir.
-                </p>
-              </div>
-            ) : null;
-          })()}
-          <div className="flex justify-end gap-2.5 pt-4 border-t border-executive-blue/[0.04]">
-            <Button variant="secondary" onClick={() => setIsDeleteModalOpen(false)}>İptal</Button>
-            <Button variant="danger" onClick={confirmDelete}>Dizgeden Çıkar</Button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Kadrodan Çıkar"
+        message={<><strong className="text-status-danger font-medium">{userToDelete?.fullName}</strong> isimli personeli dizgeden çıkarmak istediğinize emin misiniz?</>}
+        confirmLabel="Dizgeden Çıkar"
+        onConfirm={confirmDelete}
+        warning={userToDelete && (() => {
+          const activeTaskCount = tasks.filter(t =>
+            (t.assigneeId === userToDelete.uid || t.assigneeId === userToDelete.email) &&
+            t.status !== 'COMPLETED' && t.status !== 'CANCELLED'
+          ).length;
+          return activeTaskCount > 0
+            ? `Bu personelin üzerinde ${activeTaskCount} aktif talimat var. Silme işleminden sonra bu talimatlar sahipsiz kalacaktır — devam etmeden önce sorumluluğu başka bir personele devretmeniz önerilir.`
+            : null;
+        })()}
+      />
     </div>
   );
 };

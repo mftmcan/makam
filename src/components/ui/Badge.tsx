@@ -20,7 +20,7 @@ export const Badge = ({
   // modüllerdeki tek satırlık rozetlerden görsel olarak farklı bir bileşen
   // gibi gösteriyordu (bkz. kod denetimi) — rozetler artık her zaman tek
   // satır, gerekirse konteynerini taşırarak.
-  const baseStyle = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[9px] font-medium uppercase tracking-[0.2em] shadow-sm backdrop-blur-xl transition-all duration-300 select-none whitespace-nowrap';
+  const baseStyle = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-micro font-medium uppercase tracking-[0.2em] shadow-sm backdrop-blur-xl transition-all duration-300 select-none whitespace-nowrap';
 
   const variants = {
     default: 'bg-makam-glass border-text-muted/20 text-text-muted shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]',

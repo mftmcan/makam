@@ -30,7 +30,7 @@ export const Tooltip = ({ content, children, side = 'top', className }: TooltipP
           'group-focus-within/tooltip:opacity-100 group-focus-within/tooltip:scale-100',
           'transition-all duration-150',
           side === 'top' ? 'origin-bottom' : 'origin-top',
-          'px-3 py-2 rounded-xl bg-brand-obsidian text-slate-50 text-[10px] leading-relaxed font-medium tracking-wide shadow-xl border border-white/[0.08]'
+          'px-3 py-2 rounded-xl bg-brand-obsidian text-slate-50 text-micro leading-relaxed font-medium tracking-wide shadow-xl border border-white/[0.08]'
         )}
       >
         {content}

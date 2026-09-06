@@ -1,9 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TaskBoard } from './TaskBoard';
 import { useUIStore } from '../store/uiStore';
+import type { TaskBoardFilters } from '../hooks/useTaskBoardFilters';
 import type { Task, User } from '../types';
+
+const DEFAULT_FILTERS: TaskBoardFilters = { search: '', priority: 'All', status: 'All', assignee: 'All' };
+
+// TaskBoard filtreleri artık kontrollüdür (bkz. tasarım denetimi F20 —
+// gerçek uygulamada AuthenticatedApp'teki useTaskBoardFilters URL'den besler).
+// Testte gerçek bir parent'ı taklit eden küçük bir state sarmalayıcısı
+// gerekir — aksi halde select/input'lara yapılan etkileşimler onFiltersChange'i
+// tetikler ama `filters` prop'u hiç değişmediğinden React kontrollü value'yu
+// eski haline geri döndürür.
+function TaskBoardHarness(props: Omit<React.ComponentProps<typeof TaskBoard>, 'filters' | 'onFiltersChange'>) {
+  const [filters, setFilters] = useState<TaskBoardFilters>(DEFAULT_FILTERS);
+  return (
+    <TaskBoard
+      {...props}
+      filters={filters}
+      onFiltersChange={(partial) => setFilters(prev => ({ ...prev, ...partial }))}
+    />
+  );
+}
 
 const admin: User = { uid: 'admin-1', fullName: 'Müftü Bey', email: 'admin@makam.com', role: 'Admin' };
 const manager: User = { uid: 'mgr-1', fullName: 'Müdür Hanım', email: 'mgr@makam.com', role: 'Manager', departmentId: 'Operasyon' };
@@ -16,13 +37,13 @@ const makeTask = (overrides: Partial<Task> = {}): Task => ({
   ...overrides,
 } as Task);
 
-const renderBoard = (overrides: Partial<React.ComponentProps<typeof TaskBoard>> = {}) => {
+const renderBoard = (overrides: Partial<Omit<React.ComponentProps<typeof TaskBoard>, 'filters' | 'onFiltersChange'>> = {}) => {
   const onAddTask = vi.fn();
   const onViewTask = vi.fn();
   const updateTaskStatus = vi.fn().mockResolvedValue(undefined);
   const updateTask = vi.fn().mockResolvedValue(undefined);
   render(
-    <TaskBoard
+    <TaskBoardHarness
       tasks={[]}
       users={[admin, manager, staff]}
       currentUser={admin}

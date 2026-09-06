@@ -8,22 +8,6 @@ describe('useUIStore', () => {
     useUIStore.setState(initialState, true);
   });
 
-  describe('filtreleme', () => {
-    it('setFilter mevcut filtreyle birleştirir (kısmi güncelleme)', () => {
-      useUIStore.getState().setFilter({ status: 'BLOCKED' });
-      expect(useUIStore.getState().filter).toMatchObject({ status: 'BLOCKED', priority: 'ALL', search: '' });
-
-      useUIStore.getState().setFilter({ search: 'acil' });
-      expect(useUIStore.getState().filter).toMatchObject({ status: 'BLOCKED', priority: 'ALL', search: 'acil' });
-    });
-
-    it('resetFilter varsayılan filtreye döner', () => {
-      useUIStore.getState().setFilter({ status: 'COMPLETED', search: 'x' });
-      useUIStore.getState().resetFilter();
-      expect(useUIStore.getState().filter).toEqual({ status: 'ALL', priority: 'ALL', search: '' });
-    });
-  });
-
   describe('toast yönetimi', () => {
     it('addToast benzersiz id ile ekler', () => {
       useUIStore.getState().addToast({ title: 'Başlık', body: 'Gövde', type: 'success' });
@@ -83,6 +67,18 @@ describe('useUIStore', () => {
       expect(state.setActiveTab).toBeUndefined();
       expect(state.selectedTaskId).toBeUndefined();
       expect(state.setSelectedTaskId).toBeUndefined();
+    });
+
+    // TaskBoard filtreleri (arama/öncelik/durum/sorumlu) eskiden burada bir
+    // `filter`/`setFilter`/`resetFilter` üçlüsüydü ama TaskBoard.tsx onu hiç
+    // okumuyordu (bkz. tasarım denetimi F20) — kaldırıldı, karşılığı artık
+    // useTaskBoardFilters() (URL tabanlı). Bu test "kolay olduğu için" birinin
+    // bunu store'a geri eklemesini engeller.
+    it('TaskBoard filtreleri store\'da TUTULMAZ (URL tek kaynak)', () => {
+      const state = useUIStore.getState() as Record<string, unknown>;
+      expect(state.filter).toBeUndefined();
+      expect(state.setFilter).toBeUndefined();
+      expect(state.resetFilter).toBeUndefined();
     });
   });
 

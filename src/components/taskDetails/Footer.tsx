@@ -118,7 +118,7 @@ export const TaskDetailsFooter = ({ task, currentUser, onStatusChange }: {
     <div className="flex flex-col md:flex-row md:items-end gap-4">
       {action.collectsEvidence && (
         <div className="flex flex-col gap-2 flex-1 min-w-0">
-          <span className="text-[9px] font-medium text-text-muted uppercase tracking-[0.18em] inline-flex items-center gap-1.5">
+          <span className="text-micro font-medium text-text-muted uppercase tracking-[0.18em] inline-flex items-center gap-1.5">
             İcra Kanıtı <span className="normal-case tracking-normal font-light">(isteğe bağlı)</span>
             <Tooltip content="İşin nasıl tamamlandığını belgeler — denetim izlerinde ve olası itirazlarda referans olarak kullanılır.">
               <Info className="w-3 h-3 text-text-tertiary cursor-help" aria-label="Kanıt neden önemli" />
@@ -134,7 +134,7 @@ export const TaskDetailsFooter = ({ task, currentUser, onStatusChange }: {
                   aria-pressed={evidenceType === opt.value}
                   disabled={isSubmitting}
                   className={cn(
-                    'px-3 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-widest transition-colors',
+                    'px-3 py-1.5 rounded-full text-micro font-medium uppercase tracking-widest transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue disabled:opacity-60',
                     evidenceType === opt.value
                       ? 'bg-executive-blue text-[color:var(--executive-blue-text)] shadow-sm'
@@ -153,7 +153,7 @@ export const TaskDetailsFooter = ({ task, currentUser, onStatusChange }: {
                 placeholder="https://... kanıt bağlantısı"
                 aria-label="Kanıt bağlantısı"
                 disabled={isSubmitting}
-                className="flex-1 min-w-[180px] bg-makam-glass border border-makam-border/10 rounded-full px-4 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue/15 disabled:opacity-60"
+                className="flex-1 min-w-[180px] bg-makam-glass border border-makam-border/10 rounded-full px-4 py-2 text-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue/15 disabled:opacity-60"
               />
             ) : (
               <>
@@ -169,7 +169,7 @@ export const TaskDetailsFooter = ({ task, currentUser, onStatusChange }: {
                 <label
                   htmlFor="evidence-file-input"
                   className={cn(
-                    'flex items-center gap-2 px-4 py-2 bg-makam-glass border border-makam-border/10 rounded-full text-[11px] font-medium text-text-muted cursor-pointer',
+                    'flex items-center gap-2 px-4 py-2 bg-makam-glass border border-makam-border/10 rounded-full text-caption font-medium text-text-muted cursor-pointer',
                     'hover:text-executive-blue hover:border-executive-blue/20 transition-colors',
                     isSubmitting && 'opacity-60 pointer-events-none'
                   )}
@@ -183,7 +183,7 @@ export const TaskDetailsFooter = ({ task, currentUser, onStatusChange }: {
             )}
           </div>
           {evidenceError && (
-            <span role="alert" className="text-[11px] text-status-danger font-medium">{evidenceError}</span>
+            <span role="alert" className="text-caption text-status-danger font-medium">{evidenceError}</span>
           )}
         </div>
       )}
@@ -193,11 +193,11 @@ export const TaskDetailsFooter = ({ task, currentUser, onStatusChange }: {
           onClick={handleClick}
           isLoading={isSubmitting}
           className={cn(
-            'h-12 text-[10px] tracking-widest w-full md:w-auto md:min-w-[240px]',
+            'h-12 text-micro tracking-widest w-full md:w-auto md:min-w-[240px]',
             confirmArmed && 'ring-2 ring-offset-2 ring-executive-gold animate-pulse'
           )}
         >
-          {isSubmitting ? 'İŞLENİYOR…' : confirmArmed ? 'EMİN MİSİNİZ? ONAYLA' : action.label}
+          {confirmArmed ? 'EMİN MİSİNİZ? ONAYLA' : action.label}
         </Button>
       </Tooltip>
     </div>

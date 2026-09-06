@@ -119,11 +119,11 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
             <ShieldCheck className="w-4 h-4 text-[color:var(--executive-blue-text)] stroke-[1.5]" />
           </div>
           <div>
-            <span className="text-[10px] font-medium text-executive-blue uppercase tracking-[0.4em] block leading-none">DENETİM İZLERİ</span>
+            <span className="text-micro font-medium text-executive-blue uppercase tracking-[0.4em] block leading-none">DENETİM İZLERİ</span>
             {/* Eskiden "filtrelenen / yüklenen" biçiminde İKİ sayı vardı;
                 istemci tarafı eleme kalktığı için ikisi artık matematiksel
                 olarak hep eşit — tek sayı gösterilir. */}
-            <span className="text-[9px] text-text-tertiary uppercase tracking-[0.3em]">
+            <span className="text-micro text-text-tertiary uppercase tracking-[0.3em]">
               {logsState.length} Kayıt
             </span>
           </div>
@@ -137,7 +137,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
             <select
               value={selectedUser}
               onChange={e => setSelectedUser(e.target.value)}
-              className="text-[11px] text-text-heading bg-transparent outline-none border-none cursor-pointer pr-4 font-medium"
+              className="text-caption text-text-heading bg-transparent outline-none border-none cursor-pointer pr-4 font-medium"
               aria-label="Aktör Filtresi"
             >
               <option value="ALL" className="bg-surface-base text-text-heading">Tüm Aktörler</option>
@@ -155,7 +155,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
             <select
               value={selectedType}
               onChange={e => setSelectedType(e.target.value as 'ALL' | AuditLogType)}
-              className="text-[11px] text-text-heading bg-transparent outline-none border-none cursor-pointer pr-4 font-medium"
+              className="text-caption text-text-heading bg-transparent outline-none border-none cursor-pointer pr-4 font-medium"
               aria-label="İşlem Tipi Filtresi"
             >
               <option value="ALL" className="bg-surface-base text-text-heading">Tüm İşlemler</option>
@@ -173,7 +173,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
               value={dateFrom}
               onChange={e => setDateFrom(e.target.value)}
               max={dateTo || undefined}
-              className="text-[11px] text-text-heading bg-transparent outline-none border-none cursor-pointer font-medium"
+              className="text-caption text-text-heading bg-transparent outline-none border-none cursor-pointer font-medium"
               aria-label="Başlangıç Tarihi"
             />
             <ArrowRight className="w-3 h-3 text-text-tertiary flex-shrink-0" />
@@ -184,13 +184,13 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
               value={dateTo}
               onChange={e => setDateTo(e.target.value)}
               min={dateFrom || undefined}
-              className="text-[11px] text-text-heading bg-transparent outline-none border-none cursor-pointer font-medium"
+              className="text-caption text-text-heading bg-transparent outline-none border-none cursor-pointer font-medium"
               aria-label="Bitiş Tarihi"
             />
             {(dateFrom || dateTo) && (
               <button
                 onClick={() => { setDateFrom(''); setDateTo(''); }}
-                className="text-[9px] text-text-tertiary hover:text-executive-blue uppercase tracking-wider pl-1"
+                className="text-micro text-text-tertiary hover:text-executive-blue uppercase tracking-wider pl-1"
               >
                 Temizle
               </button>
@@ -209,7 +209,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
       {selectedType !== 'ALL' && (
         <div className="flex items-start gap-2 px-3 py-2 bg-executive-blue/[0.03] border border-executive-blue/[0.06] rounded-xl">
           <Info className="w-3 h-3 text-text-tertiary stroke-[1.5] flex-shrink-0 mt-[1px]" />
-          <span className="text-[9px] text-text-tertiary tracking-[0.15em] uppercase leading-relaxed">
+          <span className="text-micro text-text-tertiary tracking-[0.15em] uppercase leading-relaxed">
             İşlem tipi filtresi yalnızca bu özelliğin eklenmesinden sonra yazılan kayıtları kapsar — daha eski kayıtlar için "Tüm İşlemler" seçin.
           </span>
         </div>
@@ -251,23 +251,23 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
                   />
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-[12px] font-medium text-executive-blue tracking-tight group-hover:text-executive-blue transition-colors">{user?.fullName || 'Dizge'}</span>
-                      <span className="text-[8px] text-text-tertiary font-medium uppercase tracking-[0.15em] px-1.5 py-0.5 bg-surface-glass border border-surface-border rounded-md">{user ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] : ''}</span>
+                      <span className="text-body-sm font-medium text-executive-blue tracking-tight group-hover:text-executive-blue transition-colors">{user?.fullName || 'Dizge'}</span>
+                      <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.15em] px-1.5 py-0.5 bg-surface-glass border border-surface-border rounded-md">{user ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] : ''}</span>
                       {hasSensitiveChange && (
-                        <span className="text-[8px] text-status-danger font-bold uppercase tracking-[0.15em] px-1.5 py-0.5 bg-status-danger/10 border border-status-danger/20 rounded-md">Yetki Değişikliği</span>
+                        <span className="text-micro text-status-danger font-bold uppercase tracking-[0.15em] px-1.5 py-0.5 bg-status-danger/10 border border-status-danger/20 rounded-md">Yetki Değişikliği</span>
                       )}
                     </div>
-                    <span className="text-[9px] text-text-tertiary uppercase tracking-[0.2em] font-mono tabular-nums">{formatDateTime(log.timestamp)}</span>
+                    <span className="text-micro text-text-tertiary uppercase tracking-[0.2em] font-mono tabular-nums">{formatDateTime(log.timestamp)}</span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1 flex-[1.2] border-t sm:border-t-0 sm:border-l border-executive-blue/[0.04] pt-2.5 sm:pt-0 sm:pl-4">
-                  <span className="text-[8px] text-text-tertiary font-medium uppercase tracking-[0.25em]">Operasyon Hedefi</span>
-                  <span className="text-[12px] font-medium text-executive-blue truncate max-w-[280px] font-serif">{taskTitle}</span>
+                  <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.25em]">Operasyon Hedefi</span>
+                  <span className="text-body-sm font-medium text-executive-blue truncate max-w-[280px] font-serif">{taskTitle}</span>
                 </div>
 
                 <div className="flex flex-col gap-2 flex-[1.6] border-t sm:border-t-0 sm:border-l border-executive-blue/[0.04] pt-2.5 sm:pt-0 sm:pl-4">
-                  <span className="text-[8px] text-text-tertiary font-medium uppercase tracking-[0.25em]">Durum Değişimi / Değer Detayı</span>
+                  <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.25em]">Durum Değişimi / Değer Detayı</span>
                   {log.changes ? (() => {
                     const visibleChanges = Object.entries(log.changes)
                       // Etiketi tanımlı olmayan alanlar (updatedAt, lockVersion gibi dahili
@@ -280,7 +280,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
                       .filter(([field, diff]) => formatAuditValue(field, diff.old, users) !== formatAuditValue(field, diff.new, users));
 
                     if (visibleChanges.length === 0) {
-                      return <span className="text-[10px] text-text-tertiary">Yalnızca üstveri güncellendi</span>;
+                      return <span className="text-micro text-text-tertiary">Yalnızca üstveri güncellendi</span>;
                     }
 
                     return (
@@ -289,9 +289,9 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
                           const fieldLabel = AUDIT_FIELD_LABELS[field] ?? field;
 
                           return (
-                            <div key={field} className="flex flex-col gap-0.5 text-[9px] bg-executive-blue/[0.02] border border-executive-blue/[0.04] p-1.5 rounded-lg">
-                              <span className="font-bold text-[8px] text-text-tertiary uppercase tracking-wider">{fieldLabel}</span>
-                              <div className="flex items-center gap-1 text-[10px] text-text-muted font-mono">
+                            <div key={field} className="flex flex-col gap-0.5 text-micro bg-executive-blue/[0.02] border border-executive-blue/[0.04] p-1.5 rounded-lg">
+                              <span className="font-bold text-micro text-text-tertiary uppercase tracking-wider">{fieldLabel}</span>
+                              <div className="flex items-center gap-1 text-micro text-text-muted font-mono">
                                 <span className="line-through text-status-danger/70 truncate max-w-[120px]">{formatAuditValue(field, diff.old, users)}</span>
                                 <ArrowRight className="w-2.5 h-2.5 flex-shrink-0" />
                                 <span className="font-medium text-status-success truncate max-w-[120px]">{formatAuditValue(field, diff.new, users)}</span>
@@ -325,7 +325,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
                   taşındığı için bu durum artık OLUŞAMAZ (boş liste = sunucuda
                   gerçekten eşleşen kayıt yok), dal da kaldırıldı — ölü bir
                   koşul, okuyucuya var olmayan bir durumu anlatırdı. */}
-              <span className="text-[9px] text-text-tertiary uppercase tracking-[0.4em]">Kayıt Bulunamadı</span>
+              <span className="text-micro text-text-tertiary uppercase tracking-[0.4em]">Kayıt Bulunamadı</span>
             </div>
           )
         )}
@@ -337,7 +337,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
             variant="secondary"
             onClick={() => fetchLogs(false, lastVisibleDoc)}
             disabled={loading}
-            className="flex items-center gap-2 px-6 py-2 uppercase tracking-[0.2em] text-[10px] font-medium rounded-xl border border-surface-border bg-surface-elevated hover:bg-surface-glass transition-all"
+            className="flex items-center gap-2 px-6 py-2 uppercase tracking-[0.2em] text-micro font-medium rounded-xl border border-surface-border bg-surface-elevated hover:bg-surface-glass transition-all"
           >
             {loading && <Loader2 className="w-3 h-3 animate-spin" />}
             Daha Fazla Yükle

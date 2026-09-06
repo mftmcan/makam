@@ -4,6 +4,7 @@ import { Task, TaskBlocker, User } from '../types';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Modal } from './ui/Modal';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 import { Badge } from './ui/Badge';
 import { Skeleton, TableRowSkeleton } from './ui/Skeleton';
 import { cn, formatTimeAgo, formatDate, buildUsersById } from '../lib/utils';
@@ -94,16 +95,16 @@ const BlockerCard = ({ blocker, index, tasksById, usersById, isAdmin, isSystemAd
         </div>
         <div className="flex flex-col gap-0.5 flex-1 min-w-0">
           <p className={cn(
-            'text-[12px] font-medium line-clamp-2 leading-snug tracking-tight font-serif',
+            'text-body-sm font-medium line-clamp-2 leading-snug tracking-tight font-serif',
             blocker.isResolved ? 'text-text-muted' : 'text-executive-blue group-hover:text-status-danger'
           )}>
             {blocker.reason}
           </p>
           <div className="flex flex-wrap items-center gap-1.5 mt-1">
-            <span className="text-[9px] text-text-tertiary font-medium uppercase tracking-[0.2em] truncate">
+            <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.2em] truncate">
               {task?.title || 'Bilinmeyen Talimat'}
             </span>
-            <span className="text-[9px] text-text-tertiary/40">•</span>
+            <span className="text-micro text-text-tertiary/40">•</span>
             <Badge variant={PRIORITY_BADGE_VARIANT[severity]}>
               {PRIORITY_LABELS[severity]}
             </Badge>
@@ -119,20 +120,20 @@ const BlockerCard = ({ blocker, index, tasksById, usersById, isAdmin, isSystemAd
           </div>
         </div>
         <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-          <span className="text-[8px] text-text-tertiary font-medium uppercase tracking-[0.15em]">
+          <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.15em]">
             {formatDate(blocker.createdAt)}
           </span>
-          <span className="text-[8px] text-text-tertiary">{formatTimeAgo(blocker.createdAt)}</span>
+          <span className="text-micro text-text-tertiary">{formatTimeAgo(blocker.createdAt)}</span>
         </div>
       </div>
 
       {/* Bottom row: assignee + actions */}
       <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-executive-blue/[0.04]">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-executive-blue/[0.04] border border-executive-blue/[0.08] flex items-center justify-center text-[10px] font-light text-executive-blue">
+          <div className="w-6 h-6 rounded-full bg-executive-blue/[0.04] border border-executive-blue/[0.08] flex items-center justify-center text-micro font-light text-executive-blue">
             {assignee?.fullName?.charAt(0) || '?'}
           </div>
-          <span className="text-[10px] text-text-muted font-medium tracking-tight">
+          <span className="text-micro text-text-muted font-medium tracking-tight">
             {assignee?.fullName || 'Atanmamış'}
           </span>
         </div>
@@ -160,7 +161,7 @@ const BlockerCard = ({ blocker, index, tasksById, usersById, isAdmin, isSystemAd
           )}
           {!blocker.isResolved && isAdmin && (
             <button
-              className="px-3 py-1.5 text-[8px] bg-status-success hover:opacity-90 text-[color:var(--status-success-text)] font-medium uppercase tracking-[0.2em] rounded-lg shadow-sm transition-all active:scale-95"
+              className="px-3 py-1.5 text-micro bg-status-success hover:opacity-90 text-[color:var(--status-success-text)] font-medium uppercase tracking-[0.2em] rounded-lg shadow-sm transition-all active:scale-95"
               onClick={(e) => { e.stopPropagation(); onResolve(blocker.id); }}
             >
               Çözüldü
@@ -285,12 +286,12 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
         </div>
         <div>
           <span className={cn(
-            "text-[10px] font-medium uppercase tracking-[0.4em] block leading-none",
+            "text-micro font-medium uppercase tracking-[0.4em] block leading-none",
             activeBlockers.length > 0 ? "text-status-danger" : "text-text-heading"
           )}>
             OPERASYONEL KRİZ YÖNETİMİ
           </span>
-          <span className="text-[9px] text-text-tertiary uppercase tracking-[0.3em]">
+          <span className="text-micro text-text-tertiary uppercase tracking-[0.3em]">
             {activeBlockers.length} Aktif Engel
           </span>
         </div>
@@ -304,11 +305,11 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className={cn("w-3.5 h-3.5 stroke-[1.5]", activeBlockers.length > 0 ? "text-status-danger" : "text-text-tertiary")} />
-            <h3 className={cn("text-[9px] font-medium uppercase tracking-[0.35em]", activeBlockers.length > 0 ? "text-status-danger" : "text-text-tertiary")}>
+            <h3 className={cn("text-micro font-medium uppercase tracking-[0.35em]", activeBlockers.length > 0 ? "text-status-danger" : "text-text-tertiary")}>
               Aktif Kriz Engelleri
             </h3>
             <span className={cn(
-              "px-2 py-0.5 rounded-full text-[8px] font-bold border",
+              "px-2 py-0.5 rounded-full text-micro font-bold border",
               activeBlockers.length > 0 ? "bg-status-danger/10 text-status-danger border-status-danger/20" : "bg-surface-base text-text-tertiary border-surface-border"
             )}>
               {activeBlockers.length}
@@ -334,7 +335,7 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
             ) : (
               <div className="min-h-[260px] flex flex-col items-center justify-center bg-makam-glass border border-dashed border-executive-blue/[0.05] rounded-2xl gap-3">
                 <CheckCircle2 className="w-10 h-10 text-text-tertiary/50 stroke-[1]" />
-                <span className="text-[13px] text-text-tertiary">Aktif engel bulunmuyor</span>
+                <span className="text-body text-text-tertiary">Aktif engel bulunmuyor</span>
               </div>
             )}
           </div>
@@ -344,10 +345,10 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-3.5 h-3.5 text-text-tertiary stroke-[1.5]" />
-            <h3 className="text-[9px] font-medium text-text-tertiary uppercase tracking-[0.35em]">
+            <h3 className="text-micro font-medium text-text-tertiary uppercase tracking-[0.35em]">
               Çözüme Ulaşanlar
             </h3>
-            <span className="px-2 py-0.5 rounded-full bg-surface-base text-text-tertiary border border-surface-border text-[8px] font-bold">
+            <span className="px-2 py-0.5 rounded-full bg-surface-base text-text-tertiary border border-surface-border text-micro font-bold">
               {resolvedBlockers.length}
             </span>
           </div>
@@ -371,7 +372,7 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
             ) : (
               <div className="min-h-[260px] flex flex-col items-center justify-center bg-makam-glass border border-dashed border-executive-blue/[0.05] rounded-2xl gap-3">
                 <Clock className="w-10 h-10 text-text-tertiary/50 stroke-[1]" />
-                <span className="text-[13px] text-text-tertiary">Arşivlenmiş kayıt yok</span>
+                <span className="text-body text-text-tertiary">Arşivlenmiş kayıt yok</span>
               </div>
             )}
           </div>
@@ -381,7 +382,7 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
       {/* ── Özet şeridi ────────────────────────────────────────────── */}
       <div className="flex items-center justify-center gap-2 py-3 border-t border-executive-blue/[0.04]">
         <ShieldCheck className="w-3.5 h-3.5 text-status-success/60 stroke-[1.5]" />
-        <span className="text-[9px] text-text-tertiary uppercase tracking-[0.3em]">
+        <span className="text-micro text-text-tertiary uppercase tracking-[0.3em]">
           Son 30 günde {resolvedLast30Days} engel çözüldü · {trackedTaskCount} talimat izleniyor
         </span>
       </div>
@@ -398,20 +399,19 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
       </Modal>
 
       {/* ── Delete Modal ───────────────────────────────────────────── */}
-      <Modal isOpen={!!deletingBlockerId} onClose={() => setDeletingBlockerId(null)} title="Engeli Sil">
-        <div className="flex flex-col gap-4">
-          <p className="text-[13px] text-text-muted font-light">Bu engeli silmek istediğinize emin misiniz?</p>
-          <div className="flex justify-end gap-2.5 pt-4 border-t border-executive-blue/[0.04]">
-            <Button variant="secondary" onClick={() => setDeletingBlockerId(null)}>İptal</Button>
-            <Button variant="danger" onClick={() => {
-              if (deletingBlockerId) {
-                onDeleteBlocker(deletingBlockerId);
-                setDeletingBlockerId(null);
-              }
-            }}>Sil</Button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        isOpen={!!deletingBlockerId}
+        onClose={() => setDeletingBlockerId(null)}
+        title="Engeli Sil"
+        message="Bu engeli silmek istediğinize emin misiniz?"
+        confirmLabel="Sil"
+        onConfirm={() => {
+          if (deletingBlockerId) {
+            onDeleteBlocker(deletingBlockerId);
+            setDeletingBlockerId(null);
+          }
+        }}
+      />
     </div>
   );
 };

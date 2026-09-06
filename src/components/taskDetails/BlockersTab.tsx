@@ -29,7 +29,7 @@ export const BlockersTab = ({
 }: BlockersTabProps) => (
   <div role="tabpanel" id="task-tabpanel-blockers" aria-labelledby="task-tab-blockers" className="flex flex-col gap-6">
     <div className="flex flex-col gap-4">
-      <h4 className="text-[9px] font-medium text-text-muted uppercase tracking-[0.18em]">Aktif Engeller</h4>
+      <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Aktif Engeller</h4>
       <div className="flex flex-col gap-3">
         {blockers.length === 0 ? (
           <EmptyState icon={<AlertTriangle className="w-8 h-8" />} message="Engel kaydı bulunamadı" />
@@ -47,7 +47,7 @@ export const BlockersTab = ({
                     <Badge variant={PRIORITY_BADGE_VARIANT[blocker.severity ?? 'Medium']}>
                       {PRIORITY_LABELS[blocker.severity ?? 'Medium']}
                     </Badge>
-                    <span className="text-[9px] text-text-muted uppercase tracking-widest">
+                    <span className="text-micro text-text-muted uppercase tracking-widest">
                       {format(blocker.createdAt, 'd MMM HH:mm', { locale: tr })}
                     </span>
                   </div>
@@ -78,7 +78,7 @@ export const BlockersTab = ({
           onChange={(e) => setBlockerReason(e.target.value)}
           placeholder="Engeli tanımlayın..."
           disabled={isSubmittingBlocker}
-          className="flex-1 bg-makam-glass border border-makam-border/10 rounded-full px-5 py-3 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger/10 disabled:opacity-60"
+          className="flex-1 bg-makam-glass border border-makam-border/10 rounded-full px-5 py-3 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger/10 disabled:opacity-60"
         />
         <label htmlFor="blocker-severity-select" className="sr-only">Engel ciddiyeti</label>
         <select
@@ -86,7 +86,7 @@ export const BlockersTab = ({
           value={blockerSeverity}
           onChange={(e) => setBlockerSeverity(e.target.value as TaskPriority)}
           disabled={isSubmittingBlocker}
-          className="bg-makam-glass border border-makam-border/10 rounded-full px-4 py-3 text-[12px] font-medium text-text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger/10 disabled:opacity-60"
+          className="bg-makam-glass border border-makam-border/10 rounded-full px-4 py-3 text-body-sm font-medium text-text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger/10 disabled:opacity-60"
         >
           {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
             <option key={value} value={value} className="bg-surface-base text-text-heading">{label}</option>
@@ -95,7 +95,7 @@ export const BlockersTab = ({
         <button
           onClick={onAddBlocker}
           disabled={!blockerReason.trim() || isSubmittingBlocker}
-          className="px-6 py-3 bg-status-danger text-[color:var(--status-danger-text)] rounded-full text-[10px] uppercase tracking-widest shadow-lg shadow-status-danger/10 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2"
+          className="px-6 py-3 bg-status-danger text-[color:var(--status-danger-text)] rounded-full text-micro uppercase tracking-widest shadow-lg shadow-status-danger/10 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2"
         >
           {isSubmittingBlocker ? 'EKLENİYOR…' : 'ENGEL EKLE'}
         </button>

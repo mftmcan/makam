@@ -1,6 +1,69 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
+/* ─── Self-hosted fontlar ─────────────────────────────────────────────────
+   Eskiden fonts.googleapis.com'dan 3 aile × 5 ağırlık senkron <link> ile
+   yükleniyordu — bu, ilk boyamayı bloke eden ayrı bir üçüncü taraf isteği
+   zinciriydi (preconnect + stylesheet + font dosyaları) ve Lighthouse perf
+   kapısı bunu hiç yakalamıyordu (warn + minScore 0.5, bkz. tasarım denetimi
+   F29). Inter/Outfit DEĞİŞKEN (variable) fontlar — Google, 300-700 arası
+   istenen HER ağırlık için AYNI iki fiziksel dosyayı (latin/latin-ext)
+   döndürüyor; bu yüzden 5 statik kopya yerine tek bir aralık (300 700)
+   tanımlı @font-face yeterli. unicode-range değerleri Google'ın kendi CSS
+   yanıtından BİREBİR alındı — latin-ext, Türkçe'ye özgü ı/İ/ğ/Ğ/ş/Ş
+   karakterlerini kapsar (bunlar olmadan bu harfler sistem fontuna düşerdi). */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("/fonts/inter-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("/fonts/outfit-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("/fonts/outfit-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* JetBrains Mono yalnızca 5 yerde (denetim izi zaman damgaları, hata
+   referans kodları) ve tek ağırlıkta (400) kullanılıyor — 500 ağırlığı hiç
+   kullanılmadığından (bkz. tasarım denetimi F29) buduldu. */
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @keyframes shrink {
   from { width: 100%; }
   to { width: 0%; }
@@ -22,9 +85,16 @@
   /* NOT: text-muted (#7A7770, WCAG kontrastı 4.47/4.21 — 4.5 eşiğinin az altında)
      ve text-light (rgba(22,21,19,0.15), kontrastı 1.0-1.3 aralığında — pratikte
      görünmez) axe-core e2e taramasında ciddi kontrast ihlalleri olarak
-     bulundu. Solid, AA-uyumlu (≥4.5:1) değerlerle değiştirildi. */
+     bulundu. Solid, AA-uyumlu (≥4.5:1) değerlerle değiştirildi.
+     --text-light bir kez daha koyultuldu (#6F6B64 → #6B675F): a11y otomasyonu
+     yalnızca Harekat Merkezi'ni kapsarken bu, --bg-base üzerinde AA'yı geçiyordu
+     ama Raporlar'daki --color-surface-glass (yarı saydam siyah dolgu) üzerinde
+     efektif zemin biraz koyulaşınca 4.22:1'e düşüyordu (bkz. tasarım denetimi
+     F3 kapsam genişletmesi — 7 sekmeye çıkınca canlı ortamda bulundu). Yeni
+     değer bu bağlamda da ~4.9:1 veriyor; yalnızca AÇIK modda (karanlık modun
+     kendi --text-light'ı ayrı ve bu taramada sorun çıkarmadı). */
   --text-muted: #6B6862;
-  --text-light: #6F6B64;
+  --text-light: #6B675F;
   --glass-bg: rgba(252, 251, 249, 0.65);
   --card-bg: rgba(255, 255, 255, 0.8);
   --input-bg: rgba(255, 255, 255, 0.8);
@@ -172,6 +242,24 @@
   --font-serif: "Outfit", "Inter", serif;
   --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
+  /* ─── Tipografi ölçeği (mikro/etiket aralığı) ───────────────────────────
+     Renkte (bkz. --gold-text vb.) kusursuz token disiplini varken tipografide
+     hiç token yoktu: 6.5-13px aralığında 12 farklı arbitrary text-[Npx]
+     değeri, 400'den fazla kullanım — aynı anlamdaki bir etiket ekranlar
+     arası 8/8.5/9/9.5px arasında sessizce kayıyordu (bkz. tasarım denetimi
+     F6). Dört basamak bu aralığı toplar; ≤9.5px olan TÜM kullanımlar
+     --text-micro'ya (10px tabanı) yükseltilir — WCAG'in mutlak px birimli
+     çok küçük metne dair endişesini karşılar. 14px ve üzeri (gövde/başlık/
+     display aralığı, ~45 kullanım) BİLİNÇLİ OLARAK bu ölçeğin dışında
+     bırakıldı: bu aralıktaki farklılıklar (ör. bir KPI'ın 32px'i ile bir
+     modal başlığının 20px'i) sürüklenme değil, bağlama özgü gerçek tasarım
+     kararları — audit'in kendi bulgusu da özellikle alt-10px kümesini
+     örnekliyordu ("8/8.5/9/9.5px"). */
+  --text-micro: 0.625rem;    /* 10px — eskiden 6.5/7/7.5/8/8.5/9/9.5/10px */
+  --text-caption: 0.6875rem; /* 11px — eskiden 10.5/11px */
+  --text-body-sm: 0.75rem;   /* 12px — eskiden 12/12.5px */
+  --text-body: 0.8125rem;    /* 13px — body'nin kendi font-size'ıyla aynı */
+
   /* Global Theme Overrides - Mapping full spectrum to Executive Palette */
   --color-blue-50: #F8FAFC;
   --color-blue-100: #F1F5F9;
@@ -217,10 +305,6 @@
   --color-brand-obsidian: #0E0E0D;
   --color-brand-cyan: #0EA5E9; /* Strategic Data Cyan */
 
-  --shadow-makam: 
-    0 2px 12px rgba(22, 21, 19, 0.01),
-    0 20px 50px -12px rgba(22, 21, 19, 0.03);
-  
   /* Semantic Colors - Desaturated in Dark Mode */
   --color-status-success: var(--status-success);
   --color-status-warning: var(--status-warning);
@@ -292,10 +376,6 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 4px 30px -10px var(--shadow-base);
   }
   
-  .makam-card-hover {
-    @apply hover:shadow-[0_40px_80px_-20px_rgba(22,21,19,0.05)] hover:bg-white/60 dark:hover:bg-white/5 hover:-translate-y-0.5;
-  }
-
   .makam-button {
     @apply px-6 py-2.5 rounded-full font-medium transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 uppercase tracking-[0.14em] text-[10px];
   }
@@ -311,28 +391,12 @@
     background-color: var(--btn-secondary-bg);
   }
   
-  .makam-input {
-    @apply border border-surface-border rounded-[16px] px-4 py-3 focus:outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500/30 transition-all duration-200 placeholder:text-text-muted/40 text-[12px] font-normal text-text-heading shadow-inner;
-    background-color: var(--input-bg);
-  }
-  .makam-badge {
-    @apply px-3 py-1 rounded-full border text-[9px] font-medium uppercase tracking-[0.2em] shadow-sm transition-all;
-  }
-
-  .makam-glow-blue {
-    @apply absolute -z-10 w-64 h-64 bg-executive-blue/[0.025] rounded-2xl blur-[72px] pointer-events-none;
-  }
-  
-  .makam-glow-gold {
-    @apply absolute -z-10 w-64 h-64 bg-executive-gold/[0.025] rounded-2xl blur-[72px] pointer-events-none;
-  }
-  
   .makam-divider {
     @apply h-[1px] w-full bg-gradient-to-r from-transparent via-makam-border/30 to-transparent;
   }
 
   /* Apple Spring Haptic Button Salınımı */
-  .makam-button:active, .makam-button-primary:active, .makam-button-secondary:active, .makam-card-hover:active {
+  .makam-button:active, .makam-button-primary:active, .makam-button-secondary:active {
     transform: scale(0.97) translateY(0.5px) !important;
     transition: transform 0.1s cubic-bezier(0.25, 1, 0.5, 1) !important;
   }
@@ -358,6 +422,19 @@
   animation: makam-flash 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ReloadPrompt'taki güncelleme rozetinin dekoratif ikonu için — animate-spin'in
+   (yükleme göstergesi, aşağıdaki reduced-motion istisnasında kalır) aksine bu
+   sabit bir "güncelleme mevcut" bildirimidir, işlevsel bir ilerleme durumu
+   taşımaz, bu yüzden dekoratif animasyonlarla birlikte reduced-motion'da durur. */
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
 /* prefers-reduced-motion: yalnızca dekoratif/dikkat-çekici döngüsel animasyonları
    (pulse/ping/flash) kapatır — animate-spin gibi yükleme göstergeleri kasıtlı
    olarak dışarıda bırakılıyor, çünkü onlar işlevsel durum bilgisi taşıyor ve
@@ -367,7 +444,8 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse,
   .animate-ping,
-  .animate-makam-flash {
+  .animate-makam-flash,
+  .animate-spin-slow {
     animation: none;
   }
 }
@@ -401,12 +479,12 @@
   }
 
   /* Hide UI elements not meant for print */
-  nav, sidebar, .no-print, button, input, [role="button"], .makam-glass {
+  nav, sidebar, button, input, [role="button"], .makam-glass {
     display: none !important;
   }
 
   /* Typography Contrast */
-  h1, h2, h3, h4, h5, h6, .print-heading {
+  h1, h2, h3, h4, h5, h6 {
     font-family: "Outfit", "Inter", sans-serif !important;
     color: #000000 !important;
     page-break-after: avoid;
@@ -458,7 +536,7 @@
   }
 
   /* Badges */
-  .makam-badge, [class*="bg-"][class*="/10"] {
+  [class*="bg-"][class*="/10"] {
     background: transparent !important;
     border: 0.5pt solid #D1D1D1 !important;
     color: #475569 !important;

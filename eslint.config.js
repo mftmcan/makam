@@ -53,6 +53,35 @@ export default [
     plugins: {
       'jsx-a11y': jsxA11y,
     },
+    settings: {
+      // `motion.div`/`motion.tr`/`motion.span` (framer-motion) native DOM
+      // elemanlarına render olur ama jsx-a11y bunları component olarak görüp
+      // hiç denetlemiyordu — click-events-have-key-events gibi kurallar bu
+      // yüzden 58+ motion.* kullanımını sessizce atlıyordu (bkz. kod
+      // denetimi F1). Eşleme, kuralların bu elemanları karşılık geldikleri
+      // native etiketmiş gibi denetlemesini sağlar.
+      'jsx-a11y': {
+        components: {
+          'motion.div': 'div',
+          'motion.tr': 'tr',
+          'motion.span': 'span',
+          'motion.button': 'button',
+          'motion.li': 'li',
+          'motion.a': 'a',
+          'motion.ul': 'ul',
+          'motion.section': 'section',
+          'motion.article': 'article',
+          'motion.header': 'header',
+          'motion.footer': 'footer',
+          'motion.nav': 'nav',
+          'motion.aside': 'aside',
+          'motion.p': 'p',
+          'motion.img': 'img',
+          'motion.svg': 'svg',
+          'motion.path': 'path',
+        },
+      },
+    },
     rules: {
       // Kritik erişilebilirlik kuralları
       'jsx-a11y/alt-text': 'error',

@@ -17,7 +17,7 @@ import { logger } from '../../lib/logger';
 // altınıyla ayrıcalıklı bir rol olarak işaretleniyor. Manager/Staff nötr
 // tonlarda, aralarındaki hiyerarşi metin/kenarlık ağırlığıyla ayrışıyor.
 export const roleConfig: Record<UserRole, { bg: string; text: string; border: string }> = {
-  Admin:   { bg: 'bg-executive-gold/10', text: 'text-executive-gold', border: 'border-executive-gold/25' },
+  Admin:   { bg: 'bg-executive-gold/10', text: 'text-[color:var(--gold-text)]', border: 'border-executive-gold/25' },
   Manager: { bg: 'bg-transparent',       text: 'text-text-muted',     border: 'border-text-muted/25' },
   Staff:   { bg: 'bg-transparent',       text: 'text-text-tertiary',  border: 'border-text-tertiary/20' },
 };
@@ -93,7 +93,7 @@ export const DepartmentPicker = ({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-[9px] font-medium text-text-tertiary uppercase tracking-[0.35em] px-0.5">
+      <label htmlFor={id} className="text-micro font-medium text-text-tertiary uppercase tracking-[0.35em] px-0.5">
         Departman / Birim
       </label>
       <Select
@@ -110,7 +110,7 @@ export const DepartmentPicker = ({
       />
 
       {isOrphanValue && !isCreating && (
-        <p className="text-[9px] text-status-warning/80 px-1 tracking-wide flex items-center gap-1.5">
+        <p className="text-micro text-status-warning/80 px-1 tracking-wide flex items-center gap-1.5">
           <AlertTriangle className="w-3 h-3 flex-shrink-0" />
           Bu birim departman kayıtlarında yok — kaydetmeden önce listeden geçerli bir birim seçin.
         </p>
@@ -118,7 +118,7 @@ export const DepartmentPicker = ({
 
       {isCreating && (
         <div className="flex flex-col gap-2 p-2.5 bg-surface-glass border border-surface-border rounded-xl">
-          <label htmlFor={`${id}-new`} className="text-[9px] font-medium text-text-tertiary uppercase tracking-[0.3em]">
+          <label htmlFor={`${id}-new`} className="text-micro font-medium text-text-tertiary uppercase tracking-[0.3em]">
             Yeni Birim Adı
           </label>
           <input
@@ -128,10 +128,10 @@ export const DepartmentPicker = ({
             autoFocus
             placeholder="Örn: Operasyon"
             onChange={(e) => { setDraftName(e.target.value); setError(''); }}
-            className="w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-3 py-2 text-[13px] text-text-heading outline-none focus:border-executive-blue/30"
+            className="w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-3 py-2 text-body text-text-heading outline-none focus:border-executive-blue/30"
           />
           {error && (
-            <p className="text-[9px] text-status-danger font-semibold uppercase tracking-[0.1em] flex items-center gap-1.5">
+            <p className="text-micro text-status-danger font-semibold uppercase tracking-[0.1em] flex items-center gap-1.5">
               <AlertTriangle className="w-3 h-3 flex-shrink-0" />
               {error}
             </p>
@@ -140,7 +140,7 @@ export const DepartmentPicker = ({
             <button
               type="button"
               onClick={() => { setIsCreating(false); setDraftName(''); setError(''); }}
-              className="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider text-text-muted hover:text-text-heading transition-colors"
+              className="px-3 py-1.5 rounded-lg text-micro font-bold uppercase tracking-wider text-text-muted hover:text-text-heading transition-colors"
             >
               Vazgeç
             </button>
@@ -148,7 +148,7 @@ export const DepartmentPicker = ({
               type="button"
               disabled={isSaving || draftName.trim().length === 0}
               onClick={() => { void handleConfirmCreate(); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-executive-blue text-[color:var(--executive-blue-text)] text-[9px] font-bold uppercase tracking-wider disabled:opacity-40 transition-opacity"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-executive-blue text-[color:var(--executive-blue-text)] text-micro font-bold uppercase tracking-wider disabled:opacity-40 transition-opacity"
             >
               {isSaving && <Loader2 className="w-3 h-3 animate-spin" />}
               Birimi Oluştur
@@ -175,24 +175,33 @@ export const OrgNodeCard = ({ user, tasks, onSelect, isMini = false }: OrgNodeCa
     <motion.div
       whileHover={{ scale: 1.02 }}
       onClick={() => onSelect(user)}
+      role="button"
+      tabIndex={0}
+      aria-label={`${user.fullName} detaylarını görüntüle`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(user);
+        }
+      }}
       className={cn(
-        "flex items-center gap-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-xl p-2.5 shadow-sm hover:shadow-md cursor-pointer hover:bg-surface-elevated transition-all",
+        "flex items-center gap-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-xl p-2.5 shadow-sm hover:shadow-md cursor-pointer hover:bg-surface-elevated transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue",
         isMini ? "w-44" : "w-52"
       )}
     >
       <Avatar name={user.fullName} photoURL={user.photoURL} size={isMini ? "sm" : "md"} ring className="flex-shrink-0" />
       <div className="flex flex-col gap-0.5 min-w-0 flex-1 text-left">
-        <span className="text-[11px] font-medium text-executive-blue truncate font-serif leading-none">{user.fullName}</span>
-        <span className="text-[8px] text-text-tertiary truncate leading-none mt-0.5">{user.departmentId || 'Genel Merkez'}</span>
+        <span className="text-caption font-medium text-executive-blue truncate font-serif leading-none">{user.fullName}</span>
+        <span className="text-micro text-text-tertiary truncate leading-none mt-0.5">{user.departmentId || 'Genel Merkez'}</span>
         {!isMini && (
-          <span className={cn("inline-block self-start text-[6.5px] font-bold uppercase tracking-wider px-1 py-0.5 rounded border mt-1", rc.bg, rc.text, rc.border)}>
+          <span className={cn("inline-block self-start text-micro font-bold uppercase tracking-wider px-1 py-0.5 rounded border mt-1", rc.bg, rc.text, rc.border)}>
             {ROLE_LABELS[user.role]}
           </span>
         )}
       </div>
       {userTasks.length > 0 && (
         <span className={cn(
-          "w-5 h-5 flex items-center justify-center rounded-full text-[8.5px] font-bold flex-shrink-0 border transition-all duration-300",
+          "w-5 h-5 flex items-center justify-center rounded-full text-micro font-bold flex-shrink-0 border transition-all duration-300",
           userTasks.length >= 5 ? "bg-status-danger/10 border-status-danger/25 text-status-danger animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.2)]" :
           userTasks.length >= 3 ? "bg-status-warning/10 border-status-warning/25 text-status-warning" :
           "bg-status-success/10 border-status-success/25 text-status-success"

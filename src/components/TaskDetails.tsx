@@ -3,7 +3,6 @@ import {
   CheckCircle2, AlertTriangle,
   Edit2, Trash2, Activity, Info,
   GitCommit, Hourglass, ListChecks, Zap, Flag, History, MessageSquare,
-  type LucideIcon
 } from 'lucide-react';
 import { Task, User as UserType, TaskBlocker, AuditLog, TaskStatus, TaskPriority } from '../types';
 import { STATUS_LABELS, STATUS_LABELS_SHORT, PRIORITY_LABELS, PRIORITY_BADGE_VARIANT, STATUS_BADGE_VARIANT } from '../constants';
@@ -12,6 +11,8 @@ import { logger } from '../lib/logger';
 import { Badge } from './ui/Badge';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { SegmentedTabs } from './ui/SegmentedTabs';
 import { auditLogService } from '../services/auditLogService';
 import { getTimeLeft, computeChecklistStats, type TaskDetailsTabId } from './taskDetails/helpers';
 import { useIsAdmin } from '../hooks/useIsAdmin';
@@ -25,13 +26,6 @@ import { CommentsTab } from './taskDetails/CommentsTab';
 export type { PrimaryAction } from './taskDetails/helpers';
 export { getPrimaryAction } from './taskDetails/helpers';
 export { TaskDetailsFooter } from './taskDetails/Footer';
-
-interface TaskDetailsTab {
-  id: TaskDetailsTabId;
-  label: string;
-  icon: LucideIcon;
-  count: number;
-}
 
 export const TaskDetails = ({
   task, tasks, users, currentUser, blockers,
@@ -268,12 +262,12 @@ export const TaskDetails = ({
           <div className="ml-auto flex items-center gap-3">
             {(isAdmin || isManager) && (
               <div className="flex items-center bg-makam-glass backdrop-blur-2xl rounded-full p-1 border border-surface-border shadow-sm">
-                <button onClick={onEdit} className="px-4 py-2 rounded-full text-[10px] font-medium text-text-muted hover:text-executive-blue transition-colors uppercase tracking-[0.2em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2">
+                <button onClick={onEdit} className="px-4 py-2 rounded-full text-micro font-medium text-text-muted hover:text-executive-blue transition-colors uppercase tracking-[0.2em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2">
                   <Edit2 className="w-3.5 h-3.5 inline mr-2" />
                   Düzenle
                 </button>
                 <div className="w-[1px] h-3 bg-makam-border/10 mx-1" />
-                <button onClick={() => setIsDeleteConfirmOpen(true)} className="px-4 py-2 rounded-full text-[10px] font-medium text-text-muted hover:text-status-danger transition-colors uppercase tracking-[0.2em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2">
+                <button onClick={() => setIsDeleteConfirmOpen(true)} className="px-4 py-2 rounded-full text-micro font-medium text-text-muted hover:text-status-danger transition-colors uppercase tracking-[0.2em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2">
                   <Trash2 className="w-3.5 h-3.5 inline mr-2" />
                   Sil
                 </button>
@@ -310,13 +304,13 @@ export const TaskDetails = ({
                      isActive && isInterruption ? <AlertTriangle className="w-3.5 h-3.5 stroke-[2]" /> :
                      isActive && isDelegation ? <Hourglass className="w-3.5 h-3.5 stroke-[2]" /> :
                      isActive ? <Zap className="w-3.5 h-3.5 stroke-[2]" /> :
-                     <span className="text-[10px] font-bold">{idx + 1}</span>}
+                     <span className="text-micro font-bold">{idx + 1}</span>}
                   </div>
                   <span className={cn(
-                    'text-[10px] font-medium uppercase tracking-[0.18em] whitespace-nowrap',
+                    'text-micro font-medium uppercase tracking-[0.18em] whitespace-nowrap',
                     isCompleted ? 'text-status-success' :
                     isActive && isInterruption ? 'text-status-danger' :
-                    isActive && isDelegation ? 'text-executive-gold' :
+                    isActive && isDelegation ? 'text-[color:var(--gold-text)]' :
                     isActive ? 'text-executive-blue' : 'text-text-tertiary'
                   )}>{STATUS_LABELS_SHORT[status]}</span>
                 </div>
@@ -333,12 +327,13 @@ export const TaskDetails = ({
       </div>
 
       <div className="relative">
-        <div
-          role="tablist"
-          aria-label="Talimat detay bölümleri"
-          className="flex overflow-x-auto no-scrollbar border-b border-makam-border/5 scroll-smooth"
-        >
-          {([
+        <SegmentedTabs
+          variant="underline"
+          ariaLabel="Talimat detay bölümleri"
+          idPrefix="task"
+          activeId={activeTab}
+          onChange={(id) => setActiveTab(id as TaskDetailsTabId)}
+          tabs={[
             { id: 'info', label: 'Detay', icon: Info, count: 0 },
             // #9 - Tamamlanmamış alt işlem sayısı
             { id: 'checklist', label: 'Alt İşlemler', icon: ListChecks, count: checklistStats.total - checklistStats.completed },
@@ -348,28 +343,8 @@ export const TaskDetails = ({
             // #10 - Denetim izi yalnızca Admin/Manager rollerine görünür
             ...(isAdmin || isManager ? [{ id: 'history', label: 'Denetim İzi', icon: History, count: 0 }] : []),
             { id: 'comments', label: 'Yorumlar', icon: MessageSquare, count: task.comments?.length ?? 0 },
-          ] as TaskDetailsTab[]).map((tab) => (
-            <button
-              key={tab.id}
-              id={`task-tab-${tab.id}`}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              aria-controls={`task-tabpanel-${tab.id}`}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'px-6 py-4 text-[10px] font-medium uppercase tracking-[0.2em] transition-all border-b-2 whitespace-nowrap relative flex items-center gap-2',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-inset',
-                activeTab === tab.id
-                  ? 'border-executive-gold text-executive-gold'
-                  : 'border-transparent text-text-muted hover:text-text-heading hover:bg-makam-glass'
-              )}
-            >
-              <tab.icon className="w-3.5 h-3.5" aria-hidden="true" />
-              {tab.label}
-              {tab.count > 0 && <span className="tabular-nums">({tab.count})</span>}
-            </button>
-          ))}
-        </div>
+          ]}
+        />
         {/* Taşan sekmeler için kenar fade ipucu */}
         <div
           aria-hidden="true"
@@ -377,7 +352,7 @@ export const TaskDetails = ({
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar">
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
         {activeTab === 'info' && (
           <InfoTab
             task={task}
@@ -455,36 +430,26 @@ export const TaskDetails = ({
     </div>
 
     {/* ── Silme Onayı ────────────────────────────────────────────── */}
-    <Modal isOpen={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)} title="Talimatı Sil">
-      <div className="flex flex-col gap-4">
-        <p className="text-[13px] text-text-muted font-light leading-relaxed">
-          <strong className="text-status-danger font-medium">{task.title}</strong> talimatını kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
-        </p>
-        {subtasks.length > 0 && (
-          <div className="flex items-start gap-2 p-2.5 bg-status-danger/10 border border-status-danger/20 rounded-xl">
-            <AlertTriangle className="w-3.5 h-3.5 text-status-danger flex-shrink-0 mt-0.5" />
-            <p className="text-[10px] text-status-danger font-semibold uppercase tracking-[0.1em] leading-relaxed">
-              Bu talimatın {subtasks.length} alt talimatı var. Bu işlem hepsini kademeli olarak silecektir.
-            </p>
-          </div>
-        )}
-        <div className="flex justify-end gap-2.5 pt-4 border-t border-executive-blue/[0.04]">
-          <Button variant="secondary" onClick={() => setIsDeleteConfirmOpen(false)}>İptal</Button>
-          <Button variant="danger" onClick={() => { setIsDeleteConfirmOpen(false); onDelete(); }}>Kalıcı Olarak Sil</Button>
-        </div>
-      </div>
-    </Modal>
+    <ConfirmDialog
+      isOpen={isDeleteConfirmOpen}
+      onClose={() => setIsDeleteConfirmOpen(false)}
+      title="Talimatı Sil"
+      message={<><strong className="text-status-danger font-medium">{task.title}</strong> talimatını kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</>}
+      confirmLabel="Kalıcı Olarak Sil"
+      warning={subtasks.length > 0 ? `Bu talimatın ${subtasks.length} alt talimatı var. Bu işlem hepsini kademeli olarak silecektir.` : null}
+      onConfirm={() => { setIsDeleteConfirmOpen(false); onDelete(); }}
+    />
 
     <Modal isOpen={isDelegateModalOpen} onClose={() => setIsDelegateModalOpen(false)} title="Talimatı Devret">
       <div className="flex flex-col gap-4">
-        <p className="text-[13px] text-text-muted font-light leading-relaxed">
+        <p className="text-body text-text-muted font-light leading-relaxed">
           <strong className="text-text-heading font-medium">{task.title}</strong> talimatını izin/mazeret durumunuz için başka bir müdüre devredin. Devredilen müdür kabul edip icraya alana kadar talimat "Yetki Devri Bekleniyor" durumunda kalır ve mühlet sayacı duraklar.
         </p>
         <select
           value={delegateTargetId}
           onChange={(e) => setDelegateTargetId(e.target.value)}
           aria-label="Devredilecek müdür"
-          className="w-full bg-surface-elevated border border-makam-border/10 rounded-xl px-4 py-3 outline-none text-[13px] font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5"
+          className="w-full bg-surface-elevated border border-makam-border/10 rounded-xl px-4 py-3 outline-none text-body font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5"
         >
           <option value="" className="bg-surface-base text-text-heading">Müdür Seçiniz</option>
           {delegateCandidates.map(m => (

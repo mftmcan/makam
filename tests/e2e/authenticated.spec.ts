@@ -56,12 +56,44 @@ test.describe('MAKAM E2E — Kimlik Doğrulamalı Akışlar', () => {
     await expect(page.getByRole('table').getByText(seededTaskTitle)).toBeVisible({ timeout: 10000 });
   });
 
-  test('Harekat Merkezi kritik/ciddi a11y ihlali içermemeli', async ({ page }) => {
-    // Dashboard'daki panellerin girişte kademeli (staggered) spring animasyonu
-    // var (en geç delay 0.42s + yerleşme süresi) — axe taraması animasyon
-    // sürerken geçici, yanıltıcı düşük-opaklık kontrast "ihlalleri" yakalamasın
-    // diye sabit duruma gelmesini bekliyoruz.
-    await page.waitForTimeout(1200);
+  // a11y taraması eskiden yalnızca bu ekranı (Harekat Merkezi) kapsıyordu —
+  // Talimatlar/Engeller/Kadro/Raporlar/Denetim/Ayarlar hiç taranmıyordu (bkz.
+  // tasarım denetimi F3). Sidebar'daki gerçek nav etiketleriyle (Sidebar.tsx)
+  // birebir eşleşir — menüler <NavLink> olduğundan rolleri 'link'tir.
+  const TAB_NAV_LABELS = [
+    'Harekat Merkezi', 'Talimatlar', 'Engeller', 'Kadro', 'Raporlar', 'Denetim İzleri', 'Dizge Ayarları',
+  ];
+
+  for (const label of TAB_NAV_LABELS) {
+    test(`${label} sekmesi kritik/ciddi a11y ihlali içermemeli`, async ({ page }) => {
+      // Harekat Merkezi zaten beforeEach'te açık — yine de tıklamak zararsız
+      // (aynı sekmeye navigasyon no-op'tur) ve döngüyü tek tip tutar.
+      await page.getByRole('link', { name: label }).click();
+      // Sekmeler arası geçişte kademeli (staggered) spring animasyonları var
+      // (bkz. Dashboard a11y testindeki AYNI gerekçe) — sabit duruma gelmesini
+      // bekliyoruz ki axe geçici, yanıltıcı düşük-opaklık "ihlalleri" yakalamasın.
+      await page.waitForTimeout(1200);
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze();
+
+      const critical = results.violations.filter(
+        (v) => v.impact === 'critical' || v.impact === 'serious'
+      );
+
+      expect(critical, `${label} — kritik/ciddi a11y ihlalleri: ${critical.map(v => v.id).join(', ')}`).toEqual([]);
+    });
+  }
+
+  test('Talimat Detayı modalı kritik/ciddi a11y ihlali içermemeli', async ({ page }) => {
+    // Modal sekme ağacının dışında durur (bkz. CLAUDE.md: /tasks/:taskId TaskBoard
+    // route'unun alt route'u) — bu yüzden ayrı bir taramayı hak eder, diğer
+    // 7 sekmenin hiçbiri açık bir modalı kapsamaz.
+    await page.getByRole('link', { name: 'Talimatlar' }).click();
+    await page.getByRole('table').getByText(seededTaskTitle).click();
+    await expect(page.getByRole('dialog', { name: /Talimat Detayı/i })).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(500);
+
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze();
@@ -70,6 +102,6 @@ test.describe('MAKAM E2E — Kimlik Doğrulamalı Akışlar', () => {
       (v) => v.impact === 'critical' || v.impact === 'serious'
     );
 
-    expect(critical, `Kritik/ciddi a11y ihlalleri: ${critical.map(v => v.id).join(', ')}`).toEqual([]);
+    expect(critical, `Talimat Detayı — kritik/ciddi a11y ihlalleri: ${critical.map(v => v.id).join(', ')}`).toEqual([]);
   });
 });

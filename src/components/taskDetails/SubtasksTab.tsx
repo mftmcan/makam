@@ -15,11 +15,11 @@ interface SubtasksTabProps {
 export const SubtasksTab = ({ task, subtasks, onAddSubTask, onViewTask }: SubtasksTabProps) => (
   <div role="tabpanel" id="task-tabpanel-subtasks" aria-labelledby="task-tab-subtasks" className="flex flex-col gap-6">
     {/* #8 - Alt Talimat / Alt İşlem ayrımı ipucu */}
-    <p className="text-[11px] text-text-muted font-light leading-relaxed">
+    <p className="text-caption text-text-muted font-light leading-relaxed">
       Alt talimatlar, ayrı bir sorumluya atanabilen; kendi durumu ve süresi olan bağımsız talimatlardır.
     </p>
     <div className="flex items-center justify-between">
-      <h4 className="text-[9px] font-medium text-text-muted uppercase tracking-[0.18em]">Operasyonel Alt Birimler</h4>
+      <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Operasyonel Alt Birimler</h4>
       <Button
         variant="gold"
         size="sm"
@@ -51,8 +51,8 @@ export const SubtasksTab = ({ task, subtasks, onAddSubTask, onViewTask }: Subtas
             className="flex items-center justify-between p-3 bg-makam-glass border border-surface-border rounded-xl group cursor-pointer hover:bg-makam-card hover:shadow-sm transition-all"
           >
             <div className="flex flex-col gap-1">
-              <span className="text-[13px] font-medium text-text-heading group-hover:text-executive-blue transition-colors">{sub.title}</span>
-              <span className="text-[9px] text-text-muted uppercase tracking-widest">{STATUS_LABELS[sub.status]}</span>
+              <span className="text-body font-medium text-text-heading group-hover:text-executive-blue transition-colors">{sub.title}</span>
+              <span className="text-micro text-text-muted uppercase tracking-widest">{STATUS_LABELS[sub.status]}</span>
             </div>
             <ChevronRight className="w-4 h-4 text-text-muted/20 group-hover:text-executive-blue group-hover:translate-x-1 transition-all" />
           </div>

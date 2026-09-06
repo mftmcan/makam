@@ -10,8 +10,8 @@ interface AvatarProps {
 }
 
 const SIZE_MAP = {
-  xs: { container: 'w-6 h-6',   text: 'text-[10px]' },
-  sm: { container: 'w-8 h-8',   text: 'text-[12px]' },
+  xs: { container: 'w-6 h-6',   text: 'text-micro' },
+  sm: { container: 'w-8 h-8',   text: 'text-body-sm' },
   md: { container: 'w-9 h-9',   text: 'text-[14px]' },
   lg: { container: 'w-10 h-10', text: 'text-[16px]' },
   xl: { container: 'w-14 h-14', text: 'text-[22px]' },

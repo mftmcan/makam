@@ -12,7 +12,7 @@ const baseURL = `http://127.0.0.1:${PORT}`;
  */
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: /authenticated\.spec\.ts/,
+  testMatch: /authenticated\.spec\.ts|visual\.spec\.ts/,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -25,7 +25,48 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testMatch: /authenticated\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
+    },
+    // a11y taraması eskiden yalnızca aydınlık modu görüyordu — karanlık moda
+    // özgü kontrast ihlalleri (bkz. tasarım denetimi F3, F11, F16 gibi
+    // bulguların çoğu tam da bu kör noktada yaşıyordu) hiç yakalanmıyordu.
+    // `colorScheme: 'dark'`, index.html'deki tema önyükleme betiğinin
+    // `prefers-color-scheme` sorgusunu tetikler — uygulama gerçekten karanlık
+    // modda açılır, testte ayrıca bir "temayı değiştir" adımı gerekmez.
+    {
+      name: 'chromium-dark',
+      testMatch: /authenticated\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], colorScheme: 'dark' },
+    },
+    // Görsel regresyon ağı (bkz. tasarım denetimi 3.6 — F6/tipografi ölçeği
+    // migrasyonunun ön koşulu) yalnızca visual.spec.ts'i çalıştıran AYRI
+    // dört proje: masaüstü/mobil × açık/koyu. authenticated.spec.ts'in
+    // testMatch'i bunları KAPSAMAZ — aksi halde a11y testleri de bu dört
+    // projede gereksiz yere tekrarlanırdı.
+    {
+      name: 'visual-desktop-light',
+      testMatch: /visual\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], colorScheme: 'light' },
+    },
+    {
+      name: 'visual-desktop-dark',
+      testMatch: /visual\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], colorScheme: 'dark' },
+    },
+    // `devices['iPhone 13']` gibi Apple ön ayarları WebKit'i varsayılan motor
+    // yapar — bu ortamda yalnızca Chromium kurulu (bkz. chromium/chromium-dark
+    // projeleri). `Pixel 7` Chromium tabanlı bir mobil ön ayar olduğundan aynı
+    // tarayıcı motoruyla gerçekçi bir mobil görüntü alanı verir.
+    {
+      name: 'visual-mobile-light',
+      testMatch: /visual\.spec\.ts/,
+      use: { ...devices['Pixel 7'], colorScheme: 'light' },
+    },
+    {
+      name: 'visual-mobile-dark',
+      testMatch: /visual\.spec\.ts/,
+      use: { ...devices['Pixel 7'], colorScheme: 'dark' },
     },
   ],
   webServer: {

@@ -30,7 +30,8 @@ import { OfflineBanner } from './components/OfflineBanner';
 const AuthenticatedApp = lazy(() => import('./components/AuthenticatedApp').then(m => ({ default: m.AuthenticatedApp })));
 
 // Services & Hooks
-import { conflictDetectionService } from './services/conflictDetectionService';
+import { conflictDetectionService, type ConflictContext, type ConflictInfo } from './services/conflictDetectionService';
+import { ConflictModal } from './components/ConflictModal';
 import { logError } from './services/errorLoggingService';
 import { useOfflineQueue } from './hooks/useOfflineQueue';
 import { useUIStore } from './store/uiStore';
@@ -91,7 +92,9 @@ export default function App() {
   }, [theme]);
 
   // ─── Firestore hata yöneticisi ────────────────────────────────────────────
-  const handleFirestoreError = useCallback(async (error: unknown, operationType: string, path: string | null) => {
+  const handleFirestoreError = useCallback(async (
+    error: unknown, operationType: string, path: string | null, conflictContext?: ConflictContext
+  ) => {
     const errorMsg = error instanceof Error ? error.message : String(error);
 
     const isPermissionError = errorMsg.toLowerCase().includes('permission') || errorMsg.toLowerCase().includes('yetki');
@@ -110,7 +113,7 @@ export default function App() {
       const expectedVersion = match ? parseInt(match[1]!) : 0;
       const serverVersion = match ? parseInt(match[2]!) : undefined;
 
-      conflictDetectionService.detectConflict(error, taskId, taskTitle, expectedVersion, serverVersion);
+      conflictDetectionService.detectConflict(error, taskId, taskTitle, expectedVersion, serverVersion, conflictContext);
       return; // UI'da çakışma uyarısı tetiklendi, ek sistem hatası toast'ına gerek yok
     }
 
@@ -130,20 +133,23 @@ export default function App() {
     isOffline,
     queueLength: offlineQueueLength,
     pendingMutations: offlineMutations,
+    syncNow,
   } = useOfflineQueue();
 
   // ─── Çakışma Tespiti ─────────────────────────────────────────────────────
+  // Eskiden yalnızca "sayfayı yenileyin" diyen bir toast gösteriliyordu —
+  // kullanıcının denediği değişiklik sessizce kayboluyordu ve uygulama zaten
+  // canlı onSnapshot kullandığından tavsiye teknik olarak da yanlıştı (bkz.
+  // tasarım denetimi F7). Artık sunucu/yerel karşılaştırması ve "Benimkini
+  // Uygula" (taze lockVersion ile yeniden dener) / "Sunucudakini Al" (sessizce
+  // kapat, onSnapshot zaten güncel veriyi getirmiş durumda) sunan bir modal var.
+  const [activeConflict, setActiveConflict] = useState<ConflictInfo | null>(null);
   useEffect(() => {
     const unsubscribe = conflictDetectionService.subscribe((info) => {
-      addToast({
-        title: '⚠️ Düzenleme Çakışması',
-        body: `"${info.taskTitle.slice(0, 40)}" başka bir kullanıcı tarafından güncellendi. Lütfen sayfayı yenileyin.`,
-        type: 'warning',
-        taskId: info.taskId,
-      });
+      setActiveConflict(info);
     });
     return unsubscribe;
-  }, [addToast]);
+  }, []);
 
   // E2E test girişi — yalnızca Firebase Emulator Suite'e bağlıyken ve URL'de
   // ?e2e_token= parametresi varsa çalışır. Gerçek Google OAuth popup'ını
@@ -257,7 +263,7 @@ export default function App() {
         <div className="flex flex-col items-center gap-12">
           <Logo size="xl" withText={false} variant={resolvedTheme} />
           <div className="flex flex-col items-center gap-4">
-            <span className="text-text-muted font-normal uppercase tracking-[0.6em] text-[11px] animate-pulse">STRATEJİK VERİ BAĞLANTISI</span>
+            <span className="text-text-muted font-normal uppercase tracking-[0.6em] text-caption animate-pulse">STRATEJİK VERİ BAĞLANTISI</span>
             <div className="w-48 h-[1px] bg-text-muted/15 overflow-hidden relative">
               <motion.div
                 className="absolute inset-y-0 w-24 bg-executive-blue"
@@ -284,7 +290,18 @@ export default function App() {
       <a href="#main-content" className="skip-to-content">Ana içeriğe geç</a>
 
       <div className="min-h-screen bg-surface-base text-text-body selection:bg-executive-blue/10 font-sans">
-        <OfflineBanner isOffline={isOffline} queueLength={offlineQueueLength} />
+        <OfflineBanner
+          isOffline={isOffline}
+          queueLength={offlineQueueLength}
+          pendingMutations={offlineMutations}
+          onSyncNow={() => { void syncNow(); }}
+        />
+
+        <ConflictModal
+          info={activeConflict}
+          onClose={() => setActiveConflict(null)}
+          currentTask={activeConflict ? tasksRef.current.find(t => t.id === activeConflict.taskId) : undefined}
+        />
 
         {/* Toast Bölgesi */}
         <div

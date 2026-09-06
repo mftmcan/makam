@@ -23,12 +23,12 @@ export const ChecklistTab = ({
 }: ChecklistTabProps) => (
   <div role="tabpanel" id="task-tabpanel-checklist" aria-labelledby="task-tab-checklist" className="flex flex-col gap-5">
     {/* #8 - Alt Talimat / Alt İşlem ayrımı ipucu */}
-    <p className="text-[11px] text-text-muted font-light leading-relaxed">
+    <p className="text-caption text-text-muted font-light leading-relaxed">
       Alt işlemler bu talimata bağlı kendi kontrol listenizdir — başkasına devredilmez, ayrı bir talimat oluşturmaz.
     </p>
     {/* Progress bar info */}
     <div className="flex flex-col gap-2.5 p-4 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl">
-      <div className="flex justify-between items-center text-[10px] uppercase tracking-wider font-bold">
+      <div className="flex justify-between items-center text-micro uppercase tracking-wider font-bold">
         <span className="text-text-muted">Alt İşlemler İlerlemesi</span>
         <span className="text-executive-blue">
           {checklistStats.percent}% ({checklistStats.completed} / {checklistStats.total})
@@ -43,7 +43,7 @@ export const ChecklistTab = ({
     </div>
 
     {/* Checklist items list */}
-    <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto no-scrollbar">
+    <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto custom-scrollbar">
       {(!task.checklist || task.checklist.length === 0) ? (
         <EmptyState icon={<ListChecks className="w-8 h-8" />} message="Henüz bir alt işlem eklenmemiş" />
       ) : (
@@ -61,7 +61,7 @@ export const ChecklistTab = ({
                 className="w-4 h-4 rounded accent-status-success cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               />
               <span className={cn(
-                "text-[12px] font-medium leading-snug tracking-tight truncate",
+                "text-body-sm font-medium leading-snug tracking-tight truncate",
                 item.isCompleted ? "line-through text-text-muted opacity-60" : "text-text-heading"
               )}>
                 {item.text}
@@ -95,13 +95,13 @@ export const ChecklistTab = ({
           onChange={(e) => setNewChecklistItem(e.target.value)}
           placeholder="Yeni bir alt işlem yazın..."
           disabled={isSubmittingChecklist}
-          className="flex-1 bg-makam-glass border border-makam-border/10 rounded-xl px-4 py-2 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue/15 disabled:opacity-60"
+          className="flex-1 bg-makam-glass border border-makam-border/10 rounded-xl px-4 py-2 text-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue/15 disabled:opacity-60"
           required
         />
         <button
           type="submit"
           disabled={!newChecklistItem.trim() || isSubmittingChecklist}
-          className="px-4 py-2 bg-executive-blue text-[color:var(--executive-blue-text)] rounded-xl flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider hover:bg-executive-blue/90 disabled:opacity-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2"
+          className="px-4 py-2 bg-executive-blue text-[color:var(--executive-blue-text)] rounded-xl flex items-center gap-1 text-caption font-bold uppercase tracking-wider hover:bg-executive-blue/90 disabled:opacity-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2"
         >
           <Plus className="w-4 h-4" aria-hidden="true" />
           Ekle

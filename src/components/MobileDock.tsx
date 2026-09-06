@@ -120,7 +120,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
             >
               {/* Panel başlık */}
               <div className="px-4 py-2.5 border-b border-executive-blue/[0.04]">
-                <span className="text-[9.5px] text-text-muted/70 uppercase tracking-[0.16em] font-medium truncate block">
+                <span className="text-micro text-text-muted/70 uppercase tracking-[0.16em] font-medium truncate block">
                   Ek Modüller
                 </span>
               </div>
@@ -152,13 +152,13 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
                           strokeWidth={isActive ? 2 : 1.5}
                           aria-hidden={true}
                         />
-                        <span className="text-[12px] font-medium tracking-wide flex-1 min-w-0 truncate">
+                        <span className="text-body-sm font-medium tracking-wide flex-1 min-w-0 truncate">
                           {item.label}
                         </span>
                         {Boolean(badgeCount) && (
                           <span
                             aria-hidden="true"
-                            className="flex-shrink-0 min-w-[16px] h-[16px] px-1 flex items-center justify-center rounded-full bg-status-danger text-[color:var(--status-danger-text)] text-[9px] font-bold leading-none"
+                            className="flex-shrink-0 min-w-[16px] h-[16px] px-1 flex items-center justify-center rounded-full bg-status-danger text-[color:var(--status-danger-text)] text-micro font-bold leading-none"
                           >
                             {badgeCount! > 9 ? '9+' : badgeCount}
                           </span>
@@ -180,7 +180,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
                              text-status-danger/70 hover:text-status-danger hover:bg-status-danger/10"
                 >
                   <LogOut className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
-                  <span className="text-[12px] font-medium tracking-wide min-w-0 truncate">Oturumu Kapat</span>
+                  <span className="text-body-sm font-medium tracking-wide min-w-0 truncate">Oturumu Kapat</span>
                 </button>
               </div>
             </motion.div>
@@ -273,7 +273,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
                           aria-hidden="true"
                           className="absolute -top-1 -left-1.5 min-w-[15px] h-[15px] px-[3px]
                                      flex items-center justify-center rounded-full
-                                     bg-status-danger text-[color:var(--status-danger-text)] text-[8.5px] font-bold leading-none"
+                                     bg-status-danger text-[color:var(--status-danger-text)] text-micro font-bold leading-none"
                         >
                           {badgeCount! > 9 ? '9+' : badgeCount}
                         </span>
@@ -283,7 +283,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
                     {/* Etiket */}
                     <span
                       className={cn(
-                        'text-[10px] sm:text-[10.5px] font-medium tracking-normal sm:tracking-wide truncate leading-none transition-colors duration-300 max-w-full',
+                        'text-micro sm:text-caption font-medium tracking-normal sm:tracking-wide truncate leading-none transition-colors duration-300 max-w-full',
                         isActive ? 'text-executive-blue' : 'text-text-muted/70 group-hover:text-text-muted'
                       )}
                       aria-hidden="true"
@@ -335,7 +335,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
               <span
                 aria-hidden="true"
                 className={cn(
-                  'text-[10px] sm:text-[10.5px] font-medium tracking-normal sm:tracking-wide leading-none transition-colors duration-300',
+                  'text-micro sm:text-caption font-medium tracking-normal sm:tracking-wide leading-none transition-colors duration-300',
                   showMore ? 'text-executive-blue' : 'text-text-muted/70 group-hover:text-text-muted'
                 )}
               >

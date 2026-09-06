@@ -16,7 +16,9 @@ import {
 import { format, subDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useUIStore } from '../store/uiStore';
-import type { AppTabId } from '../constants';
+import { EMPTY_STATE_MESSAGES, type AppTabId } from '../constants';
+import { EmptyState } from './ui/EmptyState';
+import { PANEL_CLASSNAME } from './ui/Panel';
 import { DatePicker } from './ui/DatePicker';
 import { Avatar } from './ui/Avatar';
 import { Skeleton, TableRowSkeleton } from './ui/Skeleton';
@@ -27,7 +29,7 @@ interface ReportsProps {
   blockers: TaskBlocker[];
   /** Bkz. Dashboard'daki aynı prop — router bağımlılığı bilinçli olarak
    *  AuthenticatedApp'te kalır, bu bileşen router'dan habersizdir. */
-  onNavigateTab?: (tab: AppTabId) => void;
+  onNavigateTab?: (tab: AppTabId, params?: Record<string, string>) => void;
   isLoading?: boolean;
 }
 
@@ -84,7 +86,7 @@ const KpiCard = ({ label, value, icon: Icon, color, index = 0 }: KpiCardProps) =
         <span className="text-[22px] font-light text-executive-blue tracking-tight tabular-nums leading-none font-serif">
           {value}
         </span>
-        <span className="text-[9px] text-text-tertiary font-medium uppercase tracking-[0.3em]">{label}</span>
+        <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.3em]">{label}</span>
       </div>
     </motion.div>
   );
@@ -190,10 +192,10 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
             <TrendingUp className="w-4 h-4 text-[color:var(--executive-blue-text)] stroke-[1.5]" aria-hidden="true" />
           </div>
           <div>
-            <span className="text-[10px] font-medium text-executive-blue uppercase tracking-[0.4em] block leading-none">
+            <span className="text-micro font-medium text-executive-blue uppercase tracking-[0.4em] block leading-none">
               OPERASYONEL ANALİTİK
             </span>
-            <span className="text-[9px] text-text-tertiary uppercase tracking-[0.3em]">İçgörü Matrisi</span>
+            <span className="text-micro text-text-tertiary uppercase tracking-[0.3em]">İçgörü Matrisi</span>
           </div>
         </div>
 
@@ -205,7 +207,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
             <select
               value={selectedDept}
               onChange={e => setSelectedDept(e.target.value)}
-              className="text-[11px] text-text-heading bg-transparent outline-none border-none cursor-pointer pr-4 font-medium"
+              className="text-caption text-text-heading bg-transparent outline-none border-none cursor-pointer pr-4 font-medium"
               aria-label="Birim Filtresi"
             >
               <option value="ALL" className="bg-surface-base text-text-heading">Tüm Birimler</option>
@@ -225,7 +227,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
               onChange={setDateFrom}
               ariaLabel="Rapor başlangıç tarihi"
             />
-            <span className="text-[10px] text-text-tertiary mx-1">—</span>
+            <span className="text-micro text-text-tertiary mx-1">—</span>
             <DatePicker
               id="report-date-to"
               value={dateTo}
@@ -237,7 +239,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
           <button
             onClick={handleExportCSV}
             aria-label="Raporu CSV olarak dışa aktar"
-            className="flex items-center gap-1.5 px-3 py-2 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl text-[10px] uppercase tracking-widest text-text-muted hover:text-executive-blue hover:bg-surface-elevated transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
+            className="flex items-center gap-1.5 px-3 py-2 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl text-micro uppercase tracking-widest text-text-muted hover:text-executive-blue hover:bg-surface-elevated transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
           >
             <FileText className="w-3.5 h-3.5" aria-hidden="true" />
             CSV
@@ -247,7 +249,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
             onClick={handleExportPDF}
             disabled={isExporting}
             aria-label="Raporu PDF olarak dışa aktar"
-            className="flex items-center gap-1.5 px-3 py-2 bg-executive-blue text-[color:var(--executive-blue-text)] rounded-2xl text-[10px] uppercase tracking-widest hover:bg-executive-blue/90 transition-all shadow-lg shadow-executive-blue/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2"
+            className="flex items-center gap-1.5 px-3 py-2 bg-executive-blue text-[color:var(--executive-blue-text)] rounded-2xl text-micro uppercase tracking-widest hover:bg-executive-blue/90 transition-all shadow-lg shadow-executive-blue/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2"
           >
             {isExporting ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
@@ -263,7 +265,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
           tarih aralığında %0 gibi görünen metrikler "herkesin performansı
           kötü" gibi yanlış okunabiliyordu; aktif kapsam artık daha belirgin
           (bkz. kod denetimi). */}
-      <div className="flex items-center gap-1.5 text-[10px] text-text-muted uppercase tracking-widest font-medium">
+      <div className="flex items-center gap-1.5 text-micro text-text-muted uppercase tracking-widest font-medium">
         <Calendar className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
         <span className="tabular-nums">{filteredTasks.length} talimat</span>
         <span>·</span>
@@ -285,14 +287,14 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 200, damping: 28, delay: 0.2 }}
-          className="bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl p-4 shadow-[0_1px_8px_rgba(22,21,19,0.02)]"
+          className={PANEL_CLASSNAME}
         >
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-[13px] font-medium text-executive-blue font-serif tracking-tight">SLA Uyum Trendi</h3>
-              <p className="text-[9px] text-text-tertiary uppercase tracking-[0.3em] mt-0.5">Son 14 Gün</p>
+              <h3 className="text-body font-medium text-executive-blue font-serif tracking-tight">SLA Uyum Trendi</h3>
+              <p className="text-micro text-text-tertiary uppercase tracking-[0.3em] mt-0.5">Son 14 Gün</p>
             </div>
-            <TrendingUp className="w-4 h-4 text-executive-gold stroke-[1.5]" />
+            <TrendingUp className="w-4 h-4 text-[color:var(--gold-text)] stroke-[1.5]" />
           </div>
           <div className="h-[180px] relative">
             <ResponsiveContainer width="100%" height="100%">
@@ -314,13 +316,13 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
                   itemStyle={{ color: 'var(--color-text-body)' }}
                   formatter={(v) => v !== null ? [`%${v}`, 'SLA Uyum'] : ['Veri yok', '']}
                 />
-                <Line dataKey="oran" stroke="#C5A059" strokeWidth={2} dot={{ r: 3, fill: '#C5A059' }}
+                <Line dataKey="oran" stroke="var(--chart-created)" strokeWidth={2} dot={{ r: 3, fill: 'var(--chart-created)' }}
                   activeDot={{ r: 5 }} connectNulls />
               </LineChart>
             </ResponsiveContainer>
             {!hasSlaTrendData && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="text-[10px] text-text-tertiary uppercase tracking-wider bg-surface-elevated/90 px-3 py-1.5 rounded-lg border border-surface-border">
+                <span className="text-micro text-text-tertiary uppercase tracking-wider bg-surface-elevated/90 px-3 py-1.5 rounded-lg border border-surface-border">
                   Seçili aralıkta tamamlanan talimat yok
                 </span>
               </div>
@@ -332,12 +334,12 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 200, damping: 28, delay: 0.25 }}
-          className="bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl p-4 shadow-[0_1px_8px_rgba(22,21,19,0.02)]"
+          className={PANEL_CLASSNAME}
         >
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-[13px] font-medium text-executive-blue font-serif tracking-tight">Talimat Dağılımı</h3>
-              <p className="text-[9px] text-text-tertiary uppercase tracking-[0.3em] mt-0.5">Durum Matrisi</p>
+              <h3 className="text-body font-medium text-executive-blue font-serif tracking-tight">Talimat Dağılımı</h3>
+              <p className="text-micro text-text-tertiary uppercase tracking-[0.3em] mt-0.5">Durum Matrisi</p>
             </div>
             <CheckCircle2 className="w-4 h-4 text-status-success stroke-[1.5]" />
           </div>
@@ -373,7 +375,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex items-center justify-center">
-                <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Seçili aralıkta talimat yok</span>
+                <EmptyState size="sm" className="border-none bg-transparent" message={EMPTY_STATE_MESSAGES.NO_DATA_IN_RANGE} />
               </div>
             )}
           </div>
@@ -385,12 +387,12 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 200, damping: 28, delay: 0.3 }}
-          className="bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl p-4 shadow-[0_1px_8px_rgba(22,21,19,0.02)]"
+          className={PANEL_CLASSNAME}
         >
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-[13px] font-medium text-executive-blue font-serif tracking-tight">Personel İş Yükü</h3>
-              <p className="text-[9px] text-text-tertiary uppercase tracking-[0.3em] mt-0.5">Aktif vs Tamamlanan</p>
+              <h3 className="text-body font-medium text-executive-blue font-serif tracking-tight">Personel İş Yükü</h3>
+              <p className="text-micro text-text-tertiary uppercase tracking-[0.3em] mt-0.5">Aktif vs Tamamlanan</p>
             </div>
             <Users className="w-4 h-4 text-text-tertiary stroke-[1]" />
           </div>
@@ -438,13 +440,13 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 200, damping: 28, delay: 0.4 }}
-        className="bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden shadow-[0_1px_8px_rgba(22,21,19,0.02)]"
+        className={cn(PANEL_CLASSNAME, 'overflow-hidden p-0')}
       >
         {/* Table header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-executive-blue/[0.04]">
           <div>
-            <h3 className="text-[13px] font-medium text-executive-blue font-serif tracking-tight">Yönetici Performans Endeksi</h3>
-            <p className="text-[9px] text-text-tertiary uppercase tracking-[0.3em] mt-0.5">{managerPerformance.length} Yetkili</p>
+            <h3 className="text-body font-medium text-executive-blue font-serif tracking-tight">Yönetici Performans Endeksi</h3>
+            <p className="text-micro text-text-tertiary uppercase tracking-[0.3em] mt-0.5">{managerPerformance.length} Yetkili</p>
           </div>
           <BarChart3 className="w-5 h-5 text-surface-border/50 stroke-[1]" />
         </div>
@@ -452,9 +454,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
         {/* Mobile cards */}
         <div className="sm:hidden divide-y divide-makam-border/30">
           {managerPerformance.length === 0 ? (
-            <div className="py-12 text-center text-[10px] text-text-tertiary uppercase tracking-[0.4em]">
-              Veri bulunamadı
-            </div>
+            <EmptyState size="sm" className="border-none bg-transparent rounded-none" message={EMPTY_STATE_MESSAGES.NO_MANAGER_RECORDS} />
           ) : (
             managerPerformance.map((m, i) => (
               <motion.div
@@ -466,20 +466,20 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
               >
                 <Avatar name={m.fullName} photoURL={m.photoURL} size="md" className="flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-medium text-executive-blue font-serif line-clamp-1">{m.fullName}</p>
+                  <p className="text-body-sm font-medium text-executive-blue font-serif line-clamp-1">{m.fullName}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[9px] text-text-tertiary tabular-nums">{m.total} talimat</span>
-                    <span className="text-[9px] text-status-success tabular-nums">{m.completed} tamamlandı</span>
-                    {m.blocked > 0 && <span className="text-[9px] text-status-danger tabular-nums">{m.blocked} engel</span>}
+                    <span className="text-micro text-text-tertiary tabular-nums">{m.total} talimat</span>
+                    <span className="text-micro text-status-success tabular-nums">{m.completed} tamamlandı</span>
+                    {m.blocked > 0 && <span className="text-micro text-status-danger tabular-nums">{m.blocked} engel</span>}
                     {m.hasData ? (
                       <span className={cn(
-                        'text-[9px] font-bold px-1.5 py-0.5 rounded border',
+                        'text-micro font-bold px-1.5 py-0.5 rounded border',
                         m.slaRate > 80 ? 'text-status-success border-status-success/20 bg-status-success/10' :
-                        m.slaRate > 50 ? 'text-executive-gold border-executive-gold/20 bg-executive-gold/10' :
+                        m.slaRate > 50 ? 'text-[color:var(--gold-text)] border-executive-gold/20 bg-executive-gold/10' :
                         'text-status-danger border-status-danger/20 bg-status-danger/10'
                       )}>SLA %{m.slaRate}</span>
                     ) : (
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border text-text-tertiary border-surface-border bg-surface-glass">Veri yok</span>
+                      <span className="text-micro font-bold px-1.5 py-0.5 rounded border text-text-tertiary border-surface-border bg-surface-glass">Veri yok</span>
                     )}
                   </div>
                   {m.hasData ? (
@@ -497,13 +497,13 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
                       />
                     </div>
                     <span className={cn(
-                      'text-[10px] font-medium tabular-nums w-8 text-right',
+                      'text-micro font-medium tabular-nums w-8 text-right',
                       m.completionRate > 70 ? 'text-status-success' :
-                      m.completionRate > 40 ? 'text-executive-gold' : 'text-status-danger'
+                      m.completionRate > 40 ? 'text-[color:var(--gold-text)]' : 'text-status-danger'
                     )}>%{m.completionRate}</span>
                   </div>
                   ) : (
-                    <p className="text-[9px] text-text-tertiary mt-1.5">Seçili aralıkta talimat yok</p>
+                    <p className="text-micro text-text-tertiary mt-1.5">{EMPTY_STATE_MESSAGES.NO_DATA_IN_RANGE}</p>
                   )}
                 </div>
               </motion.div>
@@ -527,7 +527,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
                   <th
                     key={label}
                     className={cn(
-                      'px-4 py-3 text-[8px] font-medium text-text-tertiary uppercase tracking-[0.35em]',
+                      'px-4 py-3 text-micro font-medium text-text-tertiary uppercase tracking-[0.35em]',
                       align === 'center' && 'text-center',
                       align === 'right'  && 'text-right'
                     )}
@@ -540,8 +540,8 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
             <tbody className="divide-y divide-makam-border/30">
               {managerPerformance.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-[10px] text-text-tertiary uppercase tracking-[0.4em]">
-                    Yönetici kaydı bulunamadı.
+                  <td colSpan={6} className="p-0">
+                    <EmptyState size="sm" className="border-none bg-transparent rounded-none" message={EMPTY_STATE_MESSAGES.NO_MANAGER_RECORDS} />
                   </td>
                 </tr>
               ) : (
@@ -551,19 +551,28 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.04 }}
-                    onClick={() => onNavigateTab?.('tasks')}
-                    title="Bu yöneticinin talimatlarını görmek için tıklayın"
-                    className="hover:bg-makam-glass transition-all duration-300 group cursor-pointer"
+                    onClick={() => onNavigateTab?.('tasks', { assignee: m.uid })}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${m.fullName} talimatlarını görüntüle`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onNavigateTab?.('tasks', { assignee: m.uid });
+                      }
+                    }}
+                    title="Bu yöneticinin talimatlarını görmek için tıklayın — Talimatlar'da sorumluya göre filtrelenir"
+                    className="hover:bg-makam-glass transition-all duration-300 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-executive-blue"
                   >
                     {/* Name */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <Avatar name={m.fullName} photoURL={m.photoURL} size="sm" className="group-hover:scale-105 transition-transform" />
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-[13px] font-medium text-executive-blue font-serif tracking-tight group-hover:text-executive-blue transition-colors">
+                          <span className="text-body font-medium text-executive-blue font-serif tracking-tight group-hover:text-executive-blue transition-colors">
                             {m.fullName}
                           </span>
-                          <span className="text-[8px] text-text-tertiary uppercase tracking-[0.25em]">
+                          <span className="text-micro text-text-tertiary uppercase tracking-[0.25em]">
                             {m.departmentId || 'Stratejik Planlama'}
                           </span>
                         </div>
@@ -577,7 +586,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
 
                     {/* Completed */}
                     <td className="px-4 py-3 text-center">
-                      <span className="text-[12px] font-medium text-status-success bg-status-success/10 px-3 py-1 rounded-lg border border-status-success/20 tabular-nums">
+                      <span className="text-body-sm font-medium text-status-success bg-status-success/10 px-3 py-1 rounded-lg border border-status-success/20 tabular-nums">
                         {m.completed}
                       </span>
                     </td>
@@ -585,7 +594,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
                     {/* Blocked */}
                     <td className="px-4 py-3 text-center">
                       <span className={cn(
-                        'text-[12px] font-medium px-3 py-1 rounded-lg border tabular-nums',
+                        'text-body-sm font-medium px-3 py-1 rounded-lg border tabular-nums',
                         m.blocked > 0
                           ? 'text-status-danger bg-status-danger/10 border-status-danger/20'
                           : 'text-text-tertiary bg-surface-glass border-surface-border'
@@ -598,16 +607,16 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
                     <td className="px-4 py-3 text-center">
                       {m.hasData ? (
                         <span className={cn(
-                          'text-[12px] font-medium px-3 py-1 rounded-lg border tabular-nums',
+                          'text-body-sm font-medium px-3 py-1 rounded-lg border tabular-nums',
                           m.slaRate > 80 ? 'text-status-success bg-status-success/10 border-status-success/20' :
-                          m.slaRate > 50 ? 'text-executive-gold bg-executive-gold/10 border-executive-gold/20' :
+                          m.slaRate > 50 ? 'text-[color:var(--gold-text)] bg-executive-gold/10 border-executive-gold/20' :
                           'text-status-danger bg-status-danger/10 border-status-danger/20'
                         )}>
                           %{m.slaRate}
                         </span>
                       ) : (
-                        <span className="text-[10px] font-medium px-3 py-1 rounded-lg border text-text-tertiary bg-surface-glass border-surface-border uppercase tracking-wider">
-                          Veri Yok
+                        <span className="text-micro font-medium px-3 py-1 rounded-lg border text-text-tertiary bg-surface-glass border-surface-border uppercase tracking-wider">
+                          {EMPTY_STATE_MESSAGES.NO_DATA_SHORT}
                         </span>
                       )}
                     </td>
@@ -620,7 +629,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
                           <span className={cn(
                             'text-[18px] font-light tabular-nums tracking-tight font-serif',
                             m.completionRate > 70 ? 'text-status-success' :
-                            m.completionRate > 40 ? 'text-executive-gold' : 'text-status-danger'
+                            m.completionRate > 40 ? 'text-[color:var(--gold-text)]' : 'text-status-danger'
                           )}>
                             %{m.completionRate}
                           </span>
@@ -638,8 +647,8 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
                           </div>
                         </div>
                         ) : (
-                          <span className="text-[10px] font-medium px-3 py-1 rounded-lg border text-text-tertiary bg-surface-glass border-surface-border uppercase tracking-wider">
-                            Veri Yok
+                          <span className="text-micro font-medium px-3 py-1 rounded-lg border text-text-tertiary bg-surface-glass border-surface-border uppercase tracking-wider">
+                            {EMPTY_STATE_MESSAGES.NO_DATA_SHORT}
                           </span>
                         )}
                         <div className="w-6 h-6 rounded-full bg-executive-blue/5 border border-executive-blue/10 flex items-center justify-center group-hover:bg-executive-blue group-hover:border-transparent transition-all flex-shrink-0">

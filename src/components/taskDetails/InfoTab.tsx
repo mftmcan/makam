@@ -38,12 +38,12 @@ export const InfoTab = ({
   <div role="tabpanel" id="task-tabpanel-info" aria-labelledby="task-tab-info" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <div className="lg:col-span-2 flex flex-col gap-6">
       <div className="flex flex-col gap-3">
-        <h4 className="text-[9px] font-medium text-text-muted uppercase tracking-[0.18em] flex items-center gap-2">
+        <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em] flex items-center gap-2">
           <FileText className="w-3 h-3 text-executive-blue" />
           Stratejik Açıklama
         </h4>
         <div className="p-3.5 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl">
-          <p className="text-executive-blue leading-relaxed font-light text-[13px] font-display">
+          <p className="text-executive-blue leading-relaxed font-light text-body font-display">
             {task.description || 'Bu talimat için detaylı bir açıklama girilmemiştir.'}
           </p>
         </div>
@@ -54,7 +54,7 @@ export const InfoTab = ({
             {task.tags.map(tag => (
               <span
                 key={tag}
-                className="px-2 py-0.5 rounded-full bg-executive-blue/[0.05] border border-executive-blue/10 text-executive-blue text-[10px] font-medium tracking-wide"
+                className="px-2 py-0.5 rounded-full bg-executive-blue/[0.05] border border-executive-blue/10 text-executive-blue text-micro font-medium tracking-wide"
               >
                 {tag}
               </span>
@@ -65,7 +65,7 @@ export const InfoTab = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="flex flex-col gap-4">
-          <h4 className="text-[9px] font-medium text-text-muted uppercase tracking-[0.18em]">Sorumlu Kadro</h4>
+          <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Sorumlu Kadro</h4>
           <div className="flex flex-col gap-3">
             {[
               { u: creator,     l: 'Oluşturan',   ring: 'ring-executive-gold/30' },
@@ -82,18 +82,18 @@ export const InfoTab = ({
                   className={cn('flex-shrink-0', item.ring)}
                 />
                 <div className="flex flex-col gap-0.5 flex-1">
-                  <span className="text-[12px] font-medium text-executive-blue tracking-tight">{item.u?.fullName}</span>
-                  <span className="text-[10px] text-text-tertiary font-medium uppercase tracking-[0.2em]">{item.l}</span>
+                  <span className="text-body-sm font-medium text-executive-blue tracking-tight">{item.u?.fullName}</span>
+                  <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.2em]">{item.l}</span>
                 </div>
                 {/* Koordinatör Admin ise uyarı + temizle */}
                 {item.l === 'İrtibatlı' && coordinatorIsAdmin && (isAdmin || isManager) && (
                   <div className="flex flex-col items-end gap-1">
-                    <Badge variant="danger" className="text-[10px] px-1.5 py-0.5 font-bold">
+                    <Badge variant="danger" className="text-micro px-1.5 py-0.5 font-bold">
                       Hatalı Atama
                     </Badge>
                     <button
                       onClick={onClearCoordinator}
-                      className="text-[11px] px-2 py-1 -mr-2 rounded-md text-status-danger hover:text-status-danger uppercase tracking-widest font-medium underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger"
+                      className="text-caption px-2 py-1 -mr-2 rounded-md text-status-danger hover:text-status-danger uppercase tracking-widest font-medium underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger"
                     >
                       Temizle
                     </button>
@@ -103,7 +103,7 @@ export const InfoTab = ({
                 {item.l === 'Sorumlu' && canDelegate && onDelegateTask && (
                   <button
                     onClick={onOpenDelegateModal}
-                    className="text-[11px] px-2 py-1 -mr-2 rounded-md text-executive-blue hover:text-executive-gold uppercase tracking-widest font-medium underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
+                    className="text-caption px-2 py-1 -mr-2 rounded-md text-executive-blue hover:text-[color:var(--gold-text)] uppercase tracking-widest font-medium underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
                   >
                     Devret
                   </button>
@@ -117,8 +117,8 @@ export const InfoTab = ({
                   <Building2 className="w-4 h-4 text-executive-blue/70" aria-hidden="true" />
                 </div>
                 <div className="flex flex-col gap-0.5 flex-1">
-                  <span className="text-[12px] font-medium text-executive-blue tracking-tight">{task.departmentId}</span>
-                  <span className="text-[10px] text-text-tertiary font-medium uppercase tracking-[0.2em]">Sorumlu Birim</span>
+                  <span className="text-body-sm font-medium text-executive-blue tracking-tight">{task.departmentId}</span>
+                  <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.2em]">Sorumlu Birim</span>
                 </div>
               </div>
             )}
@@ -127,22 +127,22 @@ export const InfoTab = ({
 
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-1.5">
-            <h4 className="text-[9px] font-medium text-text-muted uppercase tracking-[0.18em]">Zaman Yönetimi</h4>
+            <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Zaman Yönetimi</h4>
             <Tooltip content="Mühlet yalnızca mesai saatleri (09:00–18:00) içinde işler; hafta sonu/resmî tatiller ve Engellendi/Onay Sürecinde geçen süre sayılmaz.">
               <Info className="w-3 h-3 text-text-tertiary cursor-help" aria-label="Mühlet hesaplama kuralı" />
             </Tooltip>
           </div>
           <div className="p-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-xl flex items-center gap-3">
-            <Calendar className="w-4 h-4 text-executive-gold stroke-[1.3] flex-shrink-0" />
+            <Calendar className="w-4 h-4 text-[color:var(--gold-text)] stroke-[1.3] flex-shrink-0" />
             <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] font-medium text-text-tertiary uppercase tracking-[0.2em]">Bitiş Tarihi</span>
-              <p className="text-[13px] font-medium text-executive-blue">
+              <span className="text-micro font-medium text-text-tertiary uppercase tracking-[0.2em]">Bitiş Tarihi</span>
+              <p className="text-body font-medium text-executive-blue">
                 {format(task.deadline, 'd MMMM yyyy', { locale: tr })}
               </p>
               {/* #4 - Canlı SLA geri sayım */}
               {timeLeft && (
                 <span className={cn(
-                  'text-[9px] font-medium tabular-nums mt-0.5',
+                  'text-micro font-medium tabular-nums mt-0.5',
                   getSLAColor(timeLeft.status)
                 )}>
                   {timeLeft.label}
@@ -153,10 +153,10 @@ export const InfoTab = ({
           {/* #3 - Tahmini efor */}
           {typeof task.estimatedHours === 'number' && task.estimatedHours > 0 && (
             <div className="p-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-xl flex items-center gap-3">
-              <Clock className="w-4 h-4 text-executive-gold stroke-[1.3] flex-shrink-0" aria-hidden="true" />
+              <Clock className="w-4 h-4 text-[color:var(--gold-text)] stroke-[1.3] flex-shrink-0" aria-hidden="true" />
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium text-text-tertiary uppercase tracking-[0.2em]">Tahmini Efor</span>
-                <p className="text-[13px] font-medium text-executive-blue tabular-nums">
+                <span className="text-micro font-medium text-text-tertiary uppercase tracking-[0.2em]">Tahmini Efor</span>
+                <p className="text-body font-medium text-executive-blue tabular-nums">
                   {task.estimatedHours} saat
                 </p>
               </div>
@@ -174,13 +174,13 @@ export const InfoTab = ({
         task.status === 'CANCELLED' ||
         (task.status === 'AWAITING_APPROVAL' && !isAdmin)) && (
         <div className="flex flex-col gap-4">
-          <h4 className="text-[9px] font-medium text-text-muted uppercase tracking-[0.18em]">Durum Bilgisi</h4>
+          <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Durum Bilgisi</h4>
           <div className="flex flex-col gap-2.5">
             {task.status === 'PENDING_DELEGATION' && (
               <div className="flex flex-col items-center gap-3 py-4 px-3 bg-executive-gold/[0.06] border border-dashed border-executive-gold/25 rounded-2xl">
-                <Hourglass className="w-5 h-5 text-executive-gold" aria-hidden="true" />
-                <span className="text-[10px] text-executive-gold font-medium uppercase tracking-widest text-center">Yetki Devri Bekleniyor</span>
-                <p className="text-[11px] text-text-muted font-light text-center leading-relaxed">
+                <Hourglass className="w-5 h-5 text-[color:var(--gold-text)]" aria-hidden="true" />
+                <span className="text-micro text-[color:var(--gold-text)] font-medium uppercase tracking-widest text-center">Yetki Devri Bekleniyor</span>
+                <p className="text-caption text-text-muted font-light text-center leading-relaxed">
                   Talimat devralınmayı bekliyor; süreç ancak devir kabul edildiğinde başlar.
                 </p>
               </div>
@@ -188,9 +188,9 @@ export const InfoTab = ({
 
             {task.status === 'AWAITING_APPROVAL' && !isAdmin && (
               <div className="flex flex-col items-center gap-3 py-4 px-3 bg-executive-gold/[0.06] border border-dashed border-executive-gold/25 rounded-2xl">
-                <Hourglass className="w-5 h-5 text-executive-gold" aria-hidden="true" />
-                <span className="text-[10px] text-executive-gold font-medium uppercase tracking-widest text-center">Makam Onayı Bekleniyor</span>
-                <p className="text-[11px] text-text-muted font-light text-center leading-relaxed">
+                <Hourglass className="w-5 h-5 text-[color:var(--gold-text)]" aria-hidden="true" />
+                <span className="text-micro text-[color:var(--gold-text)] font-medium uppercase tracking-widest text-center">Makam Onayı Bekleniyor</span>
+                <p className="text-caption text-text-muted font-light text-center leading-relaxed">
                   Talimat onaya sunuldu; nihai kapanış yönetici onayıyla gerçekleşir.
                 </p>
               </div>
@@ -199,10 +199,10 @@ export const InfoTab = ({
             {task.status === 'BLOCKED' && (
               <div className="flex flex-col items-center gap-3 py-4 px-2 bg-status-danger/5 border border-dashed border-status-danger/20 rounded-2xl">
                 <AlertTriangle className="w-5 h-5 text-status-danger animate-pulse" />
-                <span className="text-[10px] text-status-danger font-medium uppercase tracking-widest text-center">İşlem Engellendi</span>
+                <span className="text-micro text-status-danger font-medium uppercase tracking-widest text-center">İşlem Engellendi</span>
                 <button
                   onClick={() => setActiveTab('blockers')}
-                  className="text-[10px] px-2 py-1 rounded-md text-executive-blue font-bold uppercase tracking-widest hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
+                  className="text-micro px-2 py-1 rounded-md text-executive-blue font-bold uppercase tracking-widest hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
                 >
                   ENGELİ ÇÖZ
                 </button>
@@ -212,7 +212,7 @@ export const InfoTab = ({
             {(task.status === 'COMPLETED' || task.status === 'CANCELLED') && (
               <div className="flex flex-col items-center gap-3 py-4 px-2 bg-surface-border/30 border border-dashed border-surface-border/50 rounded-2xl">
                 <CheckCircle2 className="w-5 h-5 text-status-success" />
-                <span className="text-[10px] text-text-muted font-medium uppercase tracking-widest">Operasyon Sonlandı</span>
+                <span className="text-micro text-text-muted font-medium uppercase tracking-widest">Operasyon Sonlandı</span>
               </div>
             )}
           </div>
@@ -222,13 +222,13 @@ export const InfoTab = ({
       {/* #7 - Sonuç Belgeleri: Liyakat/İkaz belgeleri ve icra kanıtı */}
       {((task.status === 'COMPLETED' && task.completedAt) || task.evidence) && (
         <div className="flex flex-col gap-4">
-          <h4 className="text-[9px] font-medium text-text-muted uppercase tracking-[0.18em]">Sonuç Belgeleri</h4>
+          <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Sonuç Belgeleri</h4>
           <div className="p-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl flex flex-col gap-2">
             {task.status === 'COMPLETED' && task.completedAt && task.completedAt <= task.deadline && (
               <Tooltip content="Mühleti içinde tamamlanan talimatlar için otomatik olarak hazırlanır." side="bottom" className="w-full">
                 <button
                   onClick={() => onShowCertificate?.(task)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[11px] font-medium text-executive-gold uppercase tracking-widest hover:bg-executive-gold/10 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-caption font-medium text-[color:var(--gold-text)] uppercase tracking-widest hover:bg-executive-gold/10 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
                 >
                   <Award className="w-4 h-4 shrink-0" aria-hidden="true" />
                   Liyakat Belgesi
@@ -239,7 +239,7 @@ export const InfoTab = ({
               <Tooltip content="Mühleti aşıldıktan sonra tamamlanan talimatlar için otomatik olarak hazırlanır." side="bottom" className="w-full">
                 <button
                   onClick={() => onShowWarning?.(task)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[11px] font-medium text-status-danger uppercase tracking-widest hover:bg-status-danger/10 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-caption font-medium text-status-danger uppercase tracking-widest hover:bg-status-danger/10 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger"
                 >
                   <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden="true" />
                   İkaz Belgesi
@@ -252,7 +252,7 @@ export const InfoTab = ({
                   href={task.evidence}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[11px] font-medium text-executive-blue uppercase tracking-widest hover:bg-executive-blue/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-caption font-medium text-executive-blue uppercase tracking-widest hover:bg-executive-blue/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
                 >
                   <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
                   İcra Kanıtı{task.evidenceType ? ` (${task.evidenceType === 'Image' ? 'Görsel' : task.evidenceType === 'Link' ? 'Bağlantı' : 'PDF'})` : ''}
@@ -260,7 +260,7 @@ export const InfoTab = ({
               ) : (
                 <div className="flex items-start gap-2.5 px-3 py-2.5">
                   <FileText className="w-4 h-4 shrink-0 text-executive-blue mt-0.5" aria-hidden="true" />
-                  <span className="text-[11px] text-text-body break-all">{task.evidence}</span>
+                  <span className="text-caption text-text-body break-all">{task.evidence}</span>
                 </div>
               )
             )}

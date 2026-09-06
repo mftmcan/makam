@@ -66,7 +66,7 @@ export function ReloadPrompt() {
                       <h4 className="text-[15px] font-semibold text-text-heading tracking-tight">
                         {offlineReady ? 'Çevrimdışı Hazır' : 'Dizge Güncellemesi'}
                       </h4>
-                      <p className="text-[13px] text-text-muted font-medium">
+                      <p className="text-body text-text-muted font-medium">
                         {offlineReady 
                           ? 'Uygulama artık internet olmadan çalışabilir.' 
                           : 'Dizge için yeni bir güncelleme mevcut.'}
@@ -81,7 +81,7 @@ export function ReloadPrompt() {
              {needRefresh && (
                  <button 
                    onClick={() => updateServiceWorker(true)}
-                   className="w-full h-11 bg-executive-gold text-[color:var(--btn-primary-text)] rounded-xl text-[13px] font-semibold uppercase tracking-widest hover:bg-executive-gold-hover transition-all shadow-lg shadow-executive-gold/20 active:scale-95"
+                   className="w-full h-11 bg-executive-gold text-[color:var(--btn-primary-text)] rounded-xl text-body font-semibold uppercase tracking-widest hover:bg-executive-gold-hover transition-all shadow-lg shadow-executive-gold/20 active:scale-95"
                  >
                  Güncelle ve Yeniden Başlat
                </button>

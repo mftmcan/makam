@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   format, parse, addMonths, subMonths, startOfMonth, endOfMonth,
-  startOfWeek, endOfWeek, addDays, isSameDay, isSameMonth, isToday
+  startOfWeek, endOfWeek, addDays, isSameDay, isSameMonth, isToday, isBefore, startOfDay
 } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
@@ -27,13 +27,24 @@ interface DatePickerProps {
   icon?: React.ReactNode;
   /** Tetikleyici butonun kendi className'ine eklenir — dış, tıklamaya tepki vermeyen bir "kutu" sarmalayıcısı yerine kutu stilini doğrudan tıklanabilir alana uygulamak için. */
   triggerClassName?: string;
+  /** Form validasyon hatası varken tetikleyici butona aria-invalid uygular. */
+  ariaInvalid?: boolean;
+  /** Hata mesajı `<span>`'inin id'si — tetikleyici butona aria-describedby olarak bağlanır. */
+  ariaDescribedBy?: string;
+  /** VALUE_FORMAT ('yyyy-MM-dd') biçiminde alt sınır — bu tarihten önceki
+   *  günler seçilemez olarak işaretlenir (bkz. tasarım denetimi F26: SLA
+   *  mühleti gibi alanlarda geçmiş tarihe mühlet verilebiliyordu). */
+  minDate?: string;
 }
 
 /** Markaya özgü, bağımlılıksız açılır takvim — native `<input type="date">`'in
  *  tarayıcıdan tarayıcıya değişen OS takvim popup'ının yerini alır. */
-export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, triggerClassName }: DatePickerProps) => {
+export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, triggerClassName, ariaInvalid, ariaDescribedBy, minDate }: DatePickerProps) => {
   const selected = parseValue(value);
+  const minDateObj = minDate ? parseValue(minDate) : null;
+  const isDayDisabled = (day: Date) => !!minDateObj && isBefore(startOfDay(day), startOfDay(minDateObj));
   const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(selected ?? new Date()));
   // WAI-ARIA date-picker deseni: takvim ızgarasında Tab yalnızca TEK bir
   // durağa (roving tabindex) karşılık gelmeli, günler arası gezinme ok
@@ -63,7 +74,13 @@ export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, tr
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) setIsOpen(false);
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isTopOfModalStack(stackId)) setIsOpen(false);
+      if (e.key === 'Escape' && isTopOfModalStack(stackId)) {
+        setIsOpen(false);
+        // Escape'te odak tetikleyiciye döner — kapanıştan sonra odağın
+        // DOM'dan (kaldırılan takvim gövdesinden) tamamen düşmesi klavye
+        // kullanıcısını sayfanın başına fırlatırdı (bkz. tasarım denetimi F26).
+        triggerRef.current?.focus();
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKeyDown);
@@ -88,8 +105,10 @@ export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, tr
   };
 
   const handleSelect = (day: Date) => {
+    if (isDayDisabled(day)) return;
     onChange(format(day, VALUE_FORMAT));
     setIsOpen(false);
+    triggerRef.current?.focus();
   };
 
   // focusedDay değiştiğinde (açılış veya ok tuşu navigasyonu) DOM odağını
@@ -132,14 +151,17 @@ export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, tr
   return (
     <div className={cn('relative', className)} ref={containerRef}>
       <button
+        ref={triggerRef}
         id={id}
         type="button"
         onClick={() => (isOpen ? setIsOpen(false) : openPicker())}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         aria-label={ariaLabel}
+        aria-invalid={ariaInvalid ? true : undefined}
+        aria-describedby={ariaDescribedBy}
         className={cn(
-          "text-[11px] text-text-heading bg-transparent outline-none border-none cursor-pointer font-medium rounded focus-visible:ring-2 focus-visible:ring-executive-blue",
+          "text-caption text-text-heading bg-transparent outline-none border-none cursor-pointer font-medium rounded focus-visible:ring-2 focus-visible:ring-executive-blue",
           triggerClassName
         )}
       >
@@ -170,7 +192,7 @@ export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, tr
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[11px] font-medium text-text-heading uppercase tracking-widest font-serif">
+              <span className="text-caption font-medium text-text-heading uppercase tracking-widest font-serif">
                 {format(viewMonth, 'LLLL yyyy', { locale: tr })}
               </span>
               <button
@@ -185,7 +207,7 @@ export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, tr
 
             <div className="grid grid-cols-7 gap-0.5 mb-1">
               {WEEKDAY_LABELS.map(d => (
-                <span key={d} className="text-[8px] text-text-tertiary uppercase tracking-widest text-center py-1">
+                <span key={d} className="text-micro text-text-tertiary uppercase tracking-widest text-center py-1">
                   {d}
                 </span>
               ))}
@@ -197,6 +219,7 @@ export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, tr
                 const inMonth = isSameMonth(day, viewMonth);
                 const dayKey = format(day, VALUE_FORMAT);
                 const isFocused = !!focusedDay && isSameDay(day, focusedDay);
+                const isDisabled = isDayDisabled(day);
                 return (
                   <button
                     key={dayKey}
@@ -211,13 +234,16 @@ export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, tr
                     tabIndex={isFocused ? 0 : -1}
                     aria-current={isToday(day) ? 'date' : undefined}
                     aria-pressed={isSelected}
+                    aria-disabled={isDisabled ? true : undefined}
                     className={cn(
-                      'w-7 h-7 flex items-center justify-center rounded-lg text-[10px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue',
-                      isSelected
-                        ? 'bg-executive-blue text-[color:var(--executive-blue-text)] shadow-sm'
-                        : inMonth
-                          ? 'text-text-heading hover:bg-surface-glass'
-                          : 'text-text-tertiary/40 hover:bg-surface-glass',
+                      'w-7 h-7 flex items-center justify-center rounded-lg text-micro font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue',
+                      isDisabled
+                        ? 'text-text-tertiary/30 cursor-not-allowed hover:bg-transparent'
+                        : isSelected
+                          ? 'bg-executive-blue text-[color:var(--executive-blue-text)] shadow-sm'
+                          : inMonth
+                            ? 'text-text-heading hover:bg-surface-glass'
+                            : 'text-text-tertiary/40 hover:bg-surface-glass',
                       !isSelected && isToday(day) && 'ring-1 ring-executive-blue/40'
                     )}
                   >

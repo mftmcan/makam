@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useUIStore } from '../../store/uiStore';
 import { logger } from '../../lib/logger';
 
@@ -45,7 +46,6 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
   const [renameTarget, setRenameTarget] = useState<Department | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Department | null>(null);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -65,7 +65,7 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
   }, [tasks, users]);
 
   const closeRename = () => { setRenameTarget(null); setRenameDraft(''); setError(''); };
-  const closeDelete = () => { setDeleteTarget(null); setDeleteConfirmText(''); setError(''); };
+  const closeDelete = () => { setDeleteTarget(null); setError(''); };
 
   const handleRenameConfirm = async () => {
     if (!renameTarget) return;
@@ -111,7 +111,6 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
 
   const trimmedDraft = renameDraft.trim();
   const canConfirmRename = trimmedDraft.length > 0 && trimmedDraft !== renameTarget?.id;
-  const isDeleteConfirmed = deleteConfirmText === DELETE_CONFIRM_PHRASE;
 
   return (
     <div className="flex flex-col bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden">
@@ -122,24 +121,24 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
         className="flex items-center justify-between gap-3 px-3.5 py-3 text-left hover:bg-surface-elevated transition-colors"
       >
         <span className="flex items-center gap-2">
-          <Building className="w-3.5 h-3.5 text-executive-gold stroke-[1.5]" />
-          <span className="text-[10px] text-text-muted uppercase tracking-wider font-bold">
+          <Building className="w-3.5 h-3.5 text-[color:var(--gold-text)] stroke-[1.5]" />
+          <span className="text-micro text-text-muted uppercase tracking-wider font-bold">
             Birim Yönetimi
           </span>
-          <span className="text-[9px] text-text-tertiary tracking-wider">{departments.length} kayıtlı birim</span>
+          <span className="text-micro text-text-tertiary tracking-wider">{departments.length} kayıtlı birim</span>
         </span>
         <ChevronDown className={cn('w-3.5 h-3.5 text-text-tertiary transition-transform', isExpanded && 'rotate-180')} />
       </button>
 
       {isExpanded && (
         <div className="flex flex-col gap-2 px-3.5 pb-3.5 pt-1 border-t border-executive-blue/[0.04]">
-          <p className="text-[10px] text-text-tertiary leading-relaxed">
+          <p className="text-micro text-text-tertiary leading-relaxed">
             Yeniden adlandırma, birime bağlı tüm talimat ve personel kayıtlarını yeni birime taşır. Bir birim yalnızca hiçbir kayıt tarafından kullanılmıyorken silinebilir.
           </p>
 
           {departments.length === 0 ? (
             <div className="py-6 flex items-center justify-center rounded-xl border border-dashed border-executive-blue/[0.05] bg-surface-glass">
-              <span className="text-[9px] text-text-tertiary uppercase tracking-[0.35em]">Kayıtlı Birim Yok</span>
+              <span className="text-micro text-text-tertiary uppercase tracking-[0.35em]">Kayıtlı Birim Yok</span>
             </div>
           ) : (
             <ul className="flex flex-col gap-1.5">
@@ -150,10 +149,10 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
                     key={dept.id}
                     className="flex items-center gap-2 px-2.5 py-2 bg-surface-glass border border-surface-border rounded-xl"
                   >
-                    <span className="text-[11px] font-medium text-executive-blue font-serif truncate flex-1 min-w-0">
+                    <span className="text-caption font-medium text-executive-blue font-serif truncate flex-1 min-w-0">
                       {dept.name}
                     </span>
-                    <span className="hidden sm:inline text-[8.5px] text-text-tertiary uppercase tracking-[0.2em] flex-shrink-0">
+                    <span className="hidden sm:inline text-micro text-text-tertiary uppercase tracking-[0.2em] flex-shrink-0">
                       {usage ? `${usage.tasks} talimat · ${usage.users} personel` : 'kullanımda değil'}
                     </span>
                     <button
@@ -167,7 +166,7 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setDeleteTarget(dept); setDeleteConfirmText(''); setError(''); }}
+                      onClick={() => { setDeleteTarget(dept); setError(''); }}
                       title="Sil"
                       aria-label={`${dept.name} birimini sil`}
                       className="w-7 h-7 flex items-center justify-center bg-makam-glass border border-executive-blue/[0.06] rounded-lg text-text-tertiary hover:text-status-danger hover:bg-status-danger/10 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger flex-shrink-0"
@@ -185,7 +184,7 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
       {/* ── Yeniden Adlandırma ─────────────────────────────────────── */}
       <Modal isOpen={!!renameTarget} onClose={closeRename} title="Birimi Yeniden Adlandır">
         <div className="flex flex-col gap-4">
-          <p className="text-[13px] text-text-muted font-light leading-relaxed">
+          <p className="text-body text-text-muted font-light leading-relaxed">
             <strong className="text-executive-blue font-medium">{renameTarget?.name}</strong> birimine bağlı tüm talimat ve personel kayıtları yeni isme taşınacaktır. Bu işlem sırasında kayıtların güncellenme zamanı değişmez.
           </p>
           <div className="flex flex-col gap-2">
@@ -194,7 +193,7 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
               bağlamaz (htmlFor/id yok), yani ekran okuyucu ve testler için
               erişilebilir bir ad oluşmaz — Settings.tsx'teki onay girdisi de
               aynı nedenle bu deseni kullanır. */}
-          <label htmlFor="department-rename-input" className="text-[10px] font-medium text-text-muted uppercase tracking-[0.2em] px-1">
+          <label htmlFor="department-rename-input" className="text-micro font-medium text-text-muted uppercase tracking-[0.2em] px-1">
             Yeni Birim Adı
           </label>
           <Input
@@ -212,7 +211,7 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
           {error && (
             <div className="flex items-start gap-2 p-2.5 bg-status-danger/10 border border-status-danger/20 rounded-xl">
               <AlertTriangle className="w-3.5 h-3.5 text-status-danger flex-shrink-0 mt-0.5" />
-              <p className="text-[10px] text-status-danger font-semibold uppercase tracking-[0.1em] leading-relaxed">{error}</p>
+              <p className="text-micro text-status-danger font-semibold uppercase tracking-[0.1em] leading-relaxed">{error}</p>
             </div>
           )}
           <div className="flex justify-end gap-2.5 pt-4 border-t border-executive-blue/[0.04]">
@@ -225,48 +224,17 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
       </Modal>
 
       {/* ── Silme (yazarak doğrulama) ──────────────────────────────── */}
-      <Modal isOpen={!!deleteTarget} onClose={closeDelete} title="Birimi Sil">
-        <div className="flex flex-col gap-4">
-          <p className="text-[13px] text-text-muted font-light leading-relaxed">
-            <strong className="text-status-danger font-medium">{deleteTarget?.name}</strong> birimini kayıtlardan kaldırmak üzeresiniz. Birim hâlâ bir talimat veya personel tarafından kullanılıyorsa işlem reddedilir.
-          </p>
-
-          <div className="flex flex-col gap-2">
-            <label htmlFor="department-delete-confirm-input" className="text-[12px] text-text-heading font-normal leading-relaxed">
-              Onaylamak için aşağıdaki kutuya <strong className="text-status-danger font-semibold tracking-wide">{DELETE_CONFIRM_PHRASE}</strong> yazın.
-            </label>
-            <Input
-              id="department-delete-confirm-input"
-              value={deleteConfirmText}
-              onChange={(e) => { setDeleteConfirmText(e.target.value); setError(''); }}
-              placeholder={DELETE_CONFIRM_PHRASE}
-              autoComplete="off"
-              spellCheck={false}
-              aria-describedby="department-delete-confirm-help"
-              onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-            />
-            <span id="department-delete-confirm-help" className="text-[10px] text-text-tertiary px-1 leading-relaxed">
-              {isDeleteConfirmed
-                ? 'Doğrulama tamamlandı — silme başlatılabilir.'
-                : 'Doğrulama metni birebir eşleşmeden silme başlatılamaz.'}
-            </span>
-          </div>
-
-          {error && (
-            <div className="flex items-start gap-2 p-2.5 bg-status-danger/10 border border-status-danger/20 rounded-xl">
-              <AlertTriangle className="w-3.5 h-3.5 text-status-danger flex-shrink-0 mt-0.5" />
-              <p className="text-[10px] text-status-danger font-semibold uppercase tracking-[0.1em] leading-relaxed">{error}</p>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2.5 pt-4 border-t border-executive-blue/[0.04]">
-            <Button variant="secondary" onClick={closeDelete} disabled={isBusy}>İptal</Button>
-            <Button variant="danger" onClick={() => { void handleDeleteConfirm(); }} isLoading={isBusy} disabled={!isDeleteConfirmed}>
-              Birimi Sil
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={closeDelete}
+        onConfirm={() => { void handleDeleteConfirm(); }}
+        title="Birimi Sil"
+        message={<><strong className="text-status-danger font-medium">{deleteTarget?.name}</strong> birimini kayıtlardan kaldırmak üzeresiniz. Birim hâlâ bir talimat veya personel tarafından kullanılıyorsa işlem reddedilir.</>}
+        confirmLabel="Birimi Sil"
+        confirmPhrase={DELETE_CONFIRM_PHRASE}
+        isLoading={isBusy}
+        warning={error || undefined}
+      />
     </div>
   );
 };

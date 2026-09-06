@@ -47,9 +47,9 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
           <h2 className="text-2xl font-serif text-text-heading tracking-tight">MAKAM Stratejik Yönetim</h2>
           <div className="w-10 h-px bg-gradient-to-r from-transparent via-executive-gold/60 to-transparent" />
           <div className="flex items-center justify-center gap-2 mt-1">
-            <span className="text-[10px] uppercase tracking-[0.22em] text-executive-gold font-medium">Sürüm v2.3.0</span>
-            <span className="text-[10px] text-text-muted">•</span>
-            <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-status-success font-medium">
+            <span className="text-micro uppercase tracking-[0.22em] text-[color:var(--gold-text)] font-medium">Sürüm v2.3.0</span>
+            <span className="text-micro text-text-muted">•</span>
+            <span className="flex items-center gap-1.5 text-micro uppercase tracking-widest text-status-success font-medium">
               <span className="w-1 h-1 rounded-full bg-status-success" aria-hidden="true" />
               Lisanslı Sürüm
             </span>
@@ -60,7 +60,7 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.7, delay: 0.28 }}
-          className="text-[13px] text-text-muted leading-relaxed max-w-sm"
+          className="text-body text-text-muted leading-relaxed max-w-sm"
         >
           Bu dizge, stratejik verileri minimum gecikme ve maksimum güvenlikle işlemek üzere tasarlanmış <strong className="text-text-heading font-medium">dünya standartlarında</strong> bir mimari üzerine inşa edilmiştir.
         </motion.p>
@@ -76,10 +76,10 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
                 whileHover={{ x: 4 }}
                 className="group flex items-center gap-3.5 text-left py-2"
               >
-                <div className="w-9 h-9 shrink-0 rounded-full bg-surface-base/60 border border-makam-border/10 flex items-center justify-center text-executive-gold shadow-inner transition-all duration-500 group-hover:bg-executive-gold group-hover:text-[color:var(--btn-primary-text)]">
+                <div className="w-9 h-9 shrink-0 rounded-full bg-surface-base/60 border border-makam-border/10 flex items-center justify-center text-[color:var(--gold-text)] shadow-inner transition-all duration-500 group-hover:bg-executive-gold group-hover:text-[color:var(--btn-primary-text)]">
                   <Icon className="w-4 h-4 stroke-[1.4]" aria-hidden="true" />
                 </div>
-                <span className="text-[12px] leading-tight text-text-heading">
+                <span className="text-body-sm leading-tight text-text-heading">
                   <strong className="block font-medium">{title}</strong>
                   <span className="text-text-muted">{desc}</span>
                 </span>
@@ -92,7 +92,7 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.7 }}
-          className="mt-1 text-[10px] uppercase tracking-widest font-light text-text-tertiary"
+          className="mt-1 text-micro uppercase tracking-widest font-light text-text-tertiary"
         >
           © {new Date().getFullYear()} MAKAM. Yasal Hak Sahibi: <a href="mailto:muftum@gmail.com" className="hover:text-text-muted transition-colors">muftum@gmail.com</a>
         </motion.div>

@@ -135,7 +135,13 @@ describe('useAppHandlers', () => {
 
       await act(async () => { await handlers.updateTaskStatus('task-1', 'COMPLETED'); });
 
-      expect(onError).toHaveBeenCalledWith(expect.any(Error), 'update', 'tasks/task-1');
+      // 4. argüman (ConflictContext) VERSION_MISMATCH çakışma modalını besler
+      // (bkz. tasarım denetimi F7) — bu test yalnızca hata yolunun tetiklendiğini
+      // doğrular, bağlamın tam şeklini ConflictModal'a özgü bir test kapsar.
+      expect(onError).toHaveBeenCalledWith(expect.any(Error), 'update', 'tasks/task-1', expect.objectContaining({
+        attemptedChangeSummary: expect.any(String),
+        retry: expect.any(Function),
+      }));
     });
 
     it('offline + BLOCKED-olmayan hedef: offlineQueue.enqueue tasks/update ile kuyruğa alır', async () => {
@@ -238,7 +244,10 @@ describe('useAppHandlers', () => {
       await act(async () => { await handlers.updateTask('bilinmeyen-id', { title: 'X' }); });
 
       expect(taskService.updateTask).not.toHaveBeenCalled();
-      expect(onError).toHaveBeenCalledWith(expect.any(Error), 'update', 'tasks/bilinmeyen-id');
+      expect(onError).toHaveBeenCalledWith(expect.any(Error), 'update', 'tasks/bilinmeyen-id', expect.objectContaining({
+        attemptedChangeSummary: expect.any(String),
+        retry: expect.any(Function),
+      }));
     });
 
     it('servis reddederse onError(err, \'update\', \'tasks/{id}\') çağrılır', async () => {
@@ -247,7 +256,12 @@ describe('useAppHandlers', () => {
 
       await act(async () => { await handlers.updateTask('task-1', { title: 'X' }); });
 
-      expect(onError).toHaveBeenCalledWith(expect.any(Error), 'update', 'tasks/task-1');
+      // 4. argüman (ConflictContext) VERSION_MISMATCH çakışma modalını besler
+      // (bkz. tasarım denetimi F7).
+      expect(onError).toHaveBeenCalledWith(expect.any(Error), 'update', 'tasks/task-1', expect.objectContaining({
+        attemptedChangeSummary: expect.any(String),
+        retry: expect.any(Function),
+      }));
     });
 
     it('offline: offlineQueue.enqueue ile kuyruğa alınır, servis çağrılmaz', async () => {
