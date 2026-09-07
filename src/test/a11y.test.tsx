@@ -5,6 +5,7 @@ import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { Panel } from '../components/ui/Panel';
 import { ExecutiveToast, type ToastData } from '../components/ExecutiveToast';
+import { AboutModal } from '../components/AboutModal';
 
 expect.extend(toHaveNoViolations);
 
@@ -58,5 +59,10 @@ describe('Bileşen erişilebilirliği (axe-core)', () => {
       expect(await axe(container)).toHaveNoViolations();
       unmount();
     }
+  });
+
+  it('AboutModal a11y ihlali içermemeli', async () => {
+    const { container } = render(<AboutModal isOpen={true} onClose={vi.fn()} />);
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
