@@ -85,7 +85,19 @@ export default defineConfig(({ mode }) => {
       })
     ],
     build: {
-      chunkSizeWarningLimit: 600,
+      // vendor-firebase (app+auth+firestore+messaging, AÇILIŞTA gerekli — bkz.
+      // manualChunks yorumu) minify sonrası ~740 kB HAM boyutta, Vite'ın
+      // varsayılan 600 kB uyarı eşiğini aşıyor. Bu YANLIŞ pozitif bir uyarı:
+      // gerçek performans bütçesi (ağdan indirilen, GZIP boyutu) zaten
+      // .size-limit.json'da "Firebase vendor paketi" için 200 KB olarak
+      // ayrıca takip ediliyor ve ~179 KB ile rahatça içinde. Firebase SDK'yı
+      // daha küçük parçalara bölmek (ör. auth/firestore'u ayırmak) gerçek bir
+      // fayda sağlamaz — dördü de aynı anda, aynı entry noktasında gerekiyor,
+      // yalnızca aynı toplam byte'ı daha fazla HTTP isteğine böler. Eşik,
+      // gerçek boyutun (740 kB) biraz üzerine (800 kB) çekilerek bu BİLİNEN/
+      // izlenen paket için uyarı susturuldu; gelecekte GERÇEKTEN beklenmedik
+      // bir şişme olursa (ör. yeni bir ağır bağımlılık) eşik yine tetiklenir.
+      chunkSizeWarningLimit: 800,
       rollupOptions: {
         output: {
           // vendor-charts (recharts) ve vendor-pdf (jsPDF) BİLEREK manualChunks'tan
