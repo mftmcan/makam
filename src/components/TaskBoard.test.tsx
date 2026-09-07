@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useState } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TaskBoard } from './TaskBoard';
 import { useUIStore } from '../store/uiStore';
 import type { TaskBoardFilters } from '../hooks/useTaskBoardFilters';
 import type { Task, User } from '../types';
 
-const DEFAULT_FILTERS: TaskBoardFilters = { search: '', priority: 'All', status: 'All', assignee: 'All' };
+const DEFAULT_FILTERS: TaskBoardFilters = { search: '', priority: 'All', status: 'All', assignee: 'All', sortBy: 'none', sortDir: 'asc' };
 
 // TaskBoard filtreleri artık kontrollüdür (bkz. tasarım denetimi F20 —
 // gerçek uygulamada AuthenticatedApp'teki useTaskBoardFilters URL'den besler).
@@ -208,5 +208,62 @@ describe('TaskBoard — toplu seçim ve toplu işlem (P2-18)', () => {
     });
     // task-2 başarısız olduğu için seçili bırakılır — kullanıcı tekrar deneyebilsin.
     expect(screen.getByText('1 Talimat Seçildi')).toBeInTheDocument();
+  });
+});
+
+// 3.4: eskiden tablo hep Firestore'un getirdiği ham sırayla görünüyordu,
+// kullanıcı "en yakın mühlete göre sırala" gibi bir düzenleme yapamıyordu.
+describe('TaskBoard — sütun başlığına tıklayarak sıralama (3.4)', () => {
+  const soon = makeTask({ id: 't-soon', title: 'Yakın Mühlet', deadline: Date.now() + 1_000 });
+  const mid = makeTask({ id: 't-mid', title: 'Orta Mühlet', deadline: Date.now() + 50_000 });
+  const far = makeTask({ id: 't-far', title: 'Uzak Mühlet', deadline: Date.now() + 500_000 });
+
+  // DesktopTaskRow'lar (role="row") ile MobileTaskRow'lar (kart, role="row"
+  // DEĞİL) jsdom'da AYNI ANDA render edilir (bkz. dosya başındaki NOT) — bu
+  // yüzden getAllByRole('row') yalnızca masaüstü tablo satırlarını (+ başlık
+  // satırını) döndürür, mobil kartları hiç kapsamaz.
+  const desktopRowIndexOf = (title: string) => {
+    const rows = screen.getAllByRole('row').slice(1); // ilk satır sütun başlıkları
+    return rows.findIndex(r => within(r).queryByText(title));
+  };
+
+  it('varsayılan durumda hiçbir sütun sıralı DEĞİLDİR ve orijinal görev sırası korunur', () => {
+    renderBoard({ tasks: [far, soon, mid], currentUser: admin });
+    expect(screen.getByRole('columnheader', { name: 'Mühlet' })).toHaveAttribute('aria-sort', 'none');
+    expect(desktopRowIndexOf('Uzak Mühlet')).toBe(0);
+    expect(desktopRowIndexOf('Yakın Mühlet')).toBe(1);
+    expect(desktopRowIndexOf('Orta Mühlet')).toBe(2);
+  });
+
+  it('Mühlet başlığına tıklamak artan (en yakın önce) sıralar; tekrar tıklamak azalan sıralar; üçüncü tıklama sıralamayı kaldırır', async () => {
+    const user = userEvent.setup();
+    renderBoard({ tasks: [far, soon, mid], currentUser: admin });
+    const header = screen.getByRole('button', { name: 'Mühlet' });
+
+    await user.click(header);
+    expect(screen.getByRole('columnheader', { name: 'Mühlet' })).toHaveAttribute('aria-sort', 'ascending');
+    expect(desktopRowIndexOf('Yakın Mühlet')).toBeLessThan(desktopRowIndexOf('Orta Mühlet'));
+    expect(desktopRowIndexOf('Orta Mühlet')).toBeLessThan(desktopRowIndexOf('Uzak Mühlet'));
+
+    await user.click(header);
+    expect(screen.getByRole('columnheader', { name: 'Mühlet' })).toHaveAttribute('aria-sort', 'descending');
+    expect(desktopRowIndexOf('Uzak Mühlet')).toBeLessThan(desktopRowIndexOf('Orta Mühlet'));
+    expect(desktopRowIndexOf('Orta Mühlet')).toBeLessThan(desktopRowIndexOf('Yakın Mühlet'));
+
+    await user.click(header);
+    expect(screen.getByRole('columnheader', { name: 'Mühlet' })).toHaveAttribute('aria-sort', 'none');
+    expect(desktopRowIndexOf('Uzak Mühlet')).toBe(0);
+  });
+
+  it('farklı bir sütuna (Önem) tıklamak yeni sütunu artan sırada başlatır, eski sütunun sıralamasını devralmaz', async () => {
+    const user = userEvent.setup();
+    const urgent = makeTask({ id: 't-urgent', title: 'İvedi Talimat', priority: 'Urgent', deadline: Date.now() + 500_000 });
+    const routine = makeTask({ id: 't-routine', title: 'Rutin Talimat', priority: 'Low', deadline: Date.now() + 1_000 });
+    renderBoard({ tasks: [urgent, routine], currentUser: admin });
+
+    await user.click(screen.getByRole('button', { name: 'Önem' }));
+    expect(screen.getByRole('columnheader', { name: 'Önem' })).toHaveAttribute('aria-sort', 'ascending');
+    // Urgent, PRIORITY_SORT_ORDER'da Low'dan önce gelir (en acil önce).
+    expect(desktopRowIndexOf('İvedi Talimat')).toBeLessThan(desktopRowIndexOf('Rutin Talimat'));
   });
 });

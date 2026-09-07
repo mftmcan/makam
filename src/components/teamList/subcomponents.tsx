@@ -185,7 +185,7 @@ export const OrgNodeCard = ({ user, tasks, onSelect, isMini = false }: OrgNodeCa
         }
       }}
       className={cn(
-        "flex items-center gap-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-xl p-2.5 shadow-sm hover:shadow-md cursor-pointer hover:bg-surface-elevated transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue",
+        "flex items-center gap-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-xl p-2.5 shadow-card hover:shadow-card-hover cursor-pointer hover:bg-surface-elevated transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue",
         isMini ? "w-44" : "w-52"
       )}
     >

@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useMemo, useEffect, useRef, type ReactElement } from 'react';
-import { Plus, Search, Layers, Clock, ArrowRight, CheckCircle2, AlertTriangle, AlertCircle, ShieldCheck, Zap, Info, Filter, X, Loader2 } from 'lucide-react';
+import { Plus, Search, Layers, Clock, ArrowRight, CheckCircle2, AlertTriangle, AlertCircle, ShieldCheck, Zap, Info, Filter, X, Loader2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { List, type RowComponentProps } from 'react-window';
-import { Task, User, TaskStatus } from '../types';
+import { Task, User, TaskStatus, TaskPriority } from '../types';
 import { cn, buildUsersById } from '../lib/utils';
 import { STATUS_LABELS, PRIORITY_LABELS, PRIORITY_BADGE_VARIANT, STATUS_BADGE_VARIANT } from '../constants';
 import { VALID_TRANSITIONS } from '../lib/taskStateMachine';
@@ -16,7 +16,7 @@ import { Button } from './ui/Button';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 import { useDataStore } from '../store/dataStore';
 import { useUIStore } from '../store/uiStore';
-import type { TaskBoardFilters } from '../hooks/useTaskBoardFilters';
+import type { TaskBoardFilters, TaskBoardSortField } from '../hooks/useTaskBoardFilters';
 import { isTaskInCrisis } from '../lib/executiveMetrics';
 
 // Sanallaştırma (react-window) sabitleri — büyük görev listelerinde (ör.
@@ -32,6 +32,40 @@ const DESKTOP_LIST_MAX_HEIGHT = 640;
 // 40px'lik ilk sütun toplu seçim checkbox'ı için (P2-18) — mevcut beş sütun +
 // sondaki boş ok sütunu aynen korunur, yalnızca başa eklenir.
 const DESKTOP_GRID_TEMPLATE = '40px 180px minmax(0,1fr) 190px 130px 160px 64px';
+
+// Sütun başlığına tıklayarak sıralama (bkz. tasarım denetimi 3.4) — bu sıra
+// firestore.rules'taki isValidTransition ile İLGİSİZDİR, yalnızca tabloda
+// "en acil önce" görsel sıralaması için tanımlıdır. Artan (asc) yön bu
+// sırayı, azalan (desc) yön tersini gösterir.
+const STATUS_SORT_ORDER: Record<TaskStatus, number> = {
+  CRISIS: 0,
+  BLOCKED: 1,
+  PENDING_DELEGATION: 2,
+  ASSIGNED: 3,
+  IN_PROGRESS: 4,
+  AWAITING_APPROVAL: 5,
+  COMPLETED: 6,
+  CANCELLED: 7,
+};
+const PRIORITY_SORT_ORDER: Record<TaskPriority, number> = {
+  Urgent: 0,
+  High: 1,
+  Medium: 2,
+  Low: 3,
+};
+
+// DESKTOP_GRID_TEMPLATE'teki 7 sütunla BİREBİR sırayla eşleşir — checkbox ve
+// ok sütunlarının sortField'ı yoktur (sıralanamaz).
+const DESKTOP_COLUMNS: { label: string; sortField?: TaskBoardSortField }[] = [
+  { label: '' },
+  { label: 'Durum', sortField: 'status' },
+  { label: 'Talimat Tanımı', sortField: 'title' },
+  { label: 'Sorumlu', sortField: 'assignee' },
+  { label: 'Önem', sortField: 'priority' },
+  { label: 'Mühlet', sortField: 'deadline' },
+  { label: '' },
+];
+
 const MOBILE_ROW_HEIGHT = 80;
 const MOBILE_LIST_MAX_HEIGHT = 560;
 // pendingTaskIds verilmediğinde (ör. testlerde) her render'da YENİ bir Set
@@ -311,11 +345,19 @@ export const TaskBoard = ({
   filters, onFiltersChange,
   pendingTaskIds = EMPTY_PENDING_TASK_IDS,
 }: TaskBoardProps) => {
-  const { search, priority: priorityFilter, status: statusFilter, assignee: assigneeFilter } = filters;
+  const { search, priority: priorityFilter, status: statusFilter, assignee: assigneeFilter, sortBy, sortDir } = filters;
   const setSearch = useCallback((value: string) => onFiltersChange({ search: value }), [onFiltersChange]);
   const setPriorityFilter = useCallback((value: string) => onFiltersChange({ priority: value }), [onFiltersChange]);
   const setStatusFilter = useCallback((value: string) => onFiltersChange({ status: value }), [onFiltersChange]);
   const setAssigneeFilter = useCallback((value: string) => onFiltersChange({ assignee: value }), [onFiltersChange]);
+  // Sütun başlığına tıklama döngüsü: kapalı → artan → azalan → kapalı. Aynı
+  // sütuna üçüncü tıklama sıralamayı tamamen kaldırır (bkz. tasarım denetimi
+  // 3.4) — ayrı bir "sıralamayı temizle" kontrolü İCAT EDİLMEDİ.
+  const toggleSort = useCallback((field: TaskBoardSortField) => {
+    if (sortBy !== field) { onFiltersChange({ sortBy: field, sortDir: 'asc' }); return; }
+    if (sortDir === 'asc') { onFiltersChange({ sortDir: 'desc' }); return; }
+    onFiltersChange({ sortBy: 'none', sortDir: 'asc' });
+  }, [sortBy, sortDir, onFiltersChange]);
   const [showSubtasks, setShowSubtasks] = useState(true);
   // Selector bazlı okuma — whole-store `useDataStore()` tasks/stats/blockers
   // gibi ilgisiz her alan değişiminde gereksiz yeniden render'a yol açıyordu
@@ -376,6 +418,32 @@ export const TaskBoard = ({
     // rolünü işlevsiz kılardı.
     return matchesSearch && isVisible && matchesPriority && matchesAssignee && matchesStatus;
   }), [tasks, search, currentUser, showSubtasks, priorityFilter, assigneeFilter, assigneeFilterEmail, statusFilter, usersById]);
+
+  // `filteredTasks`'ı KOPYALAYIP sıralar — `sortBy === 'none'` iken (varsayılan)
+  // orijinal Firestore/onSnapshot sırası (oluşturulma sırası) hiç bozulmadan
+  // korunur, çağıranın davranışı bu özellik eklenmeden ÖNCEKİYLE birebir aynı
+  // kalır (bkz. tasarım denetimi 3.4).
+  const sortedTasks = useMemo(() => {
+    if (sortBy === 'none') return filteredTasks;
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const withKey = (task: Task): string | number => {
+      switch (sortBy) {
+        case 'status': return STATUS_SORT_ORDER[task.status];
+        case 'priority': return PRIORITY_SORT_ORDER[task.priority];
+        case 'deadline': return task.deadline;
+        case 'assignee': return (usersById.get(task.assigneeId)?.fullName ?? '').toLowerCase();
+        case 'title': return task.title.toLowerCase();
+        default: return 0;
+      }
+    };
+    return [...filteredTasks].sort((a, b) => {
+      const ka = withKey(a);
+      const kb = withKey(b);
+      if (ka < kb) return -1 * dir;
+      if (ka > kb) return 1 * dir;
+      return 0;
+    });
+  }, [filteredTasks, sortBy, sortDir, usersById]);
 
   const hasActiveFilter = priorityFilter !== 'All' || assigneeFilter !== 'All' || statusFilter !== 'All' || search !== '';
 
@@ -575,12 +643,12 @@ export const TaskBoard = ({
 
   const rowKey = useCallback((index: number, data: TaskRowData) => data.tasks[index]?.id ?? index, []);
   const mobileRowProps = useMemo<TaskRowData>(
-    () => ({ tasks: filteredTasks, usersById, onViewTask, selectedIds, onToggleSelect: toggleSelect, pendingTaskIds }),
-    [filteredTasks, usersById, onViewTask, selectedIds, toggleSelect, pendingTaskIds]
+    () => ({ tasks: sortedTasks, usersById, onViewTask, selectedIds, onToggleSelect: toggleSelect, pendingTaskIds }),
+    [sortedTasks, usersById, onViewTask, selectedIds, toggleSelect, pendingTaskIds]
   );
   const desktopRowProps = useMemo<TaskRowData>(
-    () => ({ tasks: filteredTasks, usersById, onViewTask, selectedIds, onToggleSelect: toggleSelect, pendingTaskIds }),
-    [filteredTasks, usersById, onViewTask, selectedIds, toggleSelect, pendingTaskIds]
+    () => ({ tasks: sortedTasks, usersById, onViewTask, selectedIds, onToggleSelect: toggleSelect, pendingTaskIds }),
+    [sortedTasks, usersById, onViewTask, selectedIds, toggleSelect, pendingTaskIds]
   );
   const mobileListHeight = Math.min(filteredTasks.length * MOBILE_ROW_HEIGHT, MOBILE_LIST_MAX_HEIGHT);
   const desktopListHeight = Math.min(filteredTasks.length * DESKTOP_ROW_HEIGHT, DESKTOP_LIST_MAX_HEIGHT);
@@ -750,7 +818,7 @@ export const TaskBoard = ({
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 200, damping: 28, delay: 0.1 }}
-        className="bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden shadow-[0_1px_8px_rgba(22,21,19,0.02)]"
+        className="bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden shadow-card"
       >
         {/* Mobile card list for xs screens */}
         <div className="sm:hidden">
@@ -782,14 +850,37 @@ export const TaskBoard = ({
             style={{ gridTemplateColumns: DESKTOP_GRID_TEMPLATE }}
             className="grid bg-surface-glass border-b border-executive-blue/[0.04]"
           >
-            {['', 'Durum', 'Talimat Tanımı', 'Sorumlu', 'Önem', 'Mühlet', ''].map((h, i) => (
-              <div key={`${h}-${i}`} role="columnheader" className={cn(
-                'px-4 py-3 text-micro font-semibold text-text-tertiary uppercase tracking-[0.18em]',
-                h === '' && i > 0 && 'text-right'
-              )}>
-                {h}
-              </div>
-            ))}
+            {DESKTOP_COLUMNS.map((col, i) => {
+              const isSorted = col.sortField && sortBy === col.sortField;
+              return (
+                <div
+                  key={`${col.label}-${i}`}
+                  role="columnheader"
+                  aria-sort={col.sortField ? (isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
+                  className={cn(
+                    'px-4 py-3 text-micro font-semibold text-text-tertiary uppercase tracking-[0.18em]',
+                    col.label === '' && i > 0 && 'text-right'
+                  )}
+                >
+                  {col.sortField ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(col.sortField!)}
+                      className="flex items-center gap-1 hover:text-executive-blue transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue rounded"
+                    >
+                      {col.label}
+                      {isSorted ? (
+                        sortDir === 'asc'
+                          ? <ChevronUp className="w-3 h-3" aria-hidden="true" />
+                          : <ChevronDown className="w-3 h-3" aria-hidden="true" />
+                      ) : (
+                        <ChevronsUpDown className="w-3 h-3 opacity-30" aria-hidden="true" />
+                      )}
+                    </button>
+                  ) : col.label}
+                </div>
+              );
+            })}
           </div>
           {isLoading ? (
             // Dekoratif yükleme iskeleti — gerçek satır/sütun verisi taşımaz,

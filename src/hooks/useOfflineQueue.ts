@@ -6,7 +6,7 @@
  * App.tsx'teki dağınık offline mantığını merkezîleştirir.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { offlineQueue, type OfflineMutation } from '../lib/offlineQueue';
+import { offlineQueue, failedMutationsLog, type OfflineMutation, type FailedMutation } from '../lib/offlineQueue';
 import { logger } from '../lib/logger';
 
 
@@ -15,6 +15,12 @@ interface UseOfflineQueueReturn {
   queueLength: number;
   pendingMutations: OfflineMutation[];
   syncNow: () => Promise<boolean>;
+  /** Sunucu tarafından kalıcı olarak reddedilip kuyruktan düşürülmüş
+   *  mutasyonlar — bkz. tasarım denetimi 3.3: kullanıcı OfflineBanner'ı ne
+   *  zaman açarsa açsın NEYİN uygulanamadığını görebilsin diye eklendi. */
+  failedMutations: FailedMutation[];
+  dismissFailedMutation: (id: string) => void;
+  clearFailedMutations: () => void;
 }
 
 export function useOfflineQueue(): UseOfflineQueueReturn {
@@ -23,6 +29,7 @@ export function useOfflineQueue(): UseOfflineQueueReturn {
   );
   const [queueLength, setQueueLength] = useState(0);
   const [pendingMutations, setPendingMutations] = useState<OfflineMutation[]>([]);
+  const [failedMutations, setFailedMutations] = useState<FailedMutation[]>([]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -37,8 +44,13 @@ export function useOfflineQueue(): UseOfflineQueueReturn {
       setPendingMutations(queue);
     };
 
+    const updateFailedLog = () => {
+      setFailedMutations(failedMutationsLog.getLog());
+    };
+
     window.addEventListener('offline', updateNetworkStatus);
     window.addEventListener('makam_queue_changed', updateQueue);
+    window.addEventListener('makam_failed_log_changed', updateFailedLog);
 
     // Bağlantı geri gelince yalnızca ağ durumu güncellenir — senkronizasyonun
     // KENDİSİ offlineQueue.ts'teki modül seviyesi 'online' listener'ında
@@ -52,11 +64,13 @@ export function useOfflineQueue(): UseOfflineQueueReturn {
     // İlk değerleri yükle
     updateNetworkStatus();
     updateQueue();
+    updateFailedLog();
 
     return () => {
       window.removeEventListener('online', updateNetworkStatus);
       window.removeEventListener('offline', updateNetworkStatus);
       window.removeEventListener('makam_queue_changed', updateQueue);
+      window.removeEventListener('makam_failed_log_changed', updateFailedLog);
     };
   }, []);
 
@@ -73,5 +87,15 @@ export function useOfflineQueue(): UseOfflineQueueReturn {
     }
   }, []);
 
-  return { isOffline, queueLength, pendingMutations, syncNow };
+  const dismissFailedMutation = useCallback((id: string) => {
+    failedMutationsLog.dismiss(id);
+    setFailedMutations(failedMutationsLog.getLog());
+  }, []);
+
+  const clearFailedMutations = useCallback(() => {
+    failedMutationsLog.clear();
+    setFailedMutations([]);
+  }, []);
+
+  return { isOffline, queueLength, pendingMutations, syncNow, failedMutations, dismissFailedMutation, clearFailedMutations };
 }

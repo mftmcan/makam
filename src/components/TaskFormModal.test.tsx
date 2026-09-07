@@ -45,7 +45,7 @@ const getSubmitButton = () => screen.getByRole('button', { name: /ATAMAYI TAMAML
 const pickTodayAsDeadline = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(screen.getByRole('button', { name: 'SLA mühleti' }));
   const dialog = screen.getByRole('dialog', { name: 'SLA mühleti' });
-  await user.click(within(dialog).getByRole('button', { current: 'date' }));
+  await user.click(within(dialog).getByRole('gridcell', { current: 'date' }));
 };
 
 const fillValidForm = async (user: ReturnType<typeof userEvent.setup>, assigneeId = 'staff-1') => {

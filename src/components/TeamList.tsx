@@ -545,7 +545,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
         users.length > VIRTUALIZE_THRESHOLD ? (
           // Sanallaştırılmış tek sütunlu liste (bkz. yukarıdaki VIRTUALIZE_THRESHOLD
           // yorumu) — yalnızca büyük kadrolarda (P2-19) devreye girer.
-          <div className="bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden shadow-[0_1px_8px_rgba(22,21,19,0.02)]">
+          <div className="bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden shadow-card">
             <List
               rowComponent={VirtualizedUserRow}
               rowCount={users.length}
@@ -570,7 +570,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
                 transition={{ type: 'spring', stiffness: 260, damping: 28, delay: i * 0.04 }}
                 whileHover={{ y: -2, scale: 1.005 }}
                 className={cn(
-                  "group flex flex-col p-4 bg-makam-glass backdrop-blur-xl border-x border-b border-surface-border rounded-2xl shadow-[0_1px_8px_rgba(22,21,19,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:bg-surface-elevated hover:border-surface-border transition-all duration-300 relative border-t-2",
+                  "group flex flex-col p-4 bg-makam-glass backdrop-blur-xl border-x border-b border-surface-border rounded-2xl shadow-card hover:shadow-card-hover hover:bg-surface-elevated hover:border-surface-border transition-all duration-300 relative border-t-2",
                   userTaskCount >= 5 ? "border-t-status-danger" : "border-t-surface-border"
                 )}
               >

@@ -45,7 +45,7 @@ import { TaskFormModal } from './TaskFormModal';
 import { CertificateModal } from './CertificateModal';
 import { WarningModal } from './WarningModal';
 import { ErrorBoundary } from './ErrorBoundary';
-import { getPrimaryAction } from './taskDetails/helpers';
+import { getPrimaryAction, type TaskDetailsTabId } from './taskDetails/helpers';
 
 // Lazy loaded routes (tabs)
 const Dashboard = lazy(() => import('./Dashboard').then(m => ({ default: m.Dashboard })));
@@ -136,6 +136,13 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
   const { openTask, closeTask, goToTab } = useTaskNavigation();
   const [taskBoardFilters, setTaskBoardFilters] = useTaskBoardFilters();
   const [settingsTab, setSettingsTab] = useTabSearchParam<'general' | 'sla' | 'security' | 'data'>('tab', 'general');
+  // TaskDetails modalının hangi alt-sekmesinin açık olduğu — 'tab' Settings
+  // tarafından kullanıldığından ayrı bir isim (bkz. tasarım denetimi 3.4:
+  // eskiden bileşen-içi state'ti, derin link/yenilemede kaybediyordu).
+  // openTask/closeTask düz navigate() ile ARAMA parametrelerini SIFIRLADIĞI
+  // için (bkz. useTaskRoute.ts) her yeni görev açılışı otomatik olarak
+  // 'info' sekmesinden başlar.
+  const [taskDetailTab, setTaskDetailTab] = useTabSearchParam<TaskDetailsTabId>('detay', 'info');
 
   // Sekme değişiminde odak + duyuru — eskiden AnimatePresence içeriği
   // görsel olarak değişiyordu ama ekran okuyucu kullanıcısına hiçbir şey
@@ -564,6 +571,7 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
               onShowWarning={setActiveWarningTask}
               onUpdateTask={(data) => selectedTask && updateTask(selectedTask.id, data)}
               onDelegateTask={(newAssigneeId) => selectedTask && delegateTask(selectedTask.id, newAssigneeId)}
+              activeTab={taskDetailTab} onActiveTabChange={setTaskDetailTab}
             />
           )}
         </Modal>

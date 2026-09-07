@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { offlineQueue, OfflineMutation } from '../lib/offlineQueue';
+import { offlineQueue, failedMutationsLog, OfflineMutation } from '../lib/offlineQueue';
 
 // addDoc, updateDoc vb. mock'ları setup.ts'den geliyor
 import * as firebase from '../firebase';
@@ -133,10 +133,10 @@ describe('OfflineQueue', () => {
       vi.mocked(firebase.updateDoc).mockResolvedValueOnce(undefined as any);
 
       offlineQueue.enqueue('tasks', 'create', { id: 'temp-id', title: 'Görev' });
-      
+
       Object.defineProperty(window.navigator, 'onLine', { value: true, writable: true });
       const result = await offlineQueue.sync();
-      
+
       expect(result).toBe(true);
       expect(offlineQueue.getQueue()).toHaveLength(0);
     });
@@ -162,12 +162,12 @@ describe('OfflineQueue', () => {
       offlineQueue.enqueue('tasks', 'create', { id: 'temp-fail', title: 'Başarısız' });
 
       const result = await offlineQueue.sync();
-      
+
       expect(result).toBe(false);
       expect(offlineQueue.getQueue()).toHaveLength(1);
     });
 
-    it('permission-denied ile reddedilen mutasyon sonsuza dek denenmez, kuyruktan düşürülür ve toast gösterilir', async () => {
+    it('permission-denied ile reddedilen mutasyon sonsuza dek denenmez, kuyruktan düşürülür, toast gösterilir ve kalıcı günlüğe yazılır', async () => {
       vi.mocked(firebase.addDoc).mockRejectedValueOnce(
         new firebase.FirebaseError('permission-denied', 'Missing or insufficient permissions.')
       );
@@ -181,9 +181,15 @@ describe('OfflineQueue', () => {
       expect(offlineQueue.getQueue()).toHaveLength(0);
       expect(useUIStore.getState().toasts).toHaveLength(1);
       expect(useUIStore.getState().toasts[0]).toMatchObject({ type: 'danger' });
+      // 3.3: eskiden yalnızca geçici toast vardı — artık OfflineBanner'ın her
+      // zaman gösterebileceği kalıcı bir günlük kaydı da tutulur.
+      const failedLog = failedMutationsLog.getLog();
+      expect(failedLog).toHaveLength(1);
+      expect(failedLog[0]!.reason).toBe('permission-denied');
+      expect(failedLog[0]!.mutation.collectionName).toBe('tasks');
     });
 
-    it('INVALID_TRANSITION (geçersiz durum geçişi) sonsuza dek denenmez, kuyruktan düşürülür ve toast gösterilir', async () => {
+    it('INVALID_TRANSITION (geçersiz durum geçişi) sonsuza dek denenmez, kuyruktan düşürülür, toast gösterilir ve kalıcı günlüğe yazılır', async () => {
       // transitionTaskInTransaction bu hatayı düz bir Error olarak fırlatır
       // (FirebaseError DEĞİL) — eskiden NON_RETRYABLE_CODES yalnızca
       // FirebaseError kodlarına baktığından bu mutasyon sonsuza dek
@@ -204,6 +210,9 @@ describe('OfflineQueue', () => {
       expect(offlineQueue.getQueue()).toHaveLength(0);
       expect(useUIStore.getState().toasts).toHaveLength(1);
       expect(useUIStore.getState().toasts[0]).toMatchObject({ type: 'danger' });
+      const failedLog = failedMutationsLog.getLog();
+      expect(failedLog).toHaveLength(1);
+      expect(failedLog[0]!.reason).toContain('INVALID_TRANSITION');
     });
 
     it('genel/bilinmeyen bir Error (FirebaseError değil, iş kuralı imzasıyla eşleşmiyor) yine de retry için kuyrukta kalır', async () => {
@@ -231,7 +240,7 @@ describe('OfflineQueue', () => {
       offlineQueue.enqueue('tasks', 'update', { status: 'IN_PROGRESS' }, 'temp-2');
 
       const result = await offlineQueue.sync();
-      
+
       expect(result).toBe(false);
       expect(offlineQueue.getQueue()).toHaveLength(1);
     });
@@ -846,5 +855,77 @@ describe('OfflineQueue', () => {
       expect(transactionUpdate).not.toHaveBeenCalled();
       expect(conflictHandler).toHaveBeenCalledOnce();
     });
+  });
+});
+
+// ─── failedMutationsLog ───────────────────────────────────────────────────
+// 3.3: eskiden bir mutasyon sunucu tarafından kalıcı olarak reddedildiğinde
+// yalnızca geçici bir toast gösteriliyordu, kullanıcı kaçırırsa NEYİN
+// uygulanmadığını bir daha göremiyordu. Bu, o bilginin localStorage'a
+// yazılıp OfflineBanner'da kalıcı olarak görüntülenmesini sağlayan saf
+// (yukarıdaki sync() testlerinden BAĞIMSIZ, doğrudan record/dismiss/clear
+// API'sini hedefleyen) katmandır — sync()'in KENDİSİ non-retryable
+// durumlarda bu API'yi çağırdığını yukarıdaki "permission-denied"/
+// "INVALID_TRANSITION" testlerinde zaten doğruluyor.
+describe('failedMutationsLog', () => {
+  const mutation = (overrides: Partial<OfflineMutation> = {}): OfflineMutation => ({
+    id: 'm-1',
+    collectionName: 'tasks',
+    docId: 'task-1',
+    action: 'update',
+    timestamp: Date.now(),
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('başlangıçta boştur', () => {
+    expect(failedMutationsLog.getLog()).toEqual([]);
+  });
+
+  it('record() bir girdi ekler ve failedAt/reason/mutation alanlarını korur', () => {
+    failedMutationsLog.record(mutation({ id: 'm-1' }), 'permission-denied');
+    const log = failedMutationsLog.getLog();
+    expect(log).toHaveLength(1);
+    expect(log[0]!.reason).toBe('permission-denied');
+    expect(log[0]!.mutation.id).toBe('m-1');
+    expect(typeof log[0]!.failedAt).toBe('number');
+  });
+
+  it('birden fazla record() çağrısı eklenme sırasını korur (en yeni sonda)', () => {
+    failedMutationsLog.record(mutation({ id: 'm-1' }), 'permission-denied');
+    failedMutationsLog.record(mutation({ id: 'm-2' }), 'invalid-argument');
+    const log = failedMutationsLog.getLog();
+    expect(log.map(f => f.mutation.id)).toEqual(['m-1', 'm-2']);
+  });
+
+  it('dismiss(id) yalnızca belirtilen girdiyi kaldırır', () => {
+    failedMutationsLog.record(mutation({ id: 'm-1' }), 'permission-denied');
+    failedMutationsLog.record(mutation({ id: 'm-2' }), 'invalid-argument');
+    const [first] = failedMutationsLog.getLog();
+    failedMutationsLog.dismiss(first!.id);
+    const remaining = failedMutationsLog.getLog();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]!.mutation.id).toBe('m-2');
+  });
+
+  it('clear() tüm günlüğü boşaltır', () => {
+    failedMutationsLog.record(mutation({ id: 'm-1' }), 'permission-denied');
+    failedMutationsLog.record(mutation({ id: 'm-2' }), 'invalid-argument');
+    failedMutationsLog.clear();
+    expect(failedMutationsLog.getLog()).toEqual([]);
+  });
+
+  it('günlük 30 girdiyi aştığında en eskiler düşürülür (sınırsız büyümeyi önler)', () => {
+    for (let i = 0; i < 35; i++) {
+      failedMutationsLog.record(mutation({ id: `m-${i}` }), 'permission-denied');
+    }
+    const log = failedMutationsLog.getLog();
+    expect(log).toHaveLength(30);
+    // İlk 5 (m-0..m-4) düşürülmüş olmalı, en yeni (m-34) hâlâ mevcut.
+    expect(log.some(f => f.mutation.id === 'm-0')).toBe(false);
+    expect(log[log.length - 1]!.mutation.id).toBe('m-34');
   });
 });

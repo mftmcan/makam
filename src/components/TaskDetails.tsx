@@ -32,7 +32,8 @@ export const TaskDetails = ({
   onAddBlocker, onResolveBlocker,
   onAddSubTask, onAddComment, onViewTask, onEdit, onDelete,
   onClearCoordinator, onShowCertificate, onShowWarning,
-  onUpdateTask, onDelegateTask
+  onUpdateTask, onDelegateTask,
+  activeTab: controlledActiveTab, onActiveTabChange,
 }: {
   task: Task;
   tasks: Task[];
@@ -51,8 +52,16 @@ export const TaskDetails = ({
   onShowWarning?: (task: Task) => void;
   onUpdateTask?: (data: Partial<Task>) => void;
   onDelegateTask?: (newAssigneeId: string) => void;
+  /** Hangi alt-sekmenin açık olduğu — verilmezse bileşen kendi iç state'ini
+   *  kullanır (bkz. Settings.tsx'teki AYNI opsiyonel-kontrollü desen). URL'e
+   *  taşınması AuthenticatedApp'in sorumluluğudur (bkz. CLAUDE.md: TaskDetails
+   *  router'dan bilinçli olarak habersizdir). */
+  activeTab?: TaskDetailsTabId;
+  onActiveTabChange?: (tab: TaskDetailsTabId) => void;
 }) => {
-  const [activeTab, setActiveTab] = useState<TaskDetailsTabId>('info');
+  const [internalActiveTab, setInternalActiveTab] = useState<TaskDetailsTabId>('info');
+  const activeTab = controlledActiveTab ?? internalActiveTab;
+  const setActiveTab = onActiveTabChange ?? setInternalActiveTab;
   const [newComment, setNewComment] = useState('');
   const [blockerReason, setBlockerReason] = useState('');
   const [blockerSeverity, setBlockerSeverity] = useState<TaskPriority>('Medium');

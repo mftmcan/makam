@@ -32,7 +32,7 @@ export const SettingsCard = ({ title, description, icon: Icon, accentColor = 'sl
       transition={{ type: 'spring', stiffness: 260, damping: 28, delay: index * 0.06 }}
       className={cn(
         'flex flex-col gap-3 p-4 bg-makam-glass backdrop-blur-xl border rounded-2xl',
-        'shadow-[0_1px_8px_rgba(22,21,19,0.02)] hover:shadow-[0_6px_24px_rgba(22,21,19,0.05)]',
+        'shadow-card hover:shadow-card-hover',
         'transition-all duration-300 hover:bg-surface-elevated',
         colors.border,
         fullWidth && 'col-span-full'

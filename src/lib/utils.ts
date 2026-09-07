@@ -11,12 +11,15 @@ import type { User } from '../types';
  * sonrası bulunan gerçek regresyon: TaskDetails'teki "SÜRECİ BAŞLAT" butonu
  * altın zemin üzerinde mirasla gelen düşük kontrastlı bir renge düşüyordu).
  * Bu dört ismi açıkça `font-size` grubuna eklemek, boyut/renk çakışma
- * tespitinin doğru grupta kalmasını sağlar.
+ * tespitinin doğru grupta kalmasını sağlar. Aynı önlem `shadow-card`/
+ * `shadow-card-hover` (bkz. tasarım denetimi 3.5) için de baştan uygulanır —
+ * kayıt edilmezse aynı sessiz-eleme hatası gölge sınıflarında da tekrarlanabilirdi.
  */
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
       'font-size': ['text-micro', 'text-caption', 'text-body-sm', 'text-body'],
+      shadow: ['shadow-card', 'shadow-card-hover'],
     },
   },
 });

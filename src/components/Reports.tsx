@@ -77,7 +77,7 @@ const KpiCard = ({ label, value, icon: Icon, color, index = 0 }: KpiCardProps) =
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 260, damping: 28, delay: index * 0.06 }}
-      className="flex items-center gap-3 p-3.5 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl shadow-[0_1px_8px_rgba(22,21,19,0.02)] hover:shadow-md hover:bg-surface-elevated transition-all duration-300 group"
+      className="flex items-center gap-3 p-3.5 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl shadow-card hover:shadow-card-hover hover:bg-surface-elevated transition-all duration-300 group"
     >
       <div className={cn('w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform', palette.bg)}>
         <Icon className={cn('w-4 h-4 stroke-[1.5]', palette.icon)} />

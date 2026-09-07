@@ -41,7 +41,7 @@ export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index 
       className={cn(
         'group w-full text-left flex items-center gap-2.5 sm:gap-3 p-3 sm:p-3.5 min-h-[74px]',
         'bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl',
-        'shadow-[0_1px_8px_rgba(22,21,19,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]',
+        'shadow-card hover:shadow-card-hover',
         'transition-all duration-300 hover:bg-surface-elevated hover:border-surface-border',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base',
         onClick && 'cursor-pointer'

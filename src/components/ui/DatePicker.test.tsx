@@ -26,13 +26,26 @@ describe('DatePicker', () => {
     expect(onChange).toHaveBeenCalledWith('2026-08-15');
   });
 
-  it('seçili gün butonu aria-pressed=true taşır', () => {
+  it('seçili gün hücresi aria-selected=true taşır', () => {
     render(<DatePicker value="2026-08-24" onChange={vi.fn()} ariaLabel="Test tarihi" />);
     fireEvent.click(getTrigger());
     const dialog = screen.getByRole('dialog', { name: 'Test tarihi' });
 
     const selectedDay = within(dialog).getByText('24');
-    expect(selectedDay.closest('button')).toHaveAttribute('aria-pressed', 'true');
+    expect(selectedDay.closest('[role="gridcell"]')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('takvim WAI-ARIA grid deseniyle (grid > row > columnheader/gridcell) yapılandırılmıştır', () => {
+    render(<DatePicker value="2026-08-24" onChange={vi.fn()} ariaLabel="Test tarihi" />);
+    fireEvent.click(getTrigger());
+    const dialog = screen.getByRole('dialog', { name: 'Test tarihi' });
+
+    const grid = within(dialog).getByRole('grid');
+    expect(within(grid).getAllByRole('columnheader')).toHaveLength(7);
+    // En az 5 hafta satırı (haftasonu başlığı satırı hariç) — bir ay ızgarası
+    // her zaman 5 veya 6 hafta satırı içerir.
+    expect(within(grid).getAllByRole('row').length).toBeGreaterThanOrEqual(6);
+    expect(within(grid).getAllByRole('gridcell').length).toBeGreaterThanOrEqual(35);
   });
 
   it('dışarı tıklanınca takvim kapanır', () => {

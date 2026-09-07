@@ -134,6 +134,9 @@ export default function App() {
     queueLength: offlineQueueLength,
     pendingMutations: offlineMutations,
     syncNow,
+    failedMutations,
+    dismissFailedMutation,
+    clearFailedMutations,
   } = useOfflineQueue();
 
   // ─── Çakışma Tespiti ─────────────────────────────────────────────────────
@@ -295,6 +298,9 @@ export default function App() {
           queueLength={offlineQueueLength}
           pendingMutations={offlineMutations}
           onSyncNow={() => { void syncNow(); }}
+          failedMutations={failedMutations}
+          onDismissFailed={dismissFailedMutation}
+          onClearFailed={clearFailedMutations}
         />
 
         <ConflictModal

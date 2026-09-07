@@ -30,9 +30,9 @@ describe('Reports — tarih aralığı filtresi (özel takvim)', () => {
     fireEvent.click(getDateFromButton());
     const dialog = screen.getByRole('dialog', { name: 'Rapor başlangıç tarihi' });
 
-    // Ayın 1'i her zaman ızgarada bulunur (önceki/aynı ay içinde) — tıklanabilir gün butonlarından ilkini seç.
-    const dayButtons = within(dialog).getAllByRole('button').filter(b => /^\d+$/.test(b.textContent ?? ''));
-    fireEvent.click(dayButtons[0]!);
+    // Ayın 1'i her zaman ızgarada bulunur (önceki/aynı ay içinde) — tıklanabilir gün hücrelerinden ilkini seç.
+    const dayCells = within(dialog).getAllByRole('gridcell').filter(b => /^\d+$/.test(b.textContent ?? ''));
+    fireEvent.click(dayCells[0]!);
 
     // Kapanış AnimatePresence exit animasyonu ile gecikmeli olabilir — tetikleyici
     // butonun aria-expanded durumu, animasyon zamanlamasından bağımsız otorite kaynağıdır.

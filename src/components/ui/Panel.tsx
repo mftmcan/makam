@@ -15,7 +15,7 @@ import { cn } from '../../lib/utils';
  * `motion.div`'e onun kendi animasyon prop'larını bozmadan uygulanabilsin
  * diye `cn(PANEL_CLASSNAME, ...)` olarak kullanılır.
  */
-export const PANEL_CLASSNAME = 'bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl p-4 shadow-[0_1px_8px_rgba(22,21,19,0.02)]';
+export const PANEL_CLASSNAME = 'bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl p-4 shadow-card';
 
 interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;

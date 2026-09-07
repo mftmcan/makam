@@ -1,11 +1,19 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+export type TaskBoardSortField = 'none' | 'status' | 'title' | 'assignee' | 'priority' | 'deadline';
+export type TaskBoardSortDir = 'asc' | 'desc';
+
 export interface TaskBoardFilters {
   search: string;
   priority: string;
   status: string;
   assignee: string;
+  /** Sütun başlığına tıklayarak sıralama (bkz. tasarım denetimi 3.4) —
+   *  diğer filtre alanlarıyla AYNI ?q=/?priority= URL mekanizmasını
+   *  paylaşır, ayrı bir state kaynağı İCAT EDİLMEDİ. */
+  sortBy: TaskBoardSortField;
+  sortDir: TaskBoardSortDir;
 }
 
 const DEFAULT_FILTERS: TaskBoardFilters = {
@@ -13,6 +21,8 @@ const DEFAULT_FILTERS: TaskBoardFilters = {
   priority: 'All',
   status: 'All',
   assignee: 'All',
+  sortBy: 'none',
+  sortDir: 'asc',
 };
 
 // URL parametre adları alan adlarıyla birebir aynı DEĞİL: `search` tarayıcı
@@ -23,6 +33,8 @@ const PARAM_KEYS: Record<keyof TaskBoardFilters, string> = {
   priority: 'priority',
   status: 'status',
   assignee: 'assignee',
+  sortBy: 'sort',
+  sortDir: 'dir',
 };
 
 /**
@@ -43,6 +55,8 @@ export function useTaskBoardFilters(): [TaskBoardFilters, (partial: Partial<Task
     priority: searchParams.get(PARAM_KEYS.priority) ?? DEFAULT_FILTERS.priority,
     status: searchParams.get(PARAM_KEYS.status) ?? DEFAULT_FILTERS.status,
     assignee: searchParams.get(PARAM_KEYS.assignee) ?? DEFAULT_FILTERS.assignee,
+    sortBy: (searchParams.get(PARAM_KEYS.sortBy) as TaskBoardSortField | null) ?? DEFAULT_FILTERS.sortBy,
+    sortDir: (searchParams.get(PARAM_KEYS.sortDir) as TaskBoardSortDir | null) ?? DEFAULT_FILTERS.sortDir,
   }), [searchParams]);
 
   const setFilters = useCallback((partial: Partial<TaskBoardFilters>) => {

@@ -165,6 +165,63 @@ export function applyOfflineMutations<T extends { id: string }>(
 }
 
 const QUEUE_KEY = 'makam_offline_mutations';
+const FAILED_LOG_KEY = 'makam_offline_failed_mutations';
+// Sınırsız büyümeyi önler — bu bir denetim izi değil, kullanıcının "az önce ne
+// reddedildi"yi görebileceği kısa vadeli bir bildirim listesidir (kalıcı/
+// resmî kayıt zaten audit_logs'tadır, bkz. auditLogType).
+const FAILED_LOG_MAX = 30;
+
+/** Bir mutasyon sunucu tarafından KALICI olarak reddedildiğinde (bkz.
+ *  isNonRetryableError) kuyruktan düşürülür ve burada, tek seferlik bir
+ *  toast'un aksine kullanıcı OfflineBanner'ı ne zaman açarsa açsın görebileceği
+ *  şekilde localStorage'a yazılır (bkz. tasarım denetimi 3.3: eskiden yalnızca
+ *  geçici bir toast vardı, kullanıcı toast'ı kaçırırsa NEYİN uygulanmadığını
+ *  bir daha asla göremiyordu). */
+export interface FailedMutation {
+  id: string;
+  mutation: OfflineMutation;
+  /** FirebaseError ise .code, değilse ham hata mesajı — OfflineBanner bunu
+   *  kullanıcıya göstermeden önce insan-okunur bir karşılığa çevirir. */
+  reason: string;
+  failedAt: number;
+}
+
+export const failedMutationsLog = {
+  getLog(): FailedMutation[] {
+    try {
+      const data = localStorage.getItem(FAILED_LOG_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      logger.error('Failed to parse failed-mutations log:', e);
+      return [];
+    }
+  },
+
+  saveLog(log: FailedMutation[]) {
+    try {
+      localStorage.setItem(FAILED_LOG_KEY, JSON.stringify(log));
+      window.dispatchEvent(new CustomEvent('makam_failed_log_changed'));
+    } catch (e) {
+      logger.error('Failed to save failed-mutations log:', e);
+    }
+  },
+
+  record(mutation: OfflineMutation, reason: string) {
+    const log = this.getLog();
+    log.push({ id: crypto.randomUUID(), mutation, reason, failedAt: Date.now() });
+    // En eskiyi düşür — FIFO, en yeni reddedilenler her zaman görünür kalır.
+    while (log.length > FAILED_LOG_MAX) log.shift();
+    this.saveLog(log);
+  },
+
+  dismiss(id: string) {
+    this.saveLog(this.getLog().filter(f => f.id !== id));
+  },
+
+  clear() {
+    this.saveLog([]);
+  },
+};
 
 let isSyncing = false;
 
@@ -596,10 +653,12 @@ export const offlineQueue = {
         } catch (err) {
           const isNonRetryable = isNonRetryableError(err);
           if (isNonRetryable) {
-            logger.error(`[Offline Queue] Mutation ${mutation.id} kalıcı olarak reddedildi (${(err as FirebaseError).code}), kuyruktan düşürülüyor:`, err);
+            const reason = err instanceof FirebaseError ? err.code : (err instanceof Error ? err.message : String(err));
+            logger.error(`[Offline Queue] Mutation ${mutation.id} kalıcı olarak reddedildi (${reason}), kuyruktan düşürülüyor:`, err);
+            failedMutationsLog.record(mutation, reason);
             useUIStore.getState().addToast({
               title: '⚠️ Senkronizasyon Başarısız',
-              body: 'Çevrimdışıyken yapılan bir değişiklik sunucu tarafından reddedildi ve uygulanamadı.',
+              body: 'Çevrimdışıyken yapılan bir değişiklik sunucu tarafından reddedildi ve uygulanamadı. Ayrıntı için üstteki çevrimdışı çubuğuna bakın.',
               type: 'danger'
             });
           } else {

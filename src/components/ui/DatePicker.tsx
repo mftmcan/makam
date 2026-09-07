@@ -9,8 +9,27 @@ import { tr } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
 import { pushModalStack, popModalStack, isTopOfModalStack } from './Modal';
 
-const WEEKDAY_LABELS = ['Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pz'];
+const WEEKDAY_LABELS: { short: string; full: string }[] = [
+  { short: 'Pt', full: 'Pazartesi' },
+  { short: 'Sa', full: 'Salı' },
+  { short: 'Ça', full: 'Çarşamba' },
+  { short: 'Pe', full: 'Perşembe' },
+  { short: 'Cu', full: 'Cuma' },
+  { short: 'Ct', full: 'Cumartesi' },
+  { short: 'Pz', full: 'Pazar' },
+];
 const VALUE_FORMAT = 'yyyy-MM-dd';
+
+/** [[gün, gün, ...×7], ...] — WAI-ARIA "grid" deseninin her satırı (role="row")
+ *  tam olarak bir haftaya karşılık gelmeli (bkz. tasarım denetimi 2.6: bu
+ *  restructuring önceden role="gridcell"nin erişilebilir rolü "button"dan
+ *  değiştirip mevcut getByRole('button', ...) test sorgularını kırdığı için
+ *  tamamen geri alınmıştı — bu kez testler de yeni role'e göre güncellendi). */
+function chunkIntoWeeks(days: Date[]): Date[][] {
+  const weeks: Date[][] = [];
+  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+  return weeks;
+}
 
 const parseValue = (value: string): Date | null => {
   const d = parse(value, VALUE_FORMAT, new Date());
@@ -147,6 +166,7 @@ export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, tr
   for (let cursor = gridStart; cursor <= gridEnd; cursor = addDays(cursor, 1)) {
     days.push(cursor);
   }
+  const weeks = chunkIntoWeeks(days);
 
   return (
     <div className={cn('relative', className)} ref={containerRef}>
@@ -205,52 +225,70 @@ export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, tr
               </button>
             </div>
 
-            <div className="grid grid-cols-7 gap-0.5 mb-1">
-              {WEEKDAY_LABELS.map(d => (
-                <span key={d} className="text-micro text-text-tertiary uppercase tracking-widest text-center py-1">
-                  {d}
-                </span>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-0.5">
-              {days.map(day => {
-                const isSelected = !!selected && isSameDay(day, selected);
-                const inMonth = isSameMonth(day, viewMonth);
-                const dayKey = format(day, VALUE_FORMAT);
-                const isFocused = !!focusedDay && isSameDay(day, focusedDay);
-                const isDisabled = isDayDisabled(day);
-                return (
-                  <button
-                    key={dayKey}
-                    ref={el => {
-                      if (el) dayRefs.current.set(dayKey, el);
-                      else dayRefs.current.delete(dayKey);
-                    }}
-                    type="button"
-                    onClick={() => handleSelect(day)}
-                    onKeyDown={handleDayKeyDown}
-                    onFocus={() => setFocusedDay(day)}
-                    tabIndex={isFocused ? 0 : -1}
-                    aria-current={isToday(day) ? 'date' : undefined}
-                    aria-pressed={isSelected}
-                    aria-disabled={isDisabled ? true : undefined}
-                    className={cn(
-                      'w-7 h-7 flex items-center justify-center rounded-lg text-micro font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue',
-                      isDisabled
-                        ? 'text-text-tertiary/30 cursor-not-allowed hover:bg-transparent'
-                        : isSelected
-                          ? 'bg-executive-blue text-[color:var(--executive-blue-text)] shadow-sm'
-                          : inMonth
-                            ? 'text-text-heading hover:bg-surface-glass'
-                            : 'text-text-tertiary/40 hover:bg-surface-glass',
-                      !isSelected && isToday(day) && 'ring-1 ring-executive-blue/40'
-                    )}
+            {/* WAI-ARIA "grid" deseni (APG date-picker dialog örneği): grid >
+                row > (columnheader | gridcell). gridcell'in kendisi doğrudan
+                odaklanabilir/tıklanabilir <button> — ayrı bir sarmalayıcıya
+                role="gridcell" verip İÇİNE gerçek bir <button> koymak
+                "nested-interactive" ihlaline yol açardı (bkz. tasarım
+                denetimi: TeamList kartlarında aynı hatanın bulunup düzeltildiği
+                AYNI ilke). aria-pressed yerine aria-selected: gridcell rolü
+                pressed state'i değil seçili hücreyi ifade eder. */}
+            <div role="grid" aria-label={format(viewMonth, 'LLLL yyyy', { locale: tr })} className="flex flex-col gap-0.5">
+              <div role="row" className="grid grid-cols-7 gap-0.5 mb-0.5">
+                {WEEKDAY_LABELS.map(d => (
+                  <span
+                    key={d.short}
+                    role="columnheader"
+                    aria-label={d.full}
+                    className="text-micro text-text-tertiary uppercase tracking-widest text-center py-1"
                   >
-                    {format(day, 'd')}
-                  </button>
-                );
-              })}
+                    {d.short}
+                  </span>
+                ))}
+              </div>
+
+              {weeks.map((week, weekIdx) => (
+                <div key={weekIdx} role="row" className="grid grid-cols-7 gap-0.5">
+                  {week.map(day => {
+                    const isSelected = !!selected && isSameDay(day, selected);
+                    const inMonth = isSameMonth(day, viewMonth);
+                    const dayKey = format(day, VALUE_FORMAT);
+                    const isFocused = !!focusedDay && isSameDay(day, focusedDay);
+                    const isDisabled = isDayDisabled(day);
+                    return (
+                      <button
+                        key={dayKey}
+                        ref={el => {
+                          if (el) dayRefs.current.set(dayKey, el);
+                          else dayRefs.current.delete(dayKey);
+                        }}
+                        type="button"
+                        role="gridcell"
+                        onClick={() => handleSelect(day)}
+                        onKeyDown={handleDayKeyDown}
+                        onFocus={() => setFocusedDay(day)}
+                        tabIndex={isFocused ? 0 : -1}
+                        aria-current={isToday(day) ? 'date' : undefined}
+                        aria-selected={isSelected}
+                        aria-disabled={isDisabled ? true : undefined}
+                        className={cn(
+                          'w-7 h-7 flex items-center justify-center rounded-lg text-micro font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue',
+                          isDisabled
+                            ? 'text-text-tertiary/30 cursor-not-allowed hover:bg-transparent'
+                            : isSelected
+                              ? 'bg-executive-blue text-[color:var(--executive-blue-text)] shadow-sm'
+                              : inMonth
+                                ? 'text-text-heading hover:bg-surface-glass'
+                                : 'text-text-tertiary/40 hover:bg-surface-glass',
+                          !isSelected && isToday(day) && 'ring-1 ring-executive-blue/40'
+                        )}
+                      >
+                        {format(day, 'd')}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           </motion.div>
         )}

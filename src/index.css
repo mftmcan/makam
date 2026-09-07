@@ -260,6 +260,21 @@
   --text-body-sm: 0.75rem;   /* 12px — eskiden 12/12.5px */
   --text-body: 0.8125rem;    /* 13px — body'nin kendi font-size'ıyla aynı */
 
+  /* ─── "Cam kart" gölge ölçeği ────────────────────────────────────────────
+     Tipografideki AYNI sürüklenme (bkz. yukarısı) gölgede de vardı: aynı
+     "hafif cam kart" dinlenme gölgesi (0 1px 8px rgba(22,21,19,0.02)) 7 ayrı
+     dosyada arbitrary değer olarak tekrarlanıyordu ve HOVER karşılığı üç
+     farklı değere (0_8px_30px_rgba(0,0,0,.06) / 0_6px_24px_rgba(22,21,19,.05)
+     / Tailwind'in kendi shadow-md'si) sessizce sürüklenmişti — aynı kart
+     deseni ekrandan ekrana farklı "kalkma" hissi veriyordu (bkz. tasarım
+     denetimi 3.5). Yalnızca bu TEKRARLANAN dinlenme/hover çifti token'landı;
+     durum noktalarındaki renkli "glow" gölgeleri (shadow-[0_0_Npx_var(--color-*)]),
+     logo drop-shadow'ları ve Badge/PremiumIcon'un iç parlaklık (inset)
+     gölgeleri BİLİNÇLİ OLARAK dışarıda bırakıldı — her biri kendi rengine/
+     bağlamına özgü, kartlarla aynı "elevation" ailesinden değil. */
+  --shadow-card: 0 1px 8px rgba(22, 21, 19, 0.02);
+  --shadow-card-hover: 0 8px 30px rgba(0, 0, 0, 0.06);
+
   /* Global Theme Overrides - Mapping full spectrum to Executive Palette */
   --color-blue-50: #F8FAFC;
   --color-blue-100: #F1F5F9;
