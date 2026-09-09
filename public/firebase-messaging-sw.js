@@ -32,8 +32,12 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
+  // Gerçek route /tasks/:taskId'dir (bkz. AppRoutes.tsx tabPath + alt-route
+  // tanımı) — burada eskiden yanlışlıkla /gorevler/${taskId} kullanılıyordu,
+  // bu path eşleşmediği için bildirime tıklayınca kullanıcı hep ana sayfaya
+  // (catch-all) düşüyordu, görev detayı hiç açılmıyordu.
   const taskId = event.notification.data?.taskId;
-  const targetUrl = taskId ? `/gorevler/${taskId}` : '/';
+  const targetUrl = taskId ? `/tasks/${taskId}` : '/';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {

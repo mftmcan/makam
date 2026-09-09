@@ -5,7 +5,18 @@
  * ErrorBoundary.componentDidCatch ve kritik async handler'lardan çağrılır.
  *
  * Ücretsiz plan (Spark) uyumlu — Cloud Functions KULLANMAZ.
- * Firestore'a doğrudan yazar, TTL tabanlı temizlik için Security Rules'a güvenir.
+ * Firestore'a doğrudan yazar.
+ *
+ * ⚠️ TEMİZLİK: Bu koleksiyonun ŞU AN otomatik temizliği YOKTUR. Eski yorum
+ * "TTL tabanlı temizlik için Security Rules'a güvenir" diyordu — Security Rules
+ * TTL temizliği YAPMAZ, yalnızca erişimi kısıtlar (bkz. backend denetimi).
+ * Gerçek temizlik `functions/src/cleanup.ts`'te (30 günden eski kayıtları siler)
+ * ama proje Spark planında olduğundan o fonksiyon deploy EDİLMEMİŞTİR — yani
+ * `error_logs` şu anda sınırsız büyüyor. Kalıcı çözüm seçenekleri: Firestore
+ * TTL policy (Timestamp tipinde bir `expiresAt` alanı gerektirir; bu dosya
+ * `Date.now()` yani number yazıyor) veya `taskService.cleanupDatabase()`'in
+ * (Ayarlar > Dizge Optimizasyonu) bu koleksiyonu da kapsayacak şekilde
+ * genişletilmesi.
  */
 import { db, collection, addDoc } from '../firebase';
 import { auth } from '../firebase';

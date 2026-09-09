@@ -103,6 +103,52 @@ export const notificationService = {
     }
   },
 
+  /**
+   * Göreve bağlı bildirimi, görevin BİR TARAFINA (sorumlu/oluşturan) yazar.
+   *
+   * SPARK PLANI TELAFİSİ: bildirimleri yazacak olan `functions/taskTriggers.ts`
+   * Blaze planı gerektirdiğinden hiç deploy edilmedi ve client'ta da hiçbir
+   * yazma yolu yoktu — `notifications` koleksiyonuna pratikte HİÇ yazılmıyor,
+   * bildirim zili hep boş kalıyordu (bkz. backend denetimi). Bu fonksiyon o
+   * boşluğu client tarafında kapatır; `firestore.rules`'taki eşdeğer dar dal
+   * (taskId + yazanın erişimi + hedefin görevin tarafı olması) sunucu
+   * tarafında AYNI kısıtları ayrıca uygular.
+   *
+   * ASLA THROW ETMEZ / asıl işlemi bozmaz: bildirim, görev oluşturma veya
+   * durum geçişinin yan ürünüdür — yazımı başarısız olursa (ör. hedef henüz
+   * ilk girişini yapmamış bir davetli olduğu için `assigneeId` UID değil
+   * e-posta taşıyor ve kural reddediyor) sessizce geçilir.
+   * `taskTriggers.ts`'in "bildirim batch'i kendi try/catch'inde" ilkesiyle
+   * AYNI gerekçe.
+   *
+   * `targetUserId === actorUserId` ise hiçbir şey yazmaz: kendi yaptığı
+   * işlemin bildirimini almak gürültüdür.
+   */
+  async notifyTaskParty(params: {
+    targetUserId: string | undefined;
+    actorUserId: string;
+    taskId: string;
+    title: string;
+    message: string;
+    type: AppNotification['type'];
+  }): Promise<void> {
+    const { targetUserId, actorUserId, taskId, title, message, type } = params;
+    if (!targetUserId || targetUserId === actorUserId) return;
+    try {
+      await addDoc(collection(db, 'notifications'), {
+        userId: targetUserId,
+        taskId,
+        title: title.slice(0, 100),
+        message: message.slice(0, 600),
+        type,
+        timestamp: Date.now(),
+        isRead: false,
+      });
+    } catch {
+      // Sessizce geç — bkz. yukarıdaki gerekçe.
+    }
+  },
+
   async getUnreadNotifications(userId: string) {
     const q = query(
       collection(db, 'notifications'),
