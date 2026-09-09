@@ -393,6 +393,33 @@ service cloud.firestore {
              (!('userId' in data) || data.userId == request.auth.uid);
     }
 
+    // system/stats sayaçları — alan kilidi (hasOnly) HANGİ alanların
+    // yazılabileceğini kısıtlar ama DEĞERİ kısıtlamaz: sayaç alanına sayı
+    // olmayan bir değer yazılabilmesi Dashboard'un computeStats hesabını
+    // NaN'a düşürerek istatistikleri bozardı (emulator ile doğrulandı, bkz.
+    // tests/rules "sayaç alanına sayı olmayan değer yazamaz").
+    //
+    // BİLİNÇLİ OLARAK yalnızca tip kontrolü var, `>= 0` YOK: sayaçlar
+    // client'ta increment(-1) ile azaltılıyor (görev silme/durum geçişi) ve
+    // sayaç herhangi bir sebeple gerçek koleksiyondan sapmışsa (dual-write
+    // deseni, bkz. CLAUDE.md) meşru bir azaltma geçici olarak negatife
+    // düşebilir. `>= 0` eklemek bu durumda TÜM transaction'ı reddedip görev
+    // silmeyi/durum değiştirmeyi tamamen kırardı — düşük ciddiyetli bir
+    // bütünlük sorununu yüksek ciddiyetli bir işlevsellik kırılmasına
+    // çevirmek olurdu. Sapmanın gerçek çözümü zaten reconciliation'dır.
+    function isValidStatsCounters(data) {
+      return (!('totalTasks' in data) || data.totalTasks is number) &&
+             (!('completedTaskCount' in data) || data.completedTaskCount is number) &&
+             (!('status_ASSIGNED' in data) || data.status_ASSIGNED is number) &&
+             (!('status_PENDING_DELEGATION' in data) || data.status_PENDING_DELEGATION is number) &&
+             (!('status_IN_PROGRESS' in data) || data.status_IN_PROGRESS is number) &&
+             (!('status_BLOCKED' in data) || data.status_BLOCKED is number) &&
+             (!('status_AWAITING_APPROVAL' in data) || data.status_AWAITING_APPROVAL is number) &&
+             (!('status_COMPLETED' in data) || data.status_COMPLETED is number) &&
+             (!('status_CANCELLED' in data) || data.status_CANCELLED is number) &&
+             (!('status_CRISIS' in data) || data.status_CRISIS is number);
+    }
+
     function isValidSystemLog(data) {
       // functions/src/scheduledAudit.ts:_logAudit — bu koleksiyona TEK yazan
       // yer (Admin SDK, rules'ı bypass eder) — allowedFields gerçekte yazılan
@@ -437,6 +464,23 @@ service cloud.firestore {
           // kullanıldığından, buradaki fallback'ler kaldırılmasaydı P0-1 sızıntısı
           // tasks kapatılsa bile engeller/denetim izi üzerinden sürerdi.
           (task.get('departmentId', '') != '' && task.get('departmentId', '') == getUserDepartment())
+        );
+    }
+
+    // Göreve bağlı bir bildirimin HEDEFİ, o görevin taraflarından biri mi?
+    // (bkz. notifications create kuralı) — `taskGrantsAccess` "yazanın erişimi
+    // var mı" sorusunu, bu ise "hedef doğru kişi mi" sorusunu yanıtlar; ikisi
+    // birlikte bildirimi hem kaynak hem hedef tarafından sınırlar. Aynı
+    // dokümana yapılan tekrarlı get() çağrıları tek evaluation içinde
+    // önbelleğe alınır, bu yüzden iki yardımcının ayrı olması ek maliyet
+    // getirmez (bkz. taskGrantsAccess yorumu).
+    function notificationTargetIsTaskParty(taskId, targetUserId) {
+      let task = get(/databases/$(database)/documents/tasks/$(taskId)).data;
+      return exists(/databases/$(database)/documents/tasks/$(taskId)) &&
+        (
+          task.assigneeId == targetUserId ||
+          task.creatorId == targetUserId ||
+          task.get('coordinatorId', '') == targetUserId
         );
     }
 
@@ -692,6 +736,20 @@ service cloud.firestore {
           // (aksi halde herkes kendini 'Admin' yaparak yetki yükseltebilirdi).
           isOwner(userId) &&
           request.auth.token.email_verified == true &&
+          // Davet dokümanı, isteği yapan kullanıcının KENDİ e-postasına ait
+          // olmalı. Bu kontrol olmadan aşağıdaki rol/departman eşleştirmesi
+          // BAŞKASININ daveti üzerinden yapılabiliyordu: sistemde ilk girişini
+          // henüz yapmamış daha yüksek rollü (ör. Admin) bir davet dokümanı
+          // varsa, herhangi bir davetli kendi uid'ine o e-postayı yazarak o
+          // rolü devralabiliyordu — `users` read kuralı personel dizinini
+          // herkese açtığından hangi e-postanın hangi rolü taşıdığı da
+          // görünürdü (bkz. tests/rules "BAŞKASININ ... davet dokümanı"
+          // testi; açık emulator ile doğrulanarak kapatıldı).
+          // lower(): davet dokümanı ID'si istemcide normalize edilerek
+          // (toLowerCase().trim(), bkz. App.tsx/TeamList) yazılır, token'daki
+          // e-posta ise sağlayıcıdan farklı bir yazımla gelebilir.
+          'email' in request.auth.token &&
+          incoming().email.lower() == request.auth.token.email.lower() &&
           exists(/databases/$(database)/documents/users/$(incoming().email)) &&
           get(/databases/$(database)/documents/users/$(incoming().email)).data.role == incoming().role &&
           // departmentId de davet dokümanıyla birebir eşleşmeli — aksi halde
@@ -870,7 +928,26 @@ service cloud.firestore {
         // Sadece Admin ve sistem (Cloud Functions) bildirim oluşturabilir
         isAdmin() ||
         // Kendi kendine bildirim oluşturabilir (test için)
-        incoming().userId == request.auth.uid
+        incoming().userId == request.auth.uid ||
+        // GÖREVE BAĞLI bildirim (Spark planı telafisi): bildirimleri yazacak
+        // olan `taskTriggers` Cloud Function'ı Blaze gerektirdiğinden hiç
+        // deploy edilmedi ve client'ta da hiçbir yazma yolu yoktu — koleksiyona
+        // pratikte HİÇ yazılmıyordu (bkz. backend denetimi: bildirim zili hep
+        // boş, FCM push hiç gitmiyordu). Bu dal, o boşluğu DAR bir biçimde
+        // kapatır; "herkes herkese bildirim yazabilir" DEĞİLDİR:
+        //   1. Bildirim gerçek bir göreve bağlı olmalı (taskId zorunlu),
+        //   2. YAZAN kişinin o göreve erişimi olmalı (taskGrantsAccess —
+        //      tasks read kuralıyla AYNI departman/sorumluluk testi),
+        //   3. HEDEF kişi o görevin taraflarından biri olmalı (sorumlu/
+        //      oluşturan/koordinatör).
+        // Yani bir kullanıcı yalnızca zaten görebildiği bir görevin kendi
+        // taraflarına bildirim yazabilir — rastgele bir kullanıcıya spam
+        // gönderemez.
+        (
+          'taskId' in incoming() &&
+          taskGrantsAccess(incoming().taskId) &&
+          notificationTargetIsTaskParty(incoming().taskId, incoming().userId)
+        )
       );
       allow update: if isSignedIn() && (
         isAdmin() ||
@@ -915,7 +992,8 @@ service cloud.firestore {
           'status_ASSIGNED', 'status_PENDING_DELEGATION', 'status_IN_PROGRESS',
           'status_BLOCKED', 'status_AWAITING_APPROVAL', 'status_COMPLETED',
           'status_CANCELLED', 'status_CRISIS'
-        ])
+        ]) &&
+        isValidStatsCounters(incoming())
       );
     }
 

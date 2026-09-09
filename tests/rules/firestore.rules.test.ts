@@ -186,6 +186,17 @@ async function seed() {
       departmentId: 'dept-a',
     });
 
+    // İKİNCİ, YÜKSEK ROLLÜ davet dokümanı — henüz ilk girişini yapmamış bir
+    // Admin daveti. Yetki yükseltme testinin zeminidir: BAŞKA bir davetli,
+    // kendi uid'ine bu e-postayı yazarak Admin rolünü devralabilmemeli.
+    await setDoc(doc(db, 'users', 'admin-davet@makam.test'), {
+      uid: 'admin-davet@makam.test',
+      fullName: 'Davetli Yönetici',
+      email: 'admin-davet@makam.test',
+      role: 'Admin',
+      departmentId: 'dept-a',
+    });
+
     // Departman/rol matrisi görevleri
     await setDoc(doc(db, 'tasks', 'task-a'), taskDoc());
     await setDoc(doc(db, 'tasks', 'task-b'), taskDoc({
@@ -1339,7 +1350,7 @@ describe('notifications sahiplik kuralları', () => {
     await assertFails(updateDoc(doc(staffA(), 'notifications', 'notif-a'), { title: 'Değiştirildi' }));
   });
 
-  it('başka bir kullanıcı için bildirim oluşturamaz', async () => {
+  it('başka bir kullanıcı için GÖREVE BAĞLI OLMAYAN bildirim oluşturamaz', async () => {
     await assertFails(setDoc(doc(staffA(), 'notifications', 'notif-sahte'), {
       userId: 'mgr-a', title: 'Sahte', message: 'Test', type: 'Info',
       timestamp: NOW, isRead: false,
@@ -1348,6 +1359,34 @@ describe('notifications sahiplik kuralları', () => {
 
   it('bildirim silemez (yalnızca Admin)', async () => {
     await assertFails(deleteDoc(doc(staffA(), 'notifications', 'notif-a')));
+  });
+
+  // Göreve bağlı bildirim dalı (Spark telafisi) — üç koşulun HEPSİ gerekli:
+  // taskId var, YAZANIN göreve erişimi var, HEDEF görevin tarafı.
+  describe('göreve bağlı bildirim (Spark telafi dalı)', () => {
+    it('erişebildiği görevin OLUŞTURANINA bildirim yazabilir', async () => {
+      // task-a: creator=mgr-a, assignee=staff-a → staff-a yazan, mgr-a hedef
+      await assertSucceeds(setDoc(doc(staffA(), 'notifications', 'notif-task-a'), {
+        userId: 'mgr-a', taskId: 'task-a', title: 'Durum Değişti',
+        message: 'Talimat icraya alındı', type: 'Info', timestamp: NOW, isRead: false,
+      }));
+    });
+
+    it('ERİŞEMEDİĞİ bir göreve bağlı bildirim yazamaz', async () => {
+      // task-b: dept-b/mgr-b — staff-a (dept-a) bu görevi göremez
+      await assertFails(setDoc(doc(staffA(), 'notifications', 'notif-task-b'), {
+        userId: 'mgr-b', taskId: 'task-b', title: 'Sahte',
+        message: 'Erişim yok', type: 'Info', timestamp: NOW, isRead: false,
+      }));
+    });
+
+    it('erişebildiği göreve bağlı olsa bile görevin TARAFI OLMAYAN birine yazamaz', async () => {
+      // task-a'nın tarafları mgr-a/staff-a — staff-c taraf değil (spam koruması)
+      await assertFails(setDoc(doc(staffA(), 'notifications', 'notif-spam'), {
+        userId: 'staff-c', taskId: 'task-a', title: 'Spam',
+        message: 'Alakasız kişiye', type: 'Info', timestamp: NOW, isRead: false,
+      }));
+    });
   });
 });
 
@@ -1368,6 +1407,16 @@ describe('system koleksiyonu yazma kısıtları', () => {
   it('Admin olmayan kullanıcı system/stats dokümanına sayaç dışı alan yazamaz', async () => {
     await assertFails(setDoc(doc(staffA(), 'system', 'stats'), {
       totalTasks: 6, keyfiAlan: true,
+    }));
+  });
+
+  // Alan kilidi (hasOnly) HANGİ alanların yazılabileceğini kısıtlar ama
+  // DEĞERİN ne olacağını kısıtlamaz — sayaç alanına sayı olmayan bir değer
+  // yazılabilmesi, Dashboard'un istatistik hesabını (computeStats) NaN'a
+  // düşürerek bozar. Sayısal olmayan enjeksiyon reddedilmeli.
+  it('Admin olmayan kullanıcı sayaç alanına sayı olmayan değer yazamaz', async () => {
+    await assertFails(setDoc(doc(staffA(), 'system', 'stats'), {
+      totalTasks: 'bozuk',
     }));
   });
 
@@ -1419,6 +1468,23 @@ describe('users ilk giriş taşıması (davet dokümanı)', () => {
     }).firestore();
     await assertFails(setDoc(doc(stranger, 'users', 'yabanci-uid'), {
       uid: 'yabanci-uid', fullName: 'Yabancı', email: 'yabanci@makam.test', role: 'Staff',
+    }));
+  });
+
+  // YETKİ YÜKSELTME (privilege escalation) — kuralın doğrulaması, davet
+  // dokümanını `incoming().email` üzerinden bulur ama bu e-postanın GERÇEKTEN
+  // isteği yapan kullanıcıya ait olduğunu kontrol etmezse, herhangi bir
+  // davetli, sistemde BEKLEYEN daha yüksek rollü BAŞKA bir davetin
+  // e-postasını yazarak o rolü kendi uid'ine devralabilir. Saldırı penceresi
+  // gerçek: davet dokümanı yalnızca o kişi ilk girişini yaptığında silinir
+  // (bkz. App.tsx batch.delete), o ana kadar koleksiyonda durur ve
+  // `users` read kuralı (personel dizini) herkese açık olduğundan saldırgan
+  // hangi e-postanın hangi rolü taşıdığını görebilir.
+  it('BAŞKASININ (daha yüksek rollü) davet dokümanının e-postasıyla kendi dokümanını oluşturamaz', async () => {
+    await assertFails(setDoc(doc(invited(), 'users', 'yeni-uid'), {
+      uid: 'yeni-uid', fullName: 'Yeni Personel',
+      email: 'admin-davet@makam.test', // saldırganın kendi e-postası DEĞİL
+      role: 'Admin', departmentId: 'dept-a',
     }));
   });
 });
