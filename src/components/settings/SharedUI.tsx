@@ -18,7 +18,7 @@ export interface SlaPriorityInputProps {
 
 export const SlaPriorityInput = ({ label, value, unit, onValueChange, onUnitChange, disabled }: SlaPriorityInputProps) => (
   <div className="flex flex-col gap-1">
-    <label className="text-micro font-medium text-text-tertiary uppercase tracking-[0.15em]">{label}</label>
+    <label className="text-micro font-medium text-text-tertiary uppercase tracking-label">{label}</label>
     <div className="flex gap-1.5">
       <input
         type="number"

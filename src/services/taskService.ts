@@ -5,6 +5,7 @@ import {
   query,
   getDocs,
   where,
+  limit,
   runTransaction,
   writeBatch,
   getDoc,
@@ -591,19 +592,65 @@ export const taskService = {
     return this.transitionTask(taskId, 'PENDING_DELEGATION', userId, { assigneeId: newAssigneeId, expectedVersion });
   },
 
-  async cleanupDatabase() {
+  /**
+   * Ayarlar > "Dizge Optimizasyonu" butonunun arkasındaki elle temizlik.
+   *
+   * SPARK PLANI TELAFİSİ: bu işi yapacak olan `functions/cleanup.ts` (haftalık,
+   * 30g bildirim + 90g system_logs + 30g error_logs) Blaze gerektirdiğinden hiç
+   * deploy edilmedi — koleksiyonlar sınırsız büyüyordu (bkz. backend denetimi;
+   * Spark depolama limiti 1 GiB). Bu fonksiyon, Admin'in elle tetikleyebildiği
+   * karşılığıdır.
+   *
+   * `error_logs` de kapsama alındı (eskiden yalnızca bildirimler siliniyordu).
+   * `system_logs` KAPSAM DIŞI: `firestore.rules` o koleksiyonda delete'i
+   * TÜMÜYLE kapatır (`allow create, update, delete: if false`) — yalnızca Admin
+   * SDK (deploy edilmemiş fonksiyonlar) silebilir, client'tan denemek her
+   * seferinde reddedilirdi.
+   *
+   * Koşu başına `MAX_DELETES_PER_COLLECTION` üst sınırı, `cleanup.ts`'teki
+   * MAX_BATCHES korumasıyla AYNI mühendislik yaklaşımı: sınır aşılırsa kalanlar
+   * bir sonraki tetiklemeye devreder, tek koşuda Spark yazma kotası tüketilmez.
+   * (Eski hâl sınırsızdı: `getDocs` sonucunun tamamı tek `Promise.all` ile
+   * silinmeye çalışılıyordu.)
+   *
+   * @returns Silinen doküman sayıları — çağıran (Settings/DataTab) kullanıcıya
+   *          somut bir sonuç gösterebilsin diye; eskiden sessizce dönüyordu.
+   */
+  async cleanupDatabase(): Promise<{ notifications: number; errorLogs: number }> {
+    const MAX_DELETES_PER_COLLECTION = 500;
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const result = { notifications: 0, errorLogs: 0 };
+
+    // İki koleksiyon BİLİNÇLİ olarak ayrı try/catch'te: `error_logs` yalnızca
+    // Admin'e açık olduğundan (rules) yetkisiz bir çağrıda ikinci silme
+    // reddedilse bile ilkinin sonucu korunur.
     try {
-      const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
       const q = query(
         collection(db, 'notifications'),
         where('isRead', '==', true),
-        where('timestamp', '<', thirtyDaysAgo)
+        where('timestamp', '<', thirtyDaysAgo),
+        limit(MAX_DELETES_PER_COLLECTION)
       );
       const snapshot = await getDocs(q);
-      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deletePromises);
+      await Promise.all(snapshot.docs.map(d => deleteDoc(d.ref)));
+      result.notifications = snapshot.size;
     } catch (error) {
-      console.error('Cleanup error:', error);
+      console.error('Cleanup error (notifications):', error);
     }
+
+    try {
+      const q = query(
+        collection(db, 'error_logs'),
+        where('timestamp', '<', thirtyDaysAgo),
+        limit(MAX_DELETES_PER_COLLECTION)
+      );
+      const snapshot = await getDocs(q);
+      await Promise.all(snapshot.docs.map(d => deleteDoc(d.ref)));
+      result.errorLogs = snapshot.size;
+    } catch (error) {
+      console.error('Cleanup error (error_logs):', error);
+    }
+
+    return result;
   }
 };

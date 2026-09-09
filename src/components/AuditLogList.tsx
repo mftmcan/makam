@@ -6,6 +6,9 @@ import type { AuditLogType } from '../types';
 import { Button } from './ui/Button';
 import { Avatar } from './ui/Avatar';
 import { Badge } from './ui/Badge';
+import { PageHeader } from './ui/PageHeader';
+import { PageShell } from './ui/PageShell';
+import { EmptyState } from './ui/EmptyState';
 import { AuditLogListSkeleton } from './ui/Skeleton';
 import { STATUS_LABELS, ROLE_LABELS, STATUS_BADGE_VARIANT } from '../constants';
 import { formatDateTime } from '../lib/utils';
@@ -110,27 +113,17 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
   if (loading && logsState.length === 0) return <AuditLogListSkeleton />;
 
   return (
-    <div className="flex flex-col gap-5 py-4 max-w-[1440px] mx-auto font-sans">
+    <PageShell>
 
       {/* ── Page header ─────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-executive-blue/[0.04]">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-executive-blue flex items-center justify-center shadow-lg">
-            <ShieldCheck className="w-4 h-4 text-[color:var(--executive-blue-text)] stroke-[1.5]" />
-          </div>
-          <div>
-            <span className="text-micro font-medium text-executive-blue uppercase tracking-[0.4em] block leading-none">DENETİM İZLERİ</span>
-            {/* Eskiden "filtrelenen / yüklenen" biçiminde İKİ sayı vardı;
-                istemci tarafı eleme kalktığı için ikisi artık matematiksel
-                olarak hep eşit — tek sayı gösterilir. */}
-            <span className="text-micro text-text-tertiary uppercase tracking-[0.3em]">
-              {logsState.length} Kayıt
-            </span>
-          </div>
-        </div>
-
-        {/* Filter Controls */}
-        <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        icon={ShieldCheck}
+        title="DENETİM İZLERİ"
+        // Eskiden "filtrelenen / yüklenen" biçiminde İKİ sayı vardı; istemci
+        // tarafı eleme kalktığı için ikisi artık matematiksel olarak hep eşit
+        // — tek sayı gösterilir.
+        subtitle={`${logsState.length} Kayıt`}
+        actions={<>
           {/* User Filter select */}
           <div className="flex items-center gap-2 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl px-3 py-2 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-executive-blue has-[:focus-visible]:ring-offset-1">
             <Avatar size="xs" name="Filter" />
@@ -196,8 +189,8 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
               </button>
             )}
           </div>
-        </div>
-      </div>
+        </>}
+      />
 
       {/* Geriye dönük uyumluluk notu: `logType` yalnızca P2-22'den SONRA
           yazılan kayıtlarda var ve Firestore `where` eşitliği, alanı hiç
@@ -209,7 +202,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
       {selectedType !== 'ALL' && (
         <div className="flex items-start gap-2 px-3 py-2 bg-executive-blue/[0.03] border border-executive-blue/[0.06] rounded-xl">
           <Info className="w-3 h-3 text-text-tertiary stroke-[1.5] flex-shrink-0 mt-[1px]" />
-          <span className="text-micro text-text-tertiary tracking-[0.15em] uppercase leading-relaxed">
+          <span className="text-micro text-text-tertiary tracking-label uppercase leading-relaxed">
             İşlem tipi filtresi yalnızca bu özelliğin eklenmesinden sonra yazılan kayıtları kapsar — daha eski kayıtlar için "Tüm İşlemler" seçin.
           </span>
         </div>
@@ -252,22 +245,22 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center gap-2">
                       <span className="text-body-sm font-medium text-executive-blue tracking-tight group-hover:text-executive-blue transition-colors">{user?.fullName || 'Dizge'}</span>
-                      <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.15em] px-1.5 py-0.5 bg-surface-glass border border-surface-border rounded-md">{user ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] : ''}</span>
+                      <span className="text-micro text-text-tertiary font-medium uppercase tracking-label px-1.5 py-0.5 bg-surface-glass border border-surface-border rounded-md">{user ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] : ''}</span>
                       {hasSensitiveChange && (
-                        <span className="text-micro text-status-danger font-bold uppercase tracking-[0.15em] px-1.5 py-0.5 bg-status-danger/10 border border-status-danger/20 rounded-md">Yetki Değişikliği</span>
+                        <span className="text-micro text-status-danger font-bold uppercase tracking-label px-1.5 py-0.5 bg-status-danger/10 border border-status-danger/20 rounded-md">Yetki Değişikliği</span>
                       )}
                     </div>
-                    <span className="text-micro text-text-tertiary uppercase tracking-[0.2em] font-mono tabular-nums">{formatDateTime(log.timestamp)}</span>
+                    <span className="text-micro text-text-tertiary uppercase tracking-caps font-mono tabular-nums">{formatDateTime(log.timestamp)}</span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1 flex-[1.2] border-t sm:border-t-0 sm:border-l border-executive-blue/[0.04] pt-2.5 sm:pt-0 sm:pl-4">
-                  <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.25em]">Operasyon Hedefi</span>
-                  <span className="text-body-sm font-medium text-executive-blue truncate max-w-[280px] font-serif">{taskTitle}</span>
+                  <span className="text-micro text-text-tertiary font-medium uppercase tracking-caps">Operasyon Hedefi</span>
+                  <span className="text-body-sm font-medium text-executive-blue truncate max-w-[280px] font-display">{taskTitle}</span>
                 </div>
 
                 <div className="flex flex-col gap-2 flex-[1.6] border-t sm:border-t-0 sm:border-l border-executive-blue/[0.04] pt-2.5 sm:pt-0 sm:pl-4">
-                  <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.25em]">Durum Değişimi / Değer Detayı</span>
+                  <span className="text-micro text-text-tertiary font-medium uppercase tracking-caps">Durum Değişimi / Değer Detayı</span>
                   {log.changes ? (() => {
                     const visibleChanges = Object.entries(log.changes)
                       // Etiketi tanımlı olmayan alanlar (updatedAt, lockVersion gibi dahili
@@ -318,15 +311,17 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
           })
         ) : (
           !loading && (
-            <div className="py-16 flex flex-col items-center justify-center bg-surface-glass border border-dashed border-executive-blue/[0.05] rounded-2xl gap-4">
-              <ShieldCheck className="w-10 h-10 text-surface-border/50 stroke-[1]" />
-              {/* Eskiden burada ikinci bir dal vardı: "sayfa dolu ama istemci
-                  filtresinden hiçbiri geçmedi" durumu. Tip filtresi sunucuya
-                  taşındığı için bu durum artık OLUŞAMAZ (boş liste = sunucuda
-                  gerçekten eşleşen kayıt yok), dal da kaldırıldı — ölü bir
-                  koşul, okuyucuya var olmayan bir durumu anlatırdı. */}
-              <span className="text-micro text-text-tertiary uppercase tracking-[0.4em]">Kayıt Bulunamadı</span>
-            </div>
+            /* Eskiden burada ikinci bir dal vardı: "sayfa dolu ama istemci
+               filtresinden hiçbiri geçmedi" durumu. Tip filtresi sunucuya
+               taşındığı için bu durum artık OLUŞAMAZ (boş liste = sunucuda
+               gerçekten eşleşen kayıt yok), dal da kaldırıldı — ölü bir
+               koşul, okuyucuya var olmayan bir durumu anlatırdı. */
+            <EmptyState
+              size="lg"
+              className="bg-surface-glass border-executive-blue/[0.05] gap-4"
+              icon={<ShieldCheck className="w-10 h-10 stroke-[1]" />}
+              message="Kayıt Bulunamadı"
+            />
           )
         )}
       </div>
@@ -337,7 +332,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
             variant="secondary"
             onClick={() => fetchLogs(false, lastVisibleDoc)}
             disabled={loading}
-            className="flex items-center gap-2 px-6 py-2 uppercase tracking-[0.2em] text-micro font-medium rounded-xl border border-surface-border bg-surface-elevated hover:bg-surface-glass transition-all"
+            className="flex items-center gap-2 px-6 py-2 uppercase tracking-caps text-micro font-medium rounded-xl border border-surface-border bg-surface-elevated hover:bg-surface-glass transition-all"
           >
             {loading && <Loader2 className="w-3 h-3 animate-spin" />}
             Daha Fazla Yükle
@@ -345,6 +340,6 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
         </div>
       )}
 
-    </div>
+    </PageShell>
   );
 };

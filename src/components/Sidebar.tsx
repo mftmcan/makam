@@ -57,7 +57,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
       onClick={() => triggerHaptic('light')}
       aria-label={item.label}
       className={({ isActive }) => cn(
-        'flex items-center gap-4 px-3.5 py-2.5 rounded-xl transition-all duration-500 group relative border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-gold focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base',
+        'flex items-center gap-4 px-3.5 py-2.5 rounded-xl transition-all duration-500 group relative border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base',
         isActive
           ? 'bg-executive-gold/[0.08] border-executive-gold/15 shadow-[0_8px_32px_rgba(197,160,89,0.05)] translate-x-1'
           : 'hover:bg-surface-glass hover:translate-x-0.5'
@@ -118,7 +118,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
 
       <nav className="flex flex-col gap-7 flex-1" aria-label="Ana menü">
         <div className="flex flex-col gap-1.5">
-          <div className="text-micro text-text-muted font-medium uppercase tracking-[0.22em] mb-2 px-2" aria-hidden="true">
+          <div className="text-micro text-text-muted font-medium uppercase tracking-caps mb-2 px-2" aria-hidden="true">
             OPERASYON
           </div>
           {filteredPrimaryItems.map(renderMenuItem)}
@@ -126,7 +126,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
 
         {filteredSystemItems.length > 0 && (
           <div className="flex flex-col gap-1.5 pt-2 border-t border-surface-border">
-            <div className="text-micro text-text-muted font-medium uppercase tracking-[0.22em] mb-2 px-2" aria-hidden="true">
+            <div className="text-micro text-text-muted font-medium uppercase tracking-caps mb-2 px-2" aria-hidden="true">
               DİZGE
             </div>
             {filteredSystemItems.map(renderMenuItem)}
@@ -148,7 +148,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
             <span className="text-[14px] font-normal text-text-heading truncate tracking-tight leading-none font-display">{user?.fullName}</span>
             <div className="flex items-center gap-1.5 mt-1">
               <span className="w-1 h-1 rounded-full bg-status-success" />
-              <span className="text-micro text-[color:var(--gold-text)] font-medium uppercase tracking-[0.22em]">{user ? ROLE_LABELS[user.role] : ''}</span>
+              <span className="text-micro text-[color:var(--gold-text)] font-medium uppercase tracking-caps">{user ? ROLE_LABELS[user.role] : ''}</span>
             </div>
           </div>
         </div>
@@ -159,7 +159,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
             onLogout();
           }}
           aria-label="Oturumu kapat"
-          className="flex items-center justify-center gap-2 px-5 py-3 text-text-tertiary hover:text-status-danger hover:bg-status-danger/10 rounded-full transition-all group font-medium text-caption uppercase tracking-[0.16em] border border-surface-border hover:border-status-danger/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
+          className="flex items-center justify-center gap-2 px-5 py-3 text-text-tertiary hover:text-status-danger hover:bg-status-danger/10 rounded-full transition-all group font-medium text-caption uppercase tracking-label border border-surface-border hover:border-status-danger/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
         >
           <LogOut className="w-4 h-4 transition-transform group-hover:-translate-x-1" aria-hidden="true" />
           <span>Oturumu Kapat</span>

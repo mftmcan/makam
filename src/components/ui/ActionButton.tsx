@@ -28,7 +28,7 @@ export const ActionButton = ({ onClick, label, htmlFor, variant = 'primary', dis
   }[variant];
 
   const cls = cn(
-    'flex items-center justify-center gap-2 px-4 h-9 rounded-xl text-micro font-medium uppercase tracking-[0.25em]',
+    'flex items-center justify-center gap-2 px-4 h-9 rounded-xl text-micro font-medium uppercase tracking-caps',
     'transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2',
     styles, className

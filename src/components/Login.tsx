@@ -48,7 +48,7 @@ export const Login = ({ onLogin, isLoading }: LoginProps) => {
                 </div>
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[16px] font-normal text-text-heading tracking-tight font-display">Kurumsal Güvenlik</span>
-                  <p className="text-micro text-text-muted font-medium uppercase tracking-[0.2em] opacity-60">Uçtan Uca Yetki Denetimi</p>
+                  <p className="text-micro text-text-muted font-medium uppercase tracking-caps opacity-60">Uçtan Uca Yetki Denetimi</p>
                 </div>
               </motion.div>
               
@@ -62,7 +62,7 @@ export const Login = ({ onLogin, isLoading }: LoginProps) => {
                 </div>
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[16px] font-normal text-text-heading tracking-tight font-display">Stratejik Analiz</span>
-                  <p className="text-micro text-text-muted font-medium uppercase tracking-[0.2em] opacity-60">Anlık Operasyonel Veri Akışı</p>
+                  <p className="text-micro text-text-muted font-medium uppercase tracking-caps opacity-60">Anlık Operasyonel Veri Akışı</p>
                 </div>
               </motion.div>
             </div>
@@ -72,7 +72,7 @@ export const Login = ({ onLogin, isLoading }: LoginProps) => {
               whileTap={{ scale: 0.98 }}
               onClick={onLogin}
               disabled={isLoading}
-              className="makam-button-primary w-full h-14 text-body tracking-[0.16em] font-medium group cursor-pointer"
+              className="makam-button-primary w-full h-14 text-body tracking-label font-medium group cursor-pointer"
             >
               {isLoading ? 'DİZGEYE BAĞLANILIYOR...' : (
                 <span className="flex items-center justify-center gap-2">
@@ -84,7 +84,7 @@ export const Login = ({ onLogin, isLoading }: LoginProps) => {
           </div>
 
           <div className="flex flex-col items-center gap-3 opacity-40">
-            <p className="text-micro text-text-muted font-medium uppercase tracking-[0.22em] text-center leading-loose">
+            <p className="text-micro text-text-muted font-medium uppercase tracking-caps text-center leading-loose">
               HİZMETİÇİ<br />STRATEJİK KARAR YÖNETİM DİZGESİ
             </p>
             <div className="w-12 h-[1px] bg-makam-border/10" />

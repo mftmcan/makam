@@ -106,14 +106,14 @@ export const SegmentedTabs = ({ tabs, activeId, onChange, ariaLabel, variant, id
             onKeyDown={(e) => handleKeyDown(e, tab.id)}
             className={cn(
               variant === 'underline' && [
-                'px-6 py-4 text-micro font-medium uppercase tracking-[0.2em] transition-all border-b-2 whitespace-nowrap relative flex items-center gap-2',
+                'px-6 py-4 text-micro font-medium uppercase tracking-caps transition-all border-b-2 whitespace-nowrap relative flex items-center gap-2',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-inset',
                 isActive
                   ? 'border-executive-gold text-[color:var(--gold-text)]'
                   : 'border-transparent text-text-muted hover:text-text-heading hover:bg-makam-glass',
               ],
               variant === 'sidebar' && [
-                'px-4 py-3 rounded-xl text-micro font-bold uppercase tracking-[0.2em] text-left transition-all shrink-0 w-auto whitespace-nowrap md:w-full md:whitespace-normal',
+                'px-4 py-3 rounded-xl text-micro font-bold uppercase tracking-caps text-left transition-all shrink-0 w-auto whitespace-nowrap md:w-full md:whitespace-normal',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue',
                 isActive
                   ? 'bg-executive-blue text-[color:var(--executive-blue-text)] shadow-[0_4px_12px_rgba(30,41,59,0.15)]'

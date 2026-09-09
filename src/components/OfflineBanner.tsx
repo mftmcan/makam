@@ -98,7 +98,7 @@ export function OfflineBanner({
             className="w-2 h-2 rounded-full bg-executive-gold animate-ping flex-shrink-0"
             aria-hidden="true"
           />
-          <span className="text-micro font-medium text-[color:var(--gold-text)] uppercase tracking-[0.25em] font-sans truncate">
+          <span className="text-micro font-medium text-[color:var(--gold-text)] uppercase tracking-caps font-sans truncate">
             {isOffline
               ? 'Çevrimdışı Mod — Resmî Kayıtlar Lokal Sıraya Alındı'
               : `${queueLength} Adet Değişiklik Sıraya Alındı, Senkronize Ediliyor...`}
@@ -115,7 +115,7 @@ export function OfflineBanner({
           <button
             type="button"
             onClick={onSyncNow}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-micro font-semibold uppercase tracking-[0.15em] text-[color:var(--gold-text)] border border-executive-gold/30 hover:bg-executive-gold/15 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-micro font-semibold uppercase tracking-label text-[color:var(--gold-text)] border border-executive-gold/30 hover:bg-executive-gold/15 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
           >
             <RefreshCw className="w-3 h-3" aria-hidden="true" />
             Şimdi Senkronize Et
@@ -153,7 +153,7 @@ export function OfflineBanner({
             className="flex items-center gap-3.5 min-w-0"
           >
             <span className="w-2 h-2 rounded-full bg-status-danger flex-shrink-0" aria-hidden="true" />
-            <span className="text-micro font-medium text-status-danger uppercase tracking-[0.25em] font-sans truncate">
+            <span className="text-micro font-medium text-status-danger uppercase tracking-caps font-sans truncate">
               {failedMutations.length} Adet İşlem Reddedildi, Uygulanamadı
             </span>
             <ChevronDown
@@ -166,7 +166,7 @@ export function OfflineBanner({
             <button
               type="button"
               onClick={onClearFailed}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-micro font-semibold uppercase tracking-[0.15em] text-status-danger border border-status-danger/30 hover:bg-status-danger/15 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-micro font-semibold uppercase tracking-label text-status-danger border border-status-danger/30 hover:bg-status-danger/15 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
             >
               <Trash2 className="w-3 h-3" aria-hidden="true" />
               Tümünü Temizle

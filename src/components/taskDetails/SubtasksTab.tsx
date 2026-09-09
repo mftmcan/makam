@@ -19,7 +19,7 @@ export const SubtasksTab = ({ task, subtasks, onAddSubTask, onViewTask }: Subtas
       Alt talimatlar, ayrı bir sorumluya atanabilen; kendi durumu ve süresi olan bağımsız talimatlardır.
     </p>
     <div className="flex items-center justify-between">
-      <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Operasyonel Alt Birimler</h4>
+      <h4 className="text-micro font-medium text-text-muted uppercase tracking-caps">Operasyonel Alt Birimler</h4>
       <Button
         variant="gold"
         size="sm"

@@ -165,6 +165,21 @@ export function useAppHandlers({
           taskId,
         });
       }
+      // Görevin DİĞER tarafına kalıcı bildirim (Spark telafisi — bkz.
+      // notificationService.notifyTaskParty). Durumu değiştiren sorumluysa
+      // görevi oluşturan, değilse sorumlu bilgilendirilir. Yazımı asıl
+      // geçişi ASLA bozmaz; bilinçli olarak await EDİLMEZ.
+      if (oldTask) {
+        const counterparty = oldTask.assigneeId === user.uid ? oldTask.creatorId : oldTask.assigneeId;
+        void notificationService.notifyTaskParty({
+          targetUserId: counterparty,
+          actorUserId: user.uid,
+          taskId,
+          title: `${STATUS_EMOJI[newStatus] ?? '📋'} Talimat Durumu Değişti`,
+          message: `"${oldTask.title?.slice(0, 60) ?? 'Talimat'}" → ${STATUS_LABELS[newStatus] ?? newStatus}`,
+          type: (newStatus === 'BLOCKED' || newStatus === 'CRISIS') ? 'Crisis' : 'Info',
+        });
+      }
     } catch (err) {
       if (options?.silent) throw err;
       onError(err, 'update', `tasks/${taskId}`, {
@@ -200,9 +215,22 @@ export function useAppHandlers({
     }
 
     try {
-      await taskService.createTask(data, user.uid);
+      const newTaskId = await taskService.createTask(data, user.uid);
       setIsCreateModalOpen(false);
       toast('📋 Talimat Tanımlandı', `"${data.title?.slice(0, 50) ?? 'Yeni talimat'}" dizgeye işlendi.`, 'success');
+      // Yeni atanan sorumluya kalıcı bildirim (Spark telafisi — bkz.
+      // notificationService.notifyTaskParty). Görevi kendine atadıysa
+      // fonksiyon kendiliğinden hiçbir şey yazmaz.
+      if (typeof newTaskId === 'string') {
+        void notificationService.notifyTaskParty({
+          targetUserId: data.assigneeId,
+          actorUserId: user.uid,
+          taskId: newTaskId,
+          title: '📋 Yeni Talimat Atandı',
+          message: `"${data.title?.slice(0, 60) ?? 'Yeni talimat'}" sorumluluğunuza verildi.`,
+          type: 'TaskAssigned',
+        });
+      }
     } catch (err) {
       onError(err, 'create', 'tasks');
     }

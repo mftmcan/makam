@@ -6,17 +6,39 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   options: { value: string; label: string }[];
   error?: string;
+  /**
+   * 'default' (pill, h-14, ChevronDown ikonlu) — form alanları.
+   * 'ghost' — filtre çubuğu gibi KENDİ wrapper'ını (border/ikon/flex düzeni)
+   * taşıyan bağlamlar için: yalnızca çıplak `<select>` render edilir, label/
+   * error/ChevronDown/wrapper YOK — `className` tam olarak çağıranın verdiği
+   * gibi uygulanır (bkz. TaskBoard/Reports/BlockerList filtre select'leri,
+   * eskiden native `<select>` olarak elle tekrarlanıyordu).
+   */
+  variant?: 'default' | 'ghost';
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, options, error, id, ...props }, ref) => {
+  ({ className, label, options, error, id, variant = 'default', ...props }, ref) => {
     const generatedId = React.useId();
     const selectId = id ?? generatedId;
     const errorId = `${selectId}-error`;
+
+    if (variant === 'ghost') {
+      return (
+        <select ref={ref} id={selectId} className={className} {...props}>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value} className="bg-surface-base text-text-heading">
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
     return (
       <div className="flex flex-col gap-1.5 w-full relative">
         {label && (
-          <label htmlFor={selectId} className="text-micro font-medium text-text-muted uppercase tracking-[0.2em] px-1">
+          <label htmlFor={selectId} className="text-micro font-medium text-text-muted uppercase tracking-caps px-1">
             {label}
           </label>
         )}

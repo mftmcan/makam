@@ -7,6 +7,9 @@ import { Modal } from './ui/Modal';
 import { Badge } from './ui/Badge';
 import { EmptyState } from './ui/EmptyState';
 import { Tooltip as InfoTooltip } from './ui/Tooltip';
+import { PageHeader } from './ui/PageHeader';
+import { PageShell } from './ui/PageShell';
+import { SPRING_PANEL } from '../lib/motion';
 import { PANEL_CLASSNAME } from './ui/Panel';
 import { cn, formatTimeAgo, formatTime } from '../lib/utils';
 import { STATUS_LABELS, STATUS_BADGE_VARIANT, type AppTabId } from '../constants';
@@ -141,13 +144,25 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
   return (
     // pb-24: sağ altta beliren PWA "Çevrimdışı Hazır"/güncelleme toast'ı (ReloadPrompt,
     // fixed bottom-6 right-6) alt satırların üzerine binmesin diye ekstra boşluk.
-    <div className="flex flex-col gap-5 pt-4 pb-24 max-w-[1440px] mx-auto font-sans">
+    <PageShell withMobileDockPadding>
+
+      {/* ── Page header ──────────────────────────────────────────────
+          Diğer altı sekmenin (Talimatlar/Engeller/Kadro/Raporlar/Denetim/
+          Ayarlar) hepsinde PageHeader varken Dashboard'da hiç yoktu (bkz.
+          tasarım denetimi: 7 ekranda 6 farklı kopya + burada eksik) — ikon
+          Sidebar/MobileDock'taki AYNI "Harekat" nav ikonuyla (ShieldCheck)
+          tutarlı seçildi. */}
+      <PageHeader
+        icon={ShieldCheck}
+        title="HAREKAT MERKEZİ"
+        subtitle="Stratejik Genel Bakış"
+      />
 
       {/* ── Stratejik Sağlık Endeksi Banner ── */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 28 }}
+        transition={{ ...SPRING_PANEL }}
         className="relative overflow-hidden p-5 rounded-3xl bg-makam-glass backdrop-blur-xl border border-surface-border shadow-md flex flex-col md:flex-row items-center justify-between gap-6"
       >
         {/* Ambient backglow matching health score state */}
@@ -172,13 +187,13 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
               <h3 className="text-body font-medium text-executive-blue tracking-tight font-display">Stratejik Sağlık Endeksi</h3>
               {/* Veri tazeliği göstergesi — tick state'inden türetilir, ek okuma yok */}
               <InfoTooltip content="Veriler canlı olarak izlenir; sayaçlar her dakika tazelenir." side="bottom">
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-status-success/25 bg-status-success/10 text-status-success text-micro font-semibold uppercase tracking-[0.14em] tabular-nums">
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-status-success/25 bg-status-success/10 text-status-success text-micro font-semibold uppercase tracking-label tabular-nums">
                   <span className="w-1.5 h-1.5 rounded-full bg-status-success animate-pulse" aria-hidden="true" />
                   Canlı · {formatTime(tick)}
                 </span>
               </InfoTooltip>
             </div>
-            <p className="text-micro text-text-tertiary uppercase tracking-[0.3em] mt-0.5">
+            <p className="text-micro text-text-tertiary uppercase tracking-eyebrow mt-0.5">
               {isPersonalView ? 'Kişisel Performans & İcra Düzeyi' : 'Organizasyonel Performans & İcra Düzeyi'}
             </p>
           </div>
@@ -186,7 +201,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
 
         <div className="relative z-10 flex items-center gap-8 justify-between w-full md:w-auto">
           <div className="flex flex-col items-start md:items-end gap-1">
-            <span className="text-micro text-text-tertiary uppercase tracking-[0.2em] font-medium">Dizge Durumu</span>
+            <span className="text-micro text-text-tertiary uppercase tracking-caps font-medium">Dizge Durumu</span>
             <div className="flex items-center gap-2">
               <span className={cn(
                 "w-2 h-2 rounded-full",
@@ -226,7 +241,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
                 {healthScore}%
               </span>
               <InfoTooltip content="Hesap yöntemi: İcra Oranı (%60 ağırlık) + SLA Uyumu (%40 ağırlık). Lağvedilen görevler hesaba katılmaz." side="bottom">
-                <span className="flex items-center gap-1 text-micro text-text-tertiary uppercase tracking-[0.25em] mt-1 cursor-help">
+                <span className="flex items-center gap-1 text-micro text-text-tertiary uppercase tracking-caps mt-1 cursor-help">
                   SAĞLIK SKORU
                   <Info className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
                 </span>
@@ -253,18 +268,18 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 28, delay: 0.32 }}
+        transition={{ ...SPRING_PANEL, delay: 0.32 }}
         className={PANEL_CLASSNAME}
       >
         <div className="flex justify-between items-center mb-3">
           <div>
             <h3 className="text-body font-medium text-executive-blue tracking-tight font-display">Performans Analitiği</h3>
-            <p className="text-micro text-text-tertiary uppercase tracking-[0.3em] mt-0.5">Son 7 Gün</p>
+            <p className="text-micro text-text-tertiary uppercase tracking-eyebrow mt-0.5">Son 7 Gün</p>
           </div>
           {isAdmin && (
             <button
               onClick={() => onNavigateTab?.('reports')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-executive-blue/[0.03] border border-executive-blue/[0.06] text-text-muted hover:bg-executive-blue hover:text-[color:var(--executive-blue-text)] transition-all duration-300 text-micro font-medium uppercase tracking-[0.2em]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-executive-blue/[0.03] border border-executive-blue/[0.06] text-text-muted hover:bg-executive-blue hover:text-[color:var(--executive-blue-text)] transition-all duration-300 text-micro font-medium uppercase tracking-caps"
             >
               <TrendingUp className="w-3 h-3" />
               Analiz
@@ -328,7 +343,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
           ].map(({ color, label }) => (
             <div key={label} className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
-              <span className="text-micro text-text-tertiary uppercase tracking-[0.2em]">{label}</span>
+              <span className="text-micro text-text-tertiary uppercase tracking-caps">{label}</span>
             </div>
           ))}
         </div>
@@ -342,13 +357,13 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 28, delay: 0.38 }}
+          transition={{ ...SPRING_PANEL, delay: 0.38 }}
           className={PANEL_CLASSNAME}
         >
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
             <div>
               <h3 className="text-body font-medium text-executive-blue tracking-tight font-display">{isPersonalView ? 'Önceliklerim' : 'Yönetici Müdahale Kuyruğu'}</h3>
-              <p className="text-micro text-text-tertiary uppercase tracking-[0.16em] mt-0.5">
+              <p className="text-micro text-text-tertiary uppercase tracking-label mt-0.5">
                 {queueFilter
                   ? <>Filtre: {executiveSignals.find(s => s.key === queueFilter)?.label} · <button type="button" onClick={() => setQueueFilter(null)} className="underline hover:text-executive-blue">Temizle</button></>
                   : isPersonalView ? 'Size ait risk ve mühlet önceliği' : 'Risk, mühlet, atalet ve onay önceliği'}
@@ -363,7 +378,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
                   aria-pressed={queueFilter === signal.key}
                   className={cn(
                     'min-w-0 rounded-xl border px-2 py-1.5 text-center transition-all duration-200',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base',
                     // NOT: Tailwind'in varsayılan red/amber/emerald paleti (oklch
                     // tabanlı) axe-core taramasında bu bileşende beklenmedik
                     // şekilde neredeyse görünmez metin olarak ölçüldü. Solid hex
@@ -375,7 +390,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
                   )}
                 >
                   <div className="text-[14px] font-semibold tabular-nums leading-none">{signal.value}</div>
-                  <div className="text-micro uppercase tracking-[0.12em] mt-1 truncate">{signal.label}</div>
+                  <div className="text-micro uppercase tracking-label mt-1 truncate">{signal.label}</div>
                 </button>
               ))}
             </div>
@@ -406,13 +421,13 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 28, delay: 0.44 }}
+          transition={{ ...SPRING_PANEL, delay: 0.44 }}
           className={PANEL_CLASSNAME}
         >
           <div className="flex items-center justify-between gap-3 mb-3">
             <div>
               <h3 className="text-body font-medium text-executive-blue tracking-tight font-display">{isPersonalView ? 'Performans Özetim' : 'Kadro Yük Matrisi'}</h3>
-              <p className="text-micro text-text-tertiary uppercase tracking-[0.16em] mt-0.5">{isPersonalView ? 'Kendi yükünüz ve SLA disiplininiz' : 'Aktif yük ve SLA disiplini'}</p>
+              <p className="text-micro text-text-tertiary uppercase tracking-label mt-0.5">{isPersonalView ? 'Kendi yükünüz ve SLA disiplininiz' : 'Aktif yük ve SLA disiplini'}</p>
             </div>
             <UsersIcon className="w-4 h-4 text-text-tertiary" />
           </div>
@@ -477,7 +492,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
                   </Badge>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="text-micro text-text-tertiary uppercase tracking-[0.2em] hidden sm:block">
+                  <span className="text-micro text-text-tertiary uppercase tracking-caps hidden sm:block">
                     {formatTimeAgo(task.updatedAt, task.status)}
                   </span>
                   <div className="w-7 h-7 rounded-full bg-surface-border/20 flex items-center justify-center group-hover:bg-executive-blue group-hover:text-[color:var(--executive-blue-text)] transition-all duration-300 opacity-0 group-hover:opacity-100">
@@ -497,6 +512,6 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
         </div>
       </Modal>
 
-    </div>
+    </PageShell>
   );
 };

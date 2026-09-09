@@ -96,7 +96,7 @@ export function AppHeader({
       <header className="hidden lg:flex min-h-20 bg-makam-glass border-b border-makam-border/5 items-center justify-between px-8 sticky top-0 z-40 backdrop-blur-[40px] lg:ml-64">
         <div className="flex items-center gap-8">
            <div className="flex flex-col gap-1.5 border-l-2 border-executive-gold/20 pl-6">
-             <h1 className="text-body font-medium text-text-heading uppercase tracking-[0.22em] font-display">
+             <h1 className="text-body font-medium text-text-heading uppercase tracking-caps font-display">
                {TAB_TITLES[activeTab]}
              </h1>
              <div className="flex items-center gap-3">
@@ -116,7 +116,7 @@ export function AppHeader({
               className="flex items-center gap-3 px-4 py-2 bg-status-danger/[0.06] border border-status-danger/20 rounded-full animate-makam-flash shadow-sm hover:bg-status-danger/10 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger"
             >
               <AlertCircle className="w-3.5 h-3.5 text-status-danger stroke-[1.5]" aria-hidden="true" />
-              <span className="text-micro font-medium text-status-danger uppercase tracking-[0.18em]">
+              <span className="text-micro font-medium text-status-danger uppercase tracking-caps">
                 {notifications.length} Bekleyen Talimat
               </span>
             </button>
@@ -247,7 +247,7 @@ export function AppHeader({
                   role="dialog"
                   aria-modal="true"
                   aria-label="Birim Odak Filtresi"
-                  className="absolute top-[3.25rem] right-0 z-[210] min-w-[170px] max-h-[60vh] overflow-y-auto bg-surface-elevated backdrop-blur-2xl border border-surface-border rounded-xl shadow-[0_16px_48px_-12px_rgba(0,0,0,0.18)] overflow-hidden py-1"
+                  className="absolute top-[3.25rem] right-0 z-[210] min-w-[170px] max-h-[60vh] overflow-y-auto bg-surface-elevated backdrop-blur-2xl border border-surface-border rounded-xl shadow-popover overflow-hidden py-1"
                 >
                   <button
                     ref={deptFilterFirstItemRef}

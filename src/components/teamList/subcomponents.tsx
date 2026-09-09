@@ -93,7 +93,7 @@ export const DepartmentPicker = ({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-micro font-medium text-text-tertiary uppercase tracking-[0.35em] px-0.5">
+      <label htmlFor={id} className="text-micro font-medium text-text-tertiary uppercase tracking-eyebrow px-0.5">
         Departman / Birim
       </label>
       <Select
@@ -118,7 +118,7 @@ export const DepartmentPicker = ({
 
       {isCreating && (
         <div className="flex flex-col gap-2 p-2.5 bg-surface-glass border border-surface-border rounded-xl">
-          <label htmlFor={`${id}-new`} className="text-micro font-medium text-text-tertiary uppercase tracking-[0.3em]">
+          <label htmlFor={`${id}-new`} className="text-micro font-medium text-text-tertiary uppercase tracking-eyebrow">
             Yeni Birim Adı
           </label>
           <input
@@ -131,7 +131,7 @@ export const DepartmentPicker = ({
             className="w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-3 py-2 text-body text-text-heading outline-none focus:border-executive-blue/30"
           />
           {error && (
-            <p className="text-micro text-status-danger font-semibold uppercase tracking-[0.1em] flex items-center gap-1.5">
+            <p className="text-micro text-status-danger font-semibold uppercase tracking-label flex items-center gap-1.5">
               <AlertTriangle className="w-3 h-3 flex-shrink-0" />
               {error}
             </p>
@@ -191,7 +191,7 @@ export const OrgNodeCard = ({ user, tasks, onSelect, isMini = false }: OrgNodeCa
     >
       <Avatar name={user.fullName} photoURL={user.photoURL} size={isMini ? "sm" : "md"} ring className="flex-shrink-0" />
       <div className="flex flex-col gap-0.5 min-w-0 flex-1 text-left">
-        <span className="text-caption font-medium text-executive-blue truncate font-serif leading-none">{user.fullName}</span>
+        <span className="text-caption font-medium text-executive-blue truncate font-display leading-none">{user.fullName}</span>
         <span className="text-micro text-text-tertiary truncate leading-none mt-0.5">{user.departmentId || 'Genel Merkez'}</span>
         {!isMini && (
           <span className={cn("inline-block self-start text-micro font-bold uppercase tracking-wider px-1 py-0.5 rounded border mt-1", rc.bg, rc.text, rc.border)}>

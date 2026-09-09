@@ -17,6 +17,14 @@ import { cn } from '../../lib/utils';
  */
 export const PANEL_CLASSNAME = 'bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl p-4 shadow-card';
 
+/**
+ * PANEL_CLASSNAME'in tablo/liste çerçevesi varyantı — `p-0 overflow-hidden`
+ * ile aynı desen TaskBoard/TeamList'te `PANEL_CLASSNAME`'den bağımsız elle
+ * tekrarlanmıştı, Reports ise zaten `cn(PANEL_CLASSNAME, 'overflow-hidden p-0')`
+ * ile doğru şeyi yapıyordu (bkz. tasarım denetimi). Üçü artık tek kaynak.
+ */
+export const PANEL_FRAME_CLASSNAME = 'bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden shadow-card';
+
 interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }

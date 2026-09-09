@@ -29,7 +29,7 @@ export const BlockersTab = ({
 }: BlockersTabProps) => (
   <div role="tabpanel" id="task-tabpanel-blockers" aria-labelledby="task-tab-blockers" className="flex flex-col gap-6">
     <div className="flex flex-col gap-4">
-      <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Aktif Engeller</h4>
+      <h4 className="text-micro font-medium text-text-muted uppercase tracking-caps">Aktif Engeller</h4>
       <div className="flex flex-col gap-3">
         {blockers.length === 0 ? (
           <EmptyState icon={<AlertTriangle className="w-8 h-8" />} message="Engel kaydı bulunamadı" />

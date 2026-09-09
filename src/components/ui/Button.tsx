@@ -32,10 +32,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       warning: 'bg-executive-gold/10 text-[color:var(--gold-text)] border border-executive-gold/20 hover:bg-executive-gold/20',
     };
 
+    // Üçü de tracking-caps'e sabit: eskiden sm=0.2em/md=0.3em/lg=0.18em idi —
+    // lg, md'den DAHA DAR harf aralığına sahipti (ters sıralama, sürüklenme
+    // — bkz. tracking ölçeği denetimi).
     const sizes = {
-      sm: 'px-5 py-2.5 text-micro tracking-[0.2em]',
-      md: 'px-8 py-4 text-caption tracking-[0.3em]',
-      lg: 'px-12 py-5 text-body tracking-[0.18em]',
+      sm: 'px-5 py-2.5 text-micro tracking-caps',
+      md: 'px-8 py-4 text-caption tracking-caps',
+      lg: 'px-12 py-5 text-body tracking-caps',
     };
 
     return (

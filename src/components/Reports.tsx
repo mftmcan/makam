@@ -9,6 +9,7 @@ import {
   parseRangeStart, parseRangeEnd, computeDepartmentsList, filterTasksByDateAndDept, filterBlockersByTasks,
   computeManagers, buildTasksByAssignee, computeManagerPerformance, computeAverageCompletionTime,
   computeSlaComplianceTrend, computeStaffWorkload, computeStatusDistribution,
+  type ManagerPerformanceRow,
 } from './reports/helpers';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid
@@ -18,10 +19,128 @@ import { tr } from 'date-fns/locale';
 import { useUIStore } from '../store/uiStore';
 import { EMPTY_STATE_MESSAGES, type AppTabId } from '../constants';
 import { EmptyState } from './ui/EmptyState';
-import { PANEL_CLASSNAME } from './ui/Panel';
+import { PageHeader } from './ui/PageHeader';
+import { PageShell } from './ui/PageShell';
+import { PANEL_CLASSNAME, PANEL_FRAME_CLASSNAME } from './ui/Panel';
 import { DatePicker } from './ui/DatePicker';
 import { Avatar } from './ui/Avatar';
 import { Skeleton, TableRowSkeleton } from './ui/Skeleton';
+import { SimpleDataTable, type DataTableColumn } from './ui/dataTable';
+import { SPRING_PANEL, SPRING_ROW, staggerDelay } from '../lib/motion';
+
+// Yönetici performans tablosunun sütun tanımı — hücre içerikleri yalnızca
+// satırın kendisine (`m`) bağlı, `onNavigateTab` gibi dış bağımlılık taşımaz
+// (satır tıklaması `renderRow`'da, DataTable'ın dışında ele alınır) — bu
+// yüzden component gövdesi yerine modül seviyesinde sabit tanımlanabilir.
+const MANAGER_PERFORMANCE_COLUMNS: DataTableColumn<ManagerPerformanceRow>[] = [
+  {
+    id: 'name',
+    header: 'Yetkili Makam',
+    align: 'left',
+    cell: (m) => (
+      <div className="flex items-center gap-3">
+        <Avatar name={m.fullName} photoURL={m.photoURL} size="sm" className="group-hover:scale-105 transition-transform" />
+        <div className="flex flex-col gap-0.5">
+          <span className="text-body font-medium text-executive-blue font-display tracking-tight group-hover:text-executive-blue transition-colors">
+            {m.fullName}
+          </span>
+          <span className="text-micro text-text-tertiary uppercase tracking-caps">
+            {m.departmentId || 'Stratejik Planlama'}
+          </span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'total',
+    header: 'İş Yükü',
+    align: 'center',
+    cell: (m) => <span className="text-[16px] font-light text-executive-blue tabular-nums">{m.total}</span>,
+  },
+  {
+    id: 'completed',
+    header: 'Çıktı',
+    align: 'center',
+    cell: (m) => (
+      <span className="text-body-sm font-medium text-status-success bg-status-success/10 px-3 py-1 rounded-lg border border-status-success/20 tabular-nums">
+        {m.completed}
+      </span>
+    ),
+  },
+  {
+    id: 'blocked',
+    header: 'Darboğaz',
+    align: 'center',
+    cell: (m) => (
+      <span className={cn(
+        'text-body-sm font-medium px-3 py-1 rounded-lg border tabular-nums',
+        m.blocked > 0
+          ? 'text-status-danger bg-status-danger/10 border-status-danger/20'
+          : 'text-text-tertiary bg-surface-glass border-surface-border'
+      )}>
+        {m.blocked}
+      </span>
+    ),
+  },
+  {
+    id: 'sla',
+    header: 'SLA Uyum',
+    align: 'center',
+    cell: (m) => m.hasData ? (
+      <span className={cn(
+        'text-body-sm font-medium px-3 py-1 rounded-lg border tabular-nums',
+        m.slaRate > 80 ? 'text-status-success bg-status-success/10 border-status-success/20' :
+        m.slaRate > 50 ? 'text-[color:var(--gold-text)] bg-executive-gold/10 border-executive-gold/20' :
+        'text-status-danger bg-status-danger/10 border-status-danger/20'
+      )}>
+        %{m.slaRate}
+      </span>
+    ) : (
+      <span className="text-micro font-medium px-3 py-1 rounded-lg border text-text-tertiary bg-surface-glass border-surface-border uppercase tracking-wider">
+        {EMPTY_STATE_MESSAGES.NO_DATA_SHORT}
+      </span>
+    ),
+  },
+  {
+    id: 'score',
+    header: 'Performans',
+    align: 'right',
+    cell: (m, i) => (
+      <div className="flex items-center justify-end gap-3">
+        {m.hasData ? (
+          <div className="flex flex-col items-end gap-1.5">
+            <span className={cn(
+              'text-[18px] font-light tabular-nums tracking-tight font-display',
+              m.completionRate > 70 ? 'text-status-success' :
+              m.completionRate > 40 ? 'text-[color:var(--gold-text)]' : 'text-status-danger'
+            )}>
+              %{m.completionRate}
+            </span>
+            <div className="w-24 h-1 bg-surface-border/80 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${m.completionRate}%` }}
+                transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: staggerDelay(i, 0.06) }}
+                className={cn(
+                  'h-full rounded-full',
+                  m.completionRate > 70 ? 'bg-status-success' :
+                  m.completionRate > 40 ? 'bg-executive-gold' : 'bg-status-danger'
+                )}
+              />
+            </div>
+          </div>
+        ) : (
+          <span className="text-micro font-medium px-3 py-1 rounded-lg border text-text-tertiary bg-surface-glass border-surface-border uppercase tracking-wider">
+            {EMPTY_STATE_MESSAGES.NO_DATA_SHORT}
+          </span>
+        )}
+        <div className="w-6 h-6 rounded-full bg-executive-blue/5 border border-executive-blue/10 flex items-center justify-center group-hover:bg-executive-blue group-hover:border-transparent transition-all flex-shrink-0">
+          <ArrowRight className="w-3 h-3 text-text-tertiary group-hover:text-[color:var(--executive-blue-text)] stroke-[2] transition-colors" />
+        </div>
+      </div>
+    ),
+  },
+];
 
 interface ReportsProps {
   tasks: Task[];
@@ -37,7 +156,7 @@ interface ReportsProps {
 // kısa süre tamamen boş kalıyordu (bkz. tasarım denetimi — grafik alanının
 // da kendisi boş olduğundan bu "yazılım bozuk" gibi okunuyordu).
 const ReportsSkeleton = () => (
-  <div className="flex flex-col gap-5 py-4 max-w-[1440px] mx-auto font-sans" aria-label="Yükleniyor..." role="status">
+  <PageShell aria-label="Yükleniyor..." role="status">
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
       {[...Array(3)].map((_, i) => (
         <div key={i} className="makam-card p-5 flex flex-col gap-3">
@@ -53,7 +172,7 @@ const ReportsSkeleton = () => (
     <div className="makam-card p-4 flex flex-col gap-3">
       {[...Array(4)].map((_, i) => <TableRowSkeleton key={i} cols={4} />)}
     </div>
-  </div>
+  </PageShell>
 );
 
 // ─── Compact KPI Card ─────────────────────────────────────────────────────────
@@ -76,17 +195,17 @@ const KpiCard = ({ label, value, icon: Icon, color, index = 0 }: KpiCardProps) =
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 28, delay: index * 0.06 }}
+      transition={{ ...SPRING_ROW, delay: staggerDelay(index, 0.06) }}
       className="flex items-center gap-3 p-3.5 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl shadow-card hover:shadow-card-hover hover:bg-surface-elevated transition-all duration-300 group"
     >
       <div className={cn('w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform', palette.bg)}>
         <Icon className={cn('w-4 h-4 stroke-[1.5]', palette.icon)} />
       </div>
       <div className="flex flex-col gap-0.5 min-w-0">
-        <span className="text-[22px] font-light text-executive-blue tracking-tight tabular-nums leading-none font-serif">
+        <span className="text-[22px] font-light text-executive-blue tracking-tight tabular-nums leading-none font-display">
           {value}
         </span>
-        <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.3em]">{label}</span>
+        <span className="text-micro text-text-tertiary font-medium uppercase tracking-eyebrow">{label}</span>
       </div>
     </motion.div>
   );
@@ -183,24 +302,14 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
   if (isLoading) return <ReportsSkeleton />;
 
   return (
-    <div className="flex flex-col gap-5 py-4 max-w-[1440px] mx-auto font-sans">
+    <PageShell>
 
       {/* ── Page header ─────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-executive-blue/[0.04]">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-executive-blue flex items-center justify-center shadow-lg">
-            <TrendingUp className="w-4 h-4 text-[color:var(--executive-blue-text)] stroke-[1.5]" aria-hidden="true" />
-          </div>
-          <div>
-            <span className="text-micro font-medium text-executive-blue uppercase tracking-[0.4em] block leading-none">
-              OPERASYONEL ANALİTİK
-            </span>
-            <span className="text-micro text-text-tertiary uppercase tracking-[0.3em]">İçgörü Matrisi</span>
-          </div>
-        </div>
-
-        {/* Tarih Aralığı + Birim Filtresi + Export */}
-        <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        icon={TrendingUp}
+        title="OPERASYONEL ANALİTİK"
+        subtitle="İçgörü Matrisi"
+        actions={<>
           {/* Birim Filtresi */}
           <div className="flex items-center gap-2 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl px-3 py-2 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-executive-blue has-[:focus-visible]:ring-offset-1">
             <Users className="w-3.5 h-3.5 text-executive-blue stroke-[1.5] flex-shrink-0" aria-hidden="true" />
@@ -258,8 +367,8 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
             )}
             {isExporting ? 'Hazırlanıyor...' : 'PDF'}
           </button>
-        </div>
-      </div>
+        </>}
+      />
 
       {/* Filtre özeti — önceden çok soluk (text-tertiary) olduğundan, dar bir
           tarih aralığında %0 gibi görünen metrikler "herkesin performansı
@@ -286,13 +395,13 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
         {/* SLA Uyum Trend Çizgi Grafiği */}
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 28, delay: 0.2 }}
+          transition={{ ...SPRING_PANEL, delay: 0.2 }}
           className={PANEL_CLASSNAME}
         >
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-body font-medium text-executive-blue font-serif tracking-tight">SLA Uyum Trendi</h3>
-              <p className="text-micro text-text-tertiary uppercase tracking-[0.3em] mt-0.5">Son 14 Gün</p>
+              <h3 className="text-body font-medium text-executive-blue font-display tracking-tight">SLA Uyum Trendi</h3>
+              <p className="text-micro text-text-tertiary uppercase tracking-eyebrow mt-0.5">Son 14 Gün</p>
             </div>
             <TrendingUp className="w-4 h-4 text-[color:var(--gold-text)] stroke-[1.5]" />
           </div>
@@ -333,13 +442,13 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
         {/* Durum Dağılımı (Pie) */}
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 28, delay: 0.25 }}
+          transition={{ ...SPRING_PANEL, delay: 0.25 }}
           className={PANEL_CLASSNAME}
         >
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-body font-medium text-executive-blue font-serif tracking-tight">Talimat Dağılımı</h3>
-              <p className="text-micro text-text-tertiary uppercase tracking-[0.3em] mt-0.5">Durum Matrisi</p>
+              <h3 className="text-body font-medium text-executive-blue font-display tracking-tight">Talimat Dağılımı</h3>
+              <p className="text-micro text-text-tertiary uppercase tracking-eyebrow mt-0.5">Durum Matrisi</p>
             </div>
             <CheckCircle2 className="w-4 h-4 text-status-success stroke-[1.5]" />
           </div>
@@ -386,13 +495,13 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
       {staffWorkload.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 28, delay: 0.3 }}
+          transition={{ ...SPRING_PANEL, delay: 0.3 }}
           className={PANEL_CLASSNAME}
         >
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-body font-medium text-executive-blue font-serif tracking-tight">Personel İş Yükü</h3>
-              <p className="text-micro text-text-tertiary uppercase tracking-[0.3em] mt-0.5">Aktif vs Tamamlanan</p>
+              <h3 className="text-body font-medium text-executive-blue font-display tracking-tight">Personel İş Yükü</h3>
+              <p className="text-micro text-text-tertiary uppercase tracking-eyebrow mt-0.5">Aktif vs Tamamlanan</p>
             </div>
             <Users className="w-4 h-4 text-text-tertiary stroke-[1]" />
           </div>
@@ -439,14 +548,14 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 28, delay: 0.4 }}
-        className={cn(PANEL_CLASSNAME, 'overflow-hidden p-0')}
+        transition={{ ...SPRING_PANEL, delay: 0.4 }}
+        className={PANEL_FRAME_CLASSNAME}
       >
         {/* Table header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-executive-blue/[0.04]">
           <div>
-            <h3 className="text-body font-medium text-executive-blue font-serif tracking-tight">Yönetici Performans Endeksi</h3>
-            <p className="text-micro text-text-tertiary uppercase tracking-[0.3em] mt-0.5">{managerPerformance.length} Yetkili</p>
+            <h3 className="text-body font-medium text-executive-blue font-display tracking-tight">Yönetici Performans Endeksi</h3>
+            <p className="text-micro text-text-tertiary uppercase tracking-eyebrow mt-0.5">{managerPerformance.length} Yetkili</p>
           </div>
           <BarChart3 className="w-5 h-5 text-surface-border/50 stroke-[1]" />
         </div>
@@ -461,12 +570,12 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
                 key={m.uid}
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ type: 'spring', stiffness: 280, damping: 30, delay: i * 0.04 }}
+                transition={{ ...SPRING_ROW, delay: staggerDelay(i, 0.04) }}
                 className="flex items-center gap-3 p-3.5"
               >
                 <Avatar name={m.fullName} photoURL={m.photoURL} size="md" className="flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-body-sm font-medium text-executive-blue font-serif line-clamp-1">{m.fullName}</p>
+                  <p className="text-body-sm font-medium text-executive-blue font-display line-clamp-1">{m.fullName}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-micro text-text-tertiary tabular-nums">{m.total} talimat</span>
                     <span className="text-micro text-status-success tabular-nums">{m.completed} tamamlandı</span>
@@ -488,7 +597,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${m.completionRate}%` }}
-                        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: i * 0.05 }}
+                        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: staggerDelay(i, 0.05) }}
                         className={cn(
                           'h-full rounded-full',
                           m.completionRate > 70 ? 'bg-status-success' :
@@ -513,157 +622,37 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
 
         {/* Desktop table */}
         <div className="hidden sm:block overflow-x-auto custom-scrollbar">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-surface-glass">
-                {[
-                  { label: 'Yetkili Makam', align: 'left' },
-                  { label: 'İş Yükü',       align: 'center' },
-                  { label: 'Çıktı',          align: 'center' },
-                  { label: 'Darboğaz',       align: 'center' },
-                  { label: 'SLA Uyum',       align: 'center' },
-                  { label: 'Performans',     align: 'right' },
-                ].map(({ label, align }) => (
-                  <th
-                    key={label}
-                    className={cn(
-                      'px-4 py-3 text-micro font-medium text-text-tertiary uppercase tracking-[0.35em]',
-                      align === 'center' && 'text-center',
-                      align === 'right'  && 'text-right'
-                    )}
-                  >
-                    {label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-makam-border/30">
-              {managerPerformance.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-0">
-                    <EmptyState size="sm" className="border-none bg-transparent rounded-none" message={EMPTY_STATE_MESSAGES.NO_MANAGER_RECORDS} />
-                  </td>
-                </tr>
-              ) : (
-                managerPerformance.map((m, i) => (
-                  <motion.tr
-                    key={m.uid}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.04 }}
-                    onClick={() => onNavigateTab?.('tasks', { assignee: m.uid })}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${m.fullName} talimatlarını görüntüle`}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onNavigateTab?.('tasks', { assignee: m.uid });
-                      }
-                    }}
-                    title="Bu yöneticinin talimatlarını görmek için tıklayın — Talimatlar'da sorumluya göre filtrelenir"
-                    className="hover:bg-makam-glass transition-all duration-300 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-executive-blue"
-                  >
-                    {/* Name */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar name={m.fullName} photoURL={m.photoURL} size="sm" className="group-hover:scale-105 transition-transform" />
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-body font-medium text-executive-blue font-serif tracking-tight group-hover:text-executive-blue transition-colors">
-                            {m.fullName}
-                          </span>
-                          <span className="text-micro text-text-tertiary uppercase tracking-[0.25em]">
-                            {m.departmentId || 'Stratejik Planlama'}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Total */}
-                    <td className="px-4 py-3 text-center">
-                      <span className="text-[16px] font-light text-executive-blue tabular-nums">{m.total}</span>
-                    </td>
-
-                    {/* Completed */}
-                    <td className="px-4 py-3 text-center">
-                      <span className="text-body-sm font-medium text-status-success bg-status-success/10 px-3 py-1 rounded-lg border border-status-success/20 tabular-nums">
-                        {m.completed}
-                      </span>
-                    </td>
-
-                    {/* Blocked */}
-                    <td className="px-4 py-3 text-center">
-                      <span className={cn(
-                        'text-body-sm font-medium px-3 py-1 rounded-lg border tabular-nums',
-                        m.blocked > 0
-                          ? 'text-status-danger bg-status-danger/10 border-status-danger/20'
-                          : 'text-text-tertiary bg-surface-glass border-surface-border'
-                      )}>
-                        {m.blocked}
-                      </span>
-                    </td>
-
-                    {/* SLA Rate */}
-                    <td className="px-4 py-3 text-center">
-                      {m.hasData ? (
-                        <span className={cn(
-                          'text-body-sm font-medium px-3 py-1 rounded-lg border tabular-nums',
-                          m.slaRate > 80 ? 'text-status-success bg-status-success/10 border-status-success/20' :
-                          m.slaRate > 50 ? 'text-[color:var(--gold-text)] bg-executive-gold/10 border-executive-gold/20' :
-                          'text-status-danger bg-status-danger/10 border-status-danger/20'
-                        )}>
-                          %{m.slaRate}
-                        </span>
-                      ) : (
-                        <span className="text-micro font-medium px-3 py-1 rounded-lg border text-text-tertiary bg-surface-glass border-surface-border uppercase tracking-wider">
-                          {EMPTY_STATE_MESSAGES.NO_DATA_SHORT}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Score + progress bar + nav arrow */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-3">
-                        {m.hasData ? (
-                        <div className="flex flex-col items-end gap-1.5">
-                          <span className={cn(
-                            'text-[18px] font-light tabular-nums tracking-tight font-serif',
-                            m.completionRate > 70 ? 'text-status-success' :
-                            m.completionRate > 40 ? 'text-[color:var(--gold-text)]' : 'text-status-danger'
-                          )}>
-                            %{m.completionRate}
-                          </span>
-                          <div className="w-24 h-1 bg-surface-border/80 rounded-full overflow-hidden">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${m.completionRate}%` }}
-                              transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: i * 0.06 }}
-                              className={cn(
-                                'h-full rounded-full',
-                                m.completionRate > 70 ? 'bg-status-success' :
-                                m.completionRate > 40 ? 'bg-executive-gold' : 'bg-status-danger'
-                              )}
-                            />
-                          </div>
-                        </div>
-                        ) : (
-                          <span className="text-micro font-medium px-3 py-1 rounded-lg border text-text-tertiary bg-surface-glass border-surface-border uppercase tracking-wider">
-                            {EMPTY_STATE_MESSAGES.NO_DATA_SHORT}
-                          </span>
-                        )}
-                        <div className="w-6 h-6 rounded-full bg-executive-blue/5 border border-executive-blue/10 flex items-center justify-center group-hover:bg-executive-blue group-hover:border-transparent transition-all flex-shrink-0">
-                          <ArrowRight className="w-3 h-3 text-text-tertiary group-hover:text-[color:var(--executive-blue-text)] stroke-[2] transition-colors" />
-                        </div>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          <SimpleDataTable
+            columns={MANAGER_PERFORMANCE_COLUMNS}
+            rows={managerPerformance}
+            rowKey={(m) => m.uid}
+            emptyState={<EmptyState size="sm" className="border-none bg-transparent rounded-none" message={EMPTY_STATE_MESSAGES.NO_MANAGER_RECORDS} />}
+            renderRow={(m, i, cells) => (
+              <motion.tr
+                key={m.uid}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: staggerDelay(i, 0.04) }}
+                onClick={() => onNavigateTab?.('tasks', { assignee: m.uid })}
+                role="button"
+                tabIndex={0}
+                aria-label={`${m.fullName} talimatlarını görüntüle`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onNavigateTab?.('tasks', { assignee: m.uid });
+                  }
+                }}
+                title="Bu yöneticinin talimatlarını görmek için tıklayın — Talimatlar'da sorumluya göre filtrelenir"
+                className="hover:bg-makam-glass transition-all duration-300 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-executive-blue"
+              >
+                {cells}
+              </motion.tr>
+            )}
+          />
         </div>
       </motion.div>
 
-    </div>
+    </PageShell>
   );
 };

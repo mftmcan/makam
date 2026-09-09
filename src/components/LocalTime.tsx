@@ -19,7 +19,7 @@ export const LocalTime = () => {
           {format(time, 'HH:mm:ss')}
         </span>
         <span className="w-[1px] h-3 bg-makam-border/10" />
-        <span className="text-micro font-medium text-text-muted uppercase tracking-[0.2em]">
+        <span className="text-micro font-medium text-text-muted uppercase tracking-caps">
           {format(time, 'd MMMM yyyy', { locale: tr })}
         </span>
       </div>
