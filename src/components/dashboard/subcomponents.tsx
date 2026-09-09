@@ -6,6 +6,7 @@ import { cn } from '../../lib/utils';
 import { Avatar } from '../ui/Avatar';
 import { Badge } from '../ui/Badge';
 import { RollingNumber } from '../ui/RollingNumber';
+import { SPRING_ROW, staggerDelay } from '../../lib/motion';
 import type { InterventionItem, UserPerformanceProfile } from '../../lib/executiveMetrics';
 
 // ─── Compact Stat Card ────────────────────────────────────────────────────────
@@ -34,7 +35,7 @@ export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index 
       type="button"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 28, delay: index * 0.06 }}
+      transition={{ ...SPRING_ROW, delay: staggerDelay(index, 0.06) }}
       whileHover={{ y: -3, scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
@@ -43,7 +44,7 @@ export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index 
         'bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl',
         'shadow-card hover:shadow-card-hover',
         'transition-all duration-300 hover:bg-surface-elevated hover:border-surface-border',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base',
         onClick && 'cursor-pointer'
       )}
     >
@@ -58,7 +59,7 @@ export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index 
 
       {/* Label + Value */}
       <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-        <span className="text-micro font-semibold text-text-tertiary uppercase tracking-[0.08em] leading-tight whitespace-normal">{label}</span>
+        <span className="text-micro font-semibold text-text-tertiary uppercase tracking-label leading-tight whitespace-normal">{label}</span>
         <div className="flex items-baseline gap-1 min-w-0">
           {/* value === 0 iken diğer aktif sayılarla (ör. Tamamlanan: 5) aynı
               görsel ağırlıkta duruyordu — sıfır değerler artık soluk, aktif
@@ -129,15 +130,15 @@ export const InterventionRow = ({ item, users, onView, index = 0 }: Intervention
       type="button"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 28, delay: index * 0.04 }}
+      transition={{ ...SPRING_ROW, delay: staggerDelay(index, 0.04) }}
       onClick={onView}
-      className="group w-full text-left grid grid-cols-[auto_1fr_auto] gap-3 p-3 rounded-xl border border-surface-border bg-surface-elevated/70 hover:bg-makam-glass hover:border-executive-blue/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
+      className="group w-full text-left grid grid-cols-[auto_1fr_auto] gap-3 p-3 rounded-xl border border-surface-border bg-surface-elevated/70 hover:bg-makam-glass hover:border-executive-blue/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
     >
       <div className="flex flex-col items-center gap-1">
         <div className={cn('w-11 h-11 rounded-xl border flex items-center justify-center font-display text-[16px] tabular-nums', riskTone[item.level])}>
           {item.score}
         </div>
-        <span className="text-micro text-text-tertiary uppercase tracking-[0.2em]">Risk</span>
+        <span className="text-micro text-text-tertiary uppercase tracking-caps">Risk</span>
       </div>
 
       <div className="min-w-0 flex flex-col gap-1.5">
@@ -152,7 +153,7 @@ export const InterventionRow = ({ item, users, onView, index = 0 }: Intervention
           <span className="text-micro text-text-muted truncate">{assignee?.fullName ?? 'Sorumlu bulunamadı'}</span>
           <span className="text-micro text-text-tertiary truncate">· {item.reasons.join(' · ')}</span>
         </div>
-        <span className="text-micro font-medium text-text-heading uppercase tracking-[0.18em]">{item.action}</span>
+        <span className="text-micro font-medium text-text-heading uppercase tracking-caps">{item.action}</span>
       </div>
 
       <div className="flex items-center justify-center">
@@ -185,13 +186,13 @@ export const PerformanceRow = ({ profile, index = 0 }: PerformanceRowProps) => {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 28, delay: index * 0.04 }}
+      transition={{ ...SPRING_ROW, delay: staggerDelay(index, 0.04) }}
       className="grid grid-cols-[auto_1fr_auto] gap-3 p-3 rounded-xl border border-surface-border bg-surface-elevated/70"
     >
       <Avatar name={profile.user.fullName} photoURL={profile.user.photoURL} size="md" />
       <div className="min-w-0 flex flex-col gap-1">
         <span className="text-body-sm font-medium text-executive-blue truncate font-display">{profile.user.fullName}</span>
-        <div className="flex flex-wrap gap-2 text-micro text-text-tertiary uppercase tracking-[0.15em]">
+        <div className="flex flex-wrap gap-2 text-micro text-text-tertiary uppercase tracking-label">
           <span>{profile.activeCount} aktif</span>
           <span>{profile.completedCount} icra</span>
           <span>{profile.overdueCount} gecikmiş</span>
@@ -201,7 +202,7 @@ export const PerformanceRow = ({ profile, index = 0 }: PerformanceRowProps) => {
       </div>
       <div className={cn('w-12 h-10 rounded-xl border flex flex-col items-center justify-center', loadTone)}>
         <span className="text-body font-semibold tabular-nums leading-none">{profile.loadScore}</span>
-        <span className="text-micro uppercase tracking-[0.16em]">Yük</span>
+        <span className="text-micro uppercase tracking-label">Yük</span>
       </div>
     </motion.div>
   );

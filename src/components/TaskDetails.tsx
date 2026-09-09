@@ -271,12 +271,12 @@ export const TaskDetails = ({
           <div className="ml-auto flex items-center gap-3">
             {(isAdmin || isManager) && (
               <div className="flex items-center bg-makam-glass backdrop-blur-2xl rounded-full p-1 border border-surface-border shadow-sm">
-                <button onClick={onEdit} className="px-4 py-2 rounded-full text-micro font-medium text-text-muted hover:text-executive-blue transition-colors uppercase tracking-[0.2em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2">
+                <button onClick={onEdit} className="px-4 py-2 rounded-full text-micro font-medium text-text-muted hover:text-executive-blue transition-colors uppercase tracking-caps focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2">
                   <Edit2 className="w-3.5 h-3.5 inline mr-2" />
                   Düzenle
                 </button>
                 <div className="w-[1px] h-3 bg-makam-border/10 mx-1" />
-                <button onClick={() => setIsDeleteConfirmOpen(true)} className="px-4 py-2 rounded-full text-micro font-medium text-text-muted hover:text-status-danger transition-colors uppercase tracking-[0.2em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2">
+                <button onClick={() => setIsDeleteConfirmOpen(true)} className="px-4 py-2 rounded-full text-micro font-medium text-text-muted hover:text-status-danger transition-colors uppercase tracking-caps focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2">
                   <Trash2 className="w-3.5 h-3.5 inline mr-2" />
                   Sil
                 </button>
@@ -316,7 +316,7 @@ export const TaskDetails = ({
                      <span className="text-micro font-bold">{idx + 1}</span>}
                   </div>
                   <span className={cn(
-                    'text-micro font-medium uppercase tracking-[0.18em] whitespace-nowrap',
+                    'text-micro font-medium uppercase tracking-caps whitespace-nowrap',
                     isCompleted ? 'text-status-success' :
                     isActive && isInterruption ? 'text-status-danger' :
                     isActive && isDelegation ? 'text-[color:var(--gold-text)]' :

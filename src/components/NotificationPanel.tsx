@@ -75,14 +75,14 @@ export function NotificationPanel({
                  bg-surface-elevated backdrop-blur-2xl
                  border border-surface-border
                  rounded-2xl
-                 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.18)]
+                 shadow-popover
                  overflow-hidden"
     >
       {/* Panel header */}
       <div className="px-4 py-3 border-b border-executive-blue/[0.04] flex items-center justify-between">
         <div className="flex items-center gap-2">
           <AlertCircle className="w-3.5 h-3.5 text-status-danger" />
-          <span className="text-micro font-medium text-status-danger uppercase tracking-[0.35em]">
+          <span className="text-micro font-medium text-status-danger uppercase tracking-eyebrow">
             Bekleyen Kurumsal Talimatlar
           </span>
         </div>
@@ -93,7 +93,7 @@ export function NotificationPanel({
             await markAllNotificationsRead(notifications.map(n => n.id));
             setIsNotificationsOpen(false);
           }}
-          className="text-micro text-text-tertiary hover:text-executive-blue uppercase tracking-[0.25em] font-medium transition-colors px-2 py-1 rounded-lg hover:bg-surface-glass"
+          className="text-micro text-text-tertiary hover:text-executive-blue uppercase tracking-caps font-medium transition-colors px-2 py-1 rounded-lg hover:bg-surface-glass"
         >
           Tamamını Okundu Say
         </button>
@@ -119,7 +119,7 @@ export function NotificationPanel({
                 <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className={cn(
-                      'text-micro font-bold uppercase tracking-[0.3em] px-1.5 py-0.5 rounded-full',
+                      'text-micro font-bold uppercase tracking-eyebrow px-1.5 py-0.5 rounded-full',
                       isCrisis  ? 'bg-status-danger/20 text-status-danger' :
                       isWarning ? 'bg-executive-gold/10 text-[color:var(--gold-text)]' :
                       'bg-executive-blue/5 text-executive-blue'
@@ -136,7 +136,7 @@ export function NotificationPanel({
                 </div>
               </div>
               <div className="flex items-center justify-between pl-8 gap-2">
-                <span className="text-micro text-text-tertiary uppercase tracking-[0.2em]">
+                <span className="text-micro text-text-tertiary uppercase tracking-caps">
                   {isCrisis
                     ? "→ Talimatlar'da atıl talimatları denetleyin"
                     : hasTask
@@ -152,7 +152,7 @@ export function NotificationPanel({
                         await markNotificationRead(n.id);
                         setIsNotificationsOpen(false);
                       }}
-                      className="px-2.5 py-1 text-micro font-medium text-[color:var(--executive-blue-text)] bg-executive-blue rounded-lg uppercase tracking-[0.2em] hover:opacity-85 transition-opacity"
+                      className="px-2.5 py-1 text-micro font-medium text-[color:var(--executive-blue-text)] bg-executive-blue rounded-lg uppercase tracking-caps hover:opacity-85 transition-opacity"
                     >
                       Talimata Git
                     </button>
@@ -160,7 +160,7 @@ export function NotificationPanel({
                   {isCrisis && !hasTask && (
                     <button
                       onClick={(e) => { e.stopPropagation(); goToTab('tasks'); setIsNotificationsOpen(false); }}
-                      className="px-2.5 py-1 text-micro font-medium text-[color:var(--status-danger-text)] bg-status-danger rounded-lg uppercase tracking-[0.2em] hover:opacity-85 transition-opacity"
+                      className="px-2.5 py-1 text-micro font-medium text-[color:var(--status-danger-text)] bg-status-danger rounded-lg uppercase tracking-caps hover:opacity-85 transition-opacity"
                     >
                       Talimatlara Git
                     </button>
@@ -170,7 +170,7 @@ export function NotificationPanel({
                       e.stopPropagation();
                       await markNotificationRead(n.id);
                     }}
-                    className="px-2.5 py-1 text-micro font-medium text-text-tertiary bg-surface-glass border border-surface-border rounded-lg uppercase tracking-[0.2em] hover:text-executive-blue hover:bg-surface-elevated transition-colors"
+                    className="px-2.5 py-1 text-micro font-medium text-text-tertiary bg-surface-glass border border-surface-border rounded-lg uppercase tracking-caps hover:text-executive-blue hover:bg-surface-elevated transition-colors"
                   >
                     Okundu
                   </button>
@@ -183,7 +183,7 @@ export function NotificationPanel({
 
       {/* Panel footer */}
       <div className="px-4 py-2.5 border-t border-executive-blue/[0.04] bg-surface-glass">
-        <p className="text-micro text-text-tertiary uppercase tracking-[0.25em] text-center">
+        <p className="text-micro text-text-tertiary uppercase tracking-caps text-center">
           Okundu sayılan talimatlar listeden kaldırılır
         </p>
       </div>

@@ -17,7 +17,7 @@ interface CommentsTabProps {
 export const CommentsTab = ({ task, users, newComment, setNewComment, isSubmittingComment, onAddComment }: CommentsTabProps) => (
   <div role="tabpanel" id="task-tabpanel-comments" aria-labelledby="task-tab-comments" className="flex flex-col gap-6">
     <div className="flex flex-col gap-4">
-      <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Yorumlar & Koordinasyon Notları</h4>
+      <h4 className="text-micro font-medium text-text-muted uppercase tracking-caps">Yorumlar & Koordinasyon Notları</h4>
       <div className="flex flex-col gap-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
         {(!task.comments || task.comments.length === 0) ? (
           <EmptyState icon={<MessageSquare className="w-8 h-8" />} message="Henüz yorum girilmemiş" />

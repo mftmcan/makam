@@ -115,12 +115,12 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
               className="fixed bottom-24 right-4 left-auto z-[80] lg:hidden
                          bg-makam-glass backdrop-blur-3xl backdrop-saturate-[180%]
                          border border-surface-border
-                         rounded-[22px] shadow-[0_20px_60px_-12px_rgba(22,21,19,0.14)]
+                         rounded-[22px] shadow-sheet
                          overflow-hidden min-w-[190px] max-w-[calc(100vw-2rem)]"
             >
               {/* Panel başlık */}
               <div className="px-4 py-2.5 border-b border-executive-blue/[0.04]">
-                <span className="text-micro text-text-muted/70 uppercase tracking-[0.16em] font-medium truncate block">
+                <span className="text-micro text-text-muted/70 uppercase tracking-label font-medium truncate block">
                   Ek Modüller
                 </span>
               </div>
@@ -136,7 +136,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
                     onClick={handleSelect}
                     aria-label={badgeCount ? `${item.label}, ${badgeCount} bekleyen bildirim` : item.label}
                     className={({ isActive }) => cn(
-                      'flex items-center gap-3 w-full px-4 py-3.5 transition-all duration-200 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-inset',
+                      'flex items-center gap-3 w-full px-4 py-3.5 touch-manipulation transition-all duration-200 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-inset',
                       isActive
                         ? 'bg-executive-blue/5 text-executive-blue'
                         : 'text-text-muted hover:bg-executive-blue/[0.03] hover:text-text-heading'
@@ -176,7 +176,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
               <div className="border-t border-executive-blue/[0.04]">
                 <button
                   onClick={onLogout}
-                  className="flex items-center gap-3 w-full px-4 py-3.5 transition-all duration-200
+                  className="flex items-center gap-3 w-full px-4 py-3.5 touch-manipulation transition-all duration-200
                              text-status-danger/70 hover:text-status-danger hover:bg-status-danger/10"
                 >
                   <LogOut className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
@@ -190,13 +190,16 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
 
       {/* ─── DOCK BAR ───────────────────────────────────────────────── */}
       <nav
-        className="fixed bottom-4 left-4 right-4 z-[60] lg:hidden"
+        className="fixed bottom-4 left-4 right-4 z-[60] lg:hidden touch-manipulation"
         aria-label="Mobil navigasyon"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom) - 12px, 0px)' }}
       >
         <div
           className={cn(
-            'flex items-stretch gap-1 px-2.5 sm:px-3 py-1.5',
+            // gap-1(4px)->1.5(6px): dar telefonlarda bitişik öğeye yanlış
+            // dokunma riskini azaltmak için (bkz. mobil dokunma hassasiyeti
+            // denetimi) — Apple HIG/Material'ın önerdiği ≥8px'e yaklaştırır.
+            'flex items-stretch gap-1.5 px-2.5 sm:px-3 py-1.5',
             'bg-makam-glass backdrop-blur-[30px] backdrop-saturate-[180%]',
             'border border-surface-border',
             'rounded-[28px]',
@@ -218,8 +221,13 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
                 // callback'i isActive'e ihtiyaç duymaz.
                 className={cn(
                   'flex flex-col items-center justify-center',
-                  'gap-1 py-2.5 rounded-xl transition-all duration-300',
-                  'relative min-w-0 group active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-1',
+                  // min-h-12(48px): Material'ın dokunma hedefi eşiğini açıkça
+                  // garanti eder (mevcut py-2.5+ikon+etiket yüksekliğiyle
+                  // görsel fark yaratmaz). active:duration-75: büzülme geri
+                  // bildirimi renk/zemin geçişinin 300ms'inden bağımsız
+                  // hızlansın diye — aksi halde dokunuş "gecikmeli" hissediyor.
+                  'gap-1 py-2.5 min-h-12 rounded-xl transition-all duration-300 active:duration-75',
+                  'relative min-w-0 group touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-1',
                   isCompact ? 'w-20 sm:w-24 shrink-0' : 'flex-1 px-0.5 sm:px-1'
                 )}
               >
@@ -308,8 +316,8 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
               aria-haspopup="true"
               className={cn(
                 'flex flex-col items-center justify-center',
-                'gap-1 py-2.5 rounded-xl transition-all duration-300',
-                'relative min-w-0 group active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-1',
+                'gap-1 py-2.5 min-h-12 rounded-xl transition-all duration-300 active:duration-75',
+                'relative min-w-0 group touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-1',
                 isCompact ? 'w-20 sm:w-24 shrink-0' : 'flex-1 px-0.5 sm:px-1'
               )}
             >

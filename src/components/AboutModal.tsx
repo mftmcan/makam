@@ -54,9 +54,9 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
             transition={{ duration: 0.7, delay: 0.15, ease: EASE }}
             className="flex flex-col items-center gap-2"
           >
-            <h2 className="text-2xl font-serif text-text-heading tracking-tight">MAKAM Stratejik Yönetim</h2>
+            <h2 className="text-2xl font-display text-text-heading tracking-tight">MAKAM Stratejik Yönetim</h2>
             <div className="w-10 h-px bg-gradient-to-r from-transparent via-executive-gold/60 to-transparent" />
-            <span className="text-micro uppercase tracking-[0.22em] text-[color:var(--gold-text)] font-medium mt-1">Sürüm v2.3.0</span>
+            <span className="text-micro uppercase tracking-caps text-[color:var(--gold-text)] font-medium mt-1">Sürüm v2.3.0</span>
           </motion.div>
 
           <motion.p

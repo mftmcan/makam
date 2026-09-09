@@ -226,7 +226,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
       <div className="flex flex-col gap-8">
         {/* Başlık */}
         <div className="flex flex-col gap-3">
-          <label htmlFor="task-title-input" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+          <label htmlFor="task-title-input" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
             <Target className="w-3.5 h-3.5 text-[color:var(--gold-text)] stroke-[1.2]" />
             Operasyonel Hedef
           </label>
@@ -238,7 +238,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
             aria-invalid={errors.title ? true : undefined}
             aria-describedby={errors.title ? "task-title-error" : undefined}
             className={cn(
-              "text-[28px] font-light text-text-heading font-serif tracking-tight outline-none bg-field-surface placeholder:text-text-muted/30 w-full border-b border-text-muted/20 pb-3 transition-colors focus:border-executive-blue/50 rounded-t-sm focus-visible:ring-2 focus-visible:ring-executive-blue/40 focus-visible:ring-offset-2",
+              "text-[28px] font-light text-text-heading font-display tracking-tight outline-none bg-field-surface placeholder:text-text-muted/30 w-full border-b border-text-muted/20 pb-3 transition-colors focus:border-executive-blue/50 rounded-t-sm focus-visible:ring-2 focus-visible:ring-executive-blue/40 focus-visible:ring-offset-2",
               errors.title && "border-status-danger/50 focus:border-status-danger/50"
             )}
           />
@@ -247,7 +247,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
         
         {/* Açıklama */}
         <div className="flex flex-col gap-3">
-          <label htmlFor="task-description-textarea" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+          <label htmlFor="task-description-textarea" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
             <FileText className="w-3.5 h-3.5 text-executive-blue stroke-[1.2]" />
             Kapsam & Detaylar
           </label>
@@ -268,7 +268,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
         {/* Görevlendirmeler */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="flex flex-col gap-3">
-             <label htmlFor="task-assignee-select" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+             <label htmlFor="task-assignee-select" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
                <Users className="w-3.5 h-3.5 text-executive-blue stroke-[1.2]" />
                Sorumlu
              </label>
@@ -303,7 +303,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
           </div>
 
           <div className="flex flex-col gap-3">
-             <label htmlFor="task-coordinator-select" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+             <label htmlFor="task-coordinator-select" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
                <Users className="w-3.5 h-3.5 text-text-muted/40 stroke-[1.2]" />
                İrtibatlı
              </label>
@@ -333,7 +333,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
 
           {needsExplicitDepartment && (
             <div className="flex flex-col gap-3 md:col-span-2">
-              <label htmlFor="task-department-select" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+              <label htmlFor="task-department-select" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
                 <Building className="w-3.5 h-3.5 text-[color:var(--gold-text)] stroke-[1.2]" />
                 Sorumlu Birim
               </label>
@@ -361,7 +361,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
           )}
 
           <div className="flex flex-col gap-3">
-             <label htmlFor="task-priority-select" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+             <label htmlFor="task-priority-select" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
                <AlertCircle className="w-3.5 h-3.5 text-[color:var(--gold-text)] stroke-[1.2]" />
                Öncelik
              </label>
@@ -380,7 +380,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
           </div>
 
           <div className="flex flex-col gap-3">
-            <label htmlFor="task-deadline" className="text-micro font-semibold text-text-muted uppercase tracking-[0.18em] px-1 flex items-center gap-2.5">
+            <label htmlFor="task-deadline" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
               <Calendar className="w-3.5 h-3.5 text-executive-blue stroke-[1.2]" />
               SLA Mühleti
             </label>
@@ -421,7 +421,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
         <Button
           type="submit"
           isLoading={isSubmitting}
-          className="px-12 h-14 font-semibold tracking-[0.16em]"
+          className="px-12 h-14 font-semibold tracking-label"
         >
           {task ? 'GÜNCELLE' : 'ATAMAYI TAMAMLA'}
         </Button>

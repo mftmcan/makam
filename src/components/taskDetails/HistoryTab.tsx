@@ -19,7 +19,7 @@ interface HistoryTabProps {
 
 export const HistoryTab = ({ loadingLogs, logsError, localLogs, users, onRetry }: HistoryTabProps) => (
   <div role="tabpanel" id="task-tabpanel-history" aria-labelledby="task-tab-history" className="flex flex-col gap-4">
-    <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Operasyonel Denetim İzleri</h4>
+    <h4 className="text-micro font-medium text-text-muted uppercase tracking-caps">Operasyonel Denetim İzleri</h4>
     <div className="flex flex-col gap-3">
       {loadingLogs ? (
         <div className="py-16 flex justify-center items-center">
@@ -28,7 +28,7 @@ export const HistoryTab = ({ loadingLogs, logsError, localLogs, users, onRetry }
       ) : logsError ? (
         <div className="py-12 px-4 flex flex-col items-center justify-center gap-3 bg-status-danger/5 border border-dashed border-status-danger/20 rounded-2xl text-center">
           <AlertTriangle className="w-5 h-5 text-status-danger" aria-hidden="true" />
-          <span className="text-micro text-status-danger font-medium uppercase tracking-[0.18em]">
+          <span className="text-micro text-status-danger font-medium uppercase tracking-caps">
             Denetim izleri yüklenemedi
           </span>
           <button
@@ -72,7 +72,7 @@ export const HistoryTab = ({ loadingLogs, logsError, localLogs, users, onRetry }
                       const label = AUDIT_FIELD_LABELS[field] ?? field;
                       return (
                         <div key={field} className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-micro font-medium text-text-tertiary uppercase tracking-[0.2em] bg-surface-glass px-1.5 py-0.5 rounded border border-surface-border">
+                          <span className="text-micro font-medium text-text-tertiary uppercase tracking-caps bg-surface-glass px-1.5 py-0.5 rounded border border-surface-border">
                             {label}
                           </span>
                           <span className="text-micro text-status-danger/70 line-through">{formatAuditValue(field, change.old, users)}</span>

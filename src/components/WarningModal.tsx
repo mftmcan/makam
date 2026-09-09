@@ -10,8 +10,8 @@ interface WarningModalProps {
 
 export const WarningModal = ({ task, assignee, onClose }: WarningModalProps) => (
   <FormalDocumentModal variant="warning" onClose={onClose}>
-    <p className="text-[14px] md:text-[16px] text-text-muted font-light font-serif">İlgili Personel,</p>
-    <p className="text-2xl md:text-4xl font-light text-text-heading tracking-tight font-serif border-b-2 border-status-danger/10 pb-3 md:pb-4 w-fit mx-auto">
+    <p className="text-[14px] md:text-[16px] text-text-muted font-light font-display">İlgili Personel,</p>
+    <p className="text-2xl md:text-4xl font-light text-text-heading tracking-tight font-display border-b-2 border-status-danger/10 pb-3 md:pb-4 w-fit mx-auto">
       {assignee?.fullName || 'İlgili Personel'}
     </p>
     <div className="flex flex-col gap-4 text-[14px] md:text-[15px] text-text-muted leading-relaxed max-w-lg mx-auto font-light text-left">

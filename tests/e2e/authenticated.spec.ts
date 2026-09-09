@@ -35,6 +35,15 @@ test.describe('MAKAM E2E — Kimlik Doğrulamalı Akışlar', () => {
       window.localStorage.setItem(`makam-onboarding-seen-${uid}`, '1');
     }, seededUid);
 
+    // visual.spec.ts'teki AYNI gerekçe: MotionConfig reducedMotion="user"
+    // (App.tsx) framer-motion animasyonlarını bu emülasyonla anında bitirir.
+    // Bunsuz, a11y taraması altındaki sabit waitForTimeout bazı ekranlarda
+    // (ör. Raporlar'ın en geç biten, delay:0.4 spring'li son paneli) hâlâ
+    // opacity-geçişte yakalanabiliyordu — gerçek bir kontrast hatası değil,
+    // axe'ın saydam bir elementi tarayıp yanlışlıkla "düşük kontrast"
+    // raporlaması (bkz. kod denetimi: Raporlar sekmesi a11y testi flaky idi).
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+
     await page.goto(`/?e2e_token=${e2eToken}`);
     // Harekat Merkezi (Dashboard) sekmesinin görünmesini bekle — giriş başarılı demektir
     await expect(page.getByText('Stratejik Sağlık Endeksi')).toBeVisible({ timeout: 15000 });
@@ -72,7 +81,16 @@ test.describe('MAKAM E2E — Kimlik Doğrulamalı Akışlar', () => {
       // Sekmeler arası geçişte kademeli (staggered) spring animasyonları var
       // (bkz. Dashboard a11y testindeki AYNI gerekçe) — sabit duruma gelmesini
       // bekliyoruz ki axe geçici, yanıltıcı düşük-opaklık "ihlalleri" yakalamasın.
-      await page.waitForTimeout(1200);
+      // emulateMedia({reducedMotion:'reduce'}) (beforeEach) framer-motion'ın
+      // transform tabanlı animasyonlarını (x/y/scale) anında bitiriyor ama
+      // opacity fade'ini HER ZAMAN sıfırlamıyor — en geç biten panelin (ör.
+      // Raporlar'daki delay:0.4 spring'i) eskiden 1200ms'i bazen aşıyordu
+      // (flaky "düşük kontrast" yanlış pozitifi, bkz. kod denetimi). Bir
+      // DOM-polling waitForFunction denendi ama sayfada kalıcı olarak
+      // opacity:0 taşıyan başka (animasyonsuz) öğeler olduğundan koşul hiç
+      // sağlanmadı ve test suite'ini ciddi biçimde yavaşlattı — geri alındı.
+      // Basit sabit bekleme süresini artırmak yeterli ve öngörülebilir.
+      await page.waitForTimeout(2000);
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
         .analyze();

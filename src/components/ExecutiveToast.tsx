@@ -164,7 +164,7 @@ export const ExecutiveToast: React.FC<ExecutiveToastProps> = ({ toast, onClose, 
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-caption font-medium text-text-heading uppercase tracking-[0.2em] font-serif">
+            <p className="text-caption font-medium text-text-heading uppercase tracking-caps font-display">
               {toast.title}
             </p>
             <p className="mt-1 text-body font-light text-text-muted leading-relaxed">

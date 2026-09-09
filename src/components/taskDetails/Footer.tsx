@@ -118,7 +118,7 @@ export const TaskDetailsFooter = ({ task, currentUser, onStatusChange }: {
     <div className="flex flex-col md:flex-row md:items-end gap-4">
       {action.collectsEvidence && (
         <div className="flex flex-col gap-2 flex-1 min-w-0">
-          <span className="text-micro font-medium text-text-muted uppercase tracking-[0.18em] inline-flex items-center gap-1.5">
+          <span className="text-micro font-medium text-text-muted uppercase tracking-caps inline-flex items-center gap-1.5">
             İcra Kanıtı <span className="normal-case tracking-normal font-light">(isteğe bağlı)</span>
             <Tooltip content="İşin nasıl tamamlandığını belgeler — denetim izlerinde ve olası itirazlarda referans olarak kullanılır.">
               <Info className="w-3 h-3 text-text-tertiary cursor-help" aria-label="Kanıt neden önemli" />

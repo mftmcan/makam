@@ -6,6 +6,9 @@ import { Input } from './ui/Input';
 import { Modal } from './ui/Modal';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 import { Badge } from './ui/Badge';
+import { PageHeader } from './ui/PageHeader';
+import { PageShell } from './ui/PageShell';
+import { SPRING_ROW, staggerDelay } from '../lib/motion';
 import { Skeleton, TableRowSkeleton } from './ui/Skeleton';
 import { cn, formatTimeAgo, formatDate, buildUsersById } from '../lib/utils';
 import { motion } from 'motion/react';
@@ -59,7 +62,7 @@ const BlockerCard = ({ blocker, index, tasksById, usersById, isAdmin, isSystemAd
       aria-label={task?.title ?? blocker.reason}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 28, delay: index * 0.05 }}
+      transition={{ ...SPRING_ROW, delay: staggerDelay(index, 0.05) }}
       onClick={() => task && onViewTask(task)}
       onKeyDown={(e) => {
         // e.target === e.currentTarget: içteki Düzenle/Sil/Çözüldü butonlarına
@@ -95,13 +98,13 @@ const BlockerCard = ({ blocker, index, tasksById, usersById, isAdmin, isSystemAd
         </div>
         <div className="flex flex-col gap-0.5 flex-1 min-w-0">
           <p className={cn(
-            'text-body-sm font-medium line-clamp-2 leading-snug tracking-tight font-serif',
+            'text-body-sm font-medium line-clamp-2 leading-snug tracking-tight font-display',
             blocker.isResolved ? 'text-text-muted' : 'text-executive-blue group-hover:text-status-danger'
           )}>
             {blocker.reason}
           </p>
           <div className="flex flex-wrap items-center gap-1.5 mt-1">
-            <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.2em] truncate">
+            <span className="text-micro text-text-tertiary font-medium uppercase tracking-caps truncate">
               {task?.title || 'Bilinmeyen Talimat'}
             </span>
             <span className="text-micro text-text-tertiary/40">•</span>
@@ -120,7 +123,7 @@ const BlockerCard = ({ blocker, index, tasksById, usersById, isAdmin, isSystemAd
           </div>
         </div>
         <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-          <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.15em]">
+          <span className="text-micro text-text-tertiary font-medium uppercase tracking-label">
             {formatDate(blocker.createdAt)}
           </span>
           <span className="text-micro text-text-tertiary">{formatTimeAgo(blocker.createdAt)}</span>
@@ -161,7 +164,7 @@ const BlockerCard = ({ blocker, index, tasksById, usersById, isAdmin, isSystemAd
           )}
           {!blocker.isResolved && isAdmin && (
             <button
-              className="px-3 py-1.5 text-micro bg-status-success hover:opacity-90 text-[color:var(--status-success-text)] font-medium uppercase tracking-[0.2em] rounded-lg shadow-sm transition-all active:scale-95"
+              className="px-3 py-1.5 text-micro bg-status-success hover:opacity-90 text-[color:var(--status-success-text)] font-medium uppercase tracking-caps rounded-lg shadow-sm transition-all active:scale-95"
               onClick={(e) => { e.stopPropagation(); onResolve(blocker.id); }}
             >
               Çözüldü
@@ -195,7 +198,7 @@ interface BlockerListProps {
 // kısa süre tamamen boş kalıyordu — "0 aktif engel" boş-durumuyla ayırt
 // edilemediğinden "uygulama çöktü" izlenimi veriyordu (bkz. tasarım denetimi).
 const BlockerListSkeleton = () => (
-  <div className="flex flex-col gap-5 py-4 max-w-[1440px] mx-auto font-sans" aria-label="Yükleniyor..." role="status">
+  <PageShell aria-label="Yükleniyor..." role="status">
     <div className="flex items-center gap-2.5 pb-4 border-b border-executive-blue/[0.04]">
       <Skeleton className="w-8 h-8" rounded="lg" />
       <div className="flex flex-col gap-1.5">
@@ -213,7 +216,7 @@ const BlockerListSkeleton = () => (
         </div>
       ))}
     </div>
-  </div>
+  </PageShell>
 );
 
 export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin, isSystemAdmin = false, isLoading = false, onResolve, onEditBlocker, onDeleteBlocker, onViewTask }: BlockerListProps) => {
@@ -271,31 +274,16 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
   if (isLoading) return <BlockerListSkeleton />;
 
   return (
-    <div className="flex flex-col gap-5 py-4 max-w-[1440px] mx-auto font-sans">
+    <PageShell>
 
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2.5 pb-4 border-b border-executive-blue/[0.04]">
-        <div className={cn(
-          "w-8 h-8 rounded-xl flex items-center justify-center shadow-lg",
-          activeBlockers.length > 0 ? "bg-status-danger" : "bg-status-success/15"
-        )}>
-          <AlertTriangle className={cn(
-            "w-4 h-4 stroke-[1.5]",
-            activeBlockers.length > 0 ? "text-[color:var(--status-danger-text)]" : "text-status-success"
-          )} />
-        </div>
-        <div>
-          <span className={cn(
-            "text-micro font-medium uppercase tracking-[0.4em] block leading-none",
-            activeBlockers.length > 0 ? "text-status-danger" : "text-text-heading"
-          )}>
-            OPERASYONEL KRİZ YÖNETİMİ
-          </span>
-          <span className="text-micro text-text-tertiary uppercase tracking-[0.3em]">
-            {activeBlockers.length} Aktif Engel
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        icon={AlertTriangle}
+        tone={activeBlockers.length > 0 ? 'danger' : 'success'}
+        titleTone={activeBlockers.length > 0 ? 'danger' : 'heading'}
+        title="OPERASYONEL KRİZ YÖNETİMİ"
+        subtitle={`${activeBlockers.length} Aktif Engel`}
+      />
 
       {/* ── Two-column blocker panels ────────────────────────────── */}
       {/* Mobile: stacked | Desktop: 2 col */}
@@ -305,7 +293,7 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className={cn("w-3.5 h-3.5 stroke-[1.5]", activeBlockers.length > 0 ? "text-status-danger" : "text-text-tertiary")} />
-            <h3 className={cn("text-micro font-medium uppercase tracking-[0.35em]", activeBlockers.length > 0 ? "text-status-danger" : "text-text-tertiary")}>
+            <h3 className={cn("text-micro font-medium uppercase tracking-eyebrow", activeBlockers.length > 0 ? "text-status-danger" : "text-text-tertiary")}>
               Aktif Kriz Engelleri
             </h3>
             <span className={cn(
@@ -345,7 +333,7 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-3.5 h-3.5 text-text-tertiary stroke-[1.5]" />
-            <h3 className="text-micro font-medium text-text-tertiary uppercase tracking-[0.35em]">
+            <h3 className="text-micro font-medium text-text-tertiary uppercase tracking-eyebrow">
               Çözüme Ulaşanlar
             </h3>
             <span className="px-2 py-0.5 rounded-full bg-surface-base text-text-tertiary border border-surface-border text-micro font-bold">
@@ -382,7 +370,7 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
       {/* ── Özet şeridi ────────────────────────────────────────────── */}
       <div className="flex items-center justify-center gap-2 py-3 border-t border-executive-blue/[0.04]">
         <ShieldCheck className="w-3.5 h-3.5 text-status-success/60 stroke-[1.5]" />
-        <span className="text-micro text-text-tertiary uppercase tracking-[0.3em]">
+        <span className="text-micro text-text-tertiary uppercase tracking-eyebrow">
           Son 30 günde {resolvedLast30Days} engel çözüldü · {trackedTaskCount} talimat izleniyor
         </span>
       </div>
@@ -412,6 +400,6 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
           }
         }}
       />
-    </div>
+    </PageShell>
   );
 };

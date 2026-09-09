@@ -38,7 +38,7 @@ export const InfoTab = ({
   <div role="tabpanel" id="task-tabpanel-info" aria-labelledby="task-tab-info" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <div className="lg:col-span-2 flex flex-col gap-6">
       <div className="flex flex-col gap-3">
-        <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em] flex items-center gap-2">
+        <h4 className="text-micro font-medium text-text-muted uppercase tracking-caps flex items-center gap-2">
           <FileText className="w-3 h-3 text-executive-blue" />
           Stratejik Açıklama
         </h4>
@@ -65,7 +65,7 @@ export const InfoTab = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="flex flex-col gap-4">
-          <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Sorumlu Kadro</h4>
+          <h4 className="text-micro font-medium text-text-muted uppercase tracking-caps">Sorumlu Kadro</h4>
           <div className="flex flex-col gap-3">
             {[
               { u: creator,     l: 'Oluşturan',   ring: 'ring-executive-gold/30' },
@@ -83,7 +83,7 @@ export const InfoTab = ({
                 />
                 <div className="flex flex-col gap-0.5 flex-1">
                   <span className="text-body-sm font-medium text-executive-blue tracking-tight">{item.u?.fullName}</span>
-                  <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.2em]">{item.l}</span>
+                  <span className="text-micro text-text-tertiary font-medium uppercase tracking-caps">{item.l}</span>
                 </div>
                 {/* Koordinatör Admin ise uyarı + temizle */}
                 {item.l === 'İrtibatlı' && coordinatorIsAdmin && (isAdmin || isManager) && (
@@ -118,7 +118,7 @@ export const InfoTab = ({
                 </div>
                 <div className="flex flex-col gap-0.5 flex-1">
                   <span className="text-body-sm font-medium text-executive-blue tracking-tight">{task.departmentId}</span>
-                  <span className="text-micro text-text-tertiary font-medium uppercase tracking-[0.2em]">Sorumlu Birim</span>
+                  <span className="text-micro text-text-tertiary font-medium uppercase tracking-caps">Sorumlu Birim</span>
                 </div>
               </div>
             )}
@@ -127,7 +127,7 @@ export const InfoTab = ({
 
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-1.5">
-            <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Zaman Yönetimi</h4>
+            <h4 className="text-micro font-medium text-text-muted uppercase tracking-caps">Zaman Yönetimi</h4>
             <Tooltip content="Mühlet yalnızca mesai saatleri (09:00–18:00) içinde işler; hafta sonu/resmî tatiller ve Engellendi/Onay Sürecinde geçen süre sayılmaz.">
               <Info className="w-3 h-3 text-text-tertiary cursor-help" aria-label="Mühlet hesaplama kuralı" />
             </Tooltip>
@@ -135,7 +135,7 @@ export const InfoTab = ({
           <div className="p-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-xl flex items-center gap-3">
             <Calendar className="w-4 h-4 text-[color:var(--gold-text)] stroke-[1.3] flex-shrink-0" />
             <div className="flex flex-col gap-0.5">
-              <span className="text-micro font-medium text-text-tertiary uppercase tracking-[0.2em]">Bitiş Tarihi</span>
+              <span className="text-micro font-medium text-text-tertiary uppercase tracking-caps">Bitiş Tarihi</span>
               <p className="text-body font-medium text-executive-blue">
                 {format(task.deadline, 'd MMMM yyyy', { locale: tr })}
               </p>
@@ -155,7 +155,7 @@ export const InfoTab = ({
             <div className="p-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-xl flex items-center gap-3">
               <Clock className="w-4 h-4 text-[color:var(--gold-text)] stroke-[1.3] flex-shrink-0" aria-hidden="true" />
               <div className="flex flex-col gap-0.5">
-                <span className="text-micro font-medium text-text-tertiary uppercase tracking-[0.2em]">Tahmini Efor</span>
+                <span className="text-micro font-medium text-text-tertiary uppercase tracking-caps">Tahmini Efor</span>
                 <p className="text-body font-medium text-executive-blue tabular-nums">
                   {task.estimatedHours} saat
                 </p>
@@ -174,7 +174,7 @@ export const InfoTab = ({
         task.status === 'CANCELLED' ||
         (task.status === 'AWAITING_APPROVAL' && !isAdmin)) && (
         <div className="flex flex-col gap-4">
-          <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Durum Bilgisi</h4>
+          <h4 className="text-micro font-medium text-text-muted uppercase tracking-caps">Durum Bilgisi</h4>
           <div className="flex flex-col gap-2.5">
             {task.status === 'PENDING_DELEGATION' && (
               <div className="flex flex-col items-center gap-3 py-4 px-3 bg-executive-gold/[0.06] border border-dashed border-executive-gold/25 rounded-2xl">
@@ -222,7 +222,7 @@ export const InfoTab = ({
       {/* #7 - Sonuç Belgeleri: Liyakat/İkaz belgeleri ve icra kanıtı */}
       {((task.status === 'COMPLETED' && task.completedAt) || task.evidence) && (
         <div className="flex flex-col gap-4">
-          <h4 className="text-micro font-medium text-text-muted uppercase tracking-[0.18em]">Sonuç Belgeleri</h4>
+          <h4 className="text-micro font-medium text-text-muted uppercase tracking-caps">Sonuç Belgeleri</h4>
           <div className="p-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl flex flex-col gap-2">
             {task.status === 'COMPLETED' && task.completedAt && task.completedAt <= task.deadline && (
               <Tooltip content="Mühleti içinde tamamlanan talimatlar için otomatik olarak hazırlanır." side="bottom" className="w-full">

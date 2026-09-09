@@ -10,8 +10,8 @@ interface CertificateModalProps {
 
 export const CertificateModal = ({ task, assignee, onClose }: CertificateModalProps) => (
   <FormalDocumentModal variant="certificate" onClose={onClose}>
-    <p className="text-[14px] md:text-[16px] text-text-muted font-light font-serif">Sayın,</p>
-    <p className="text-2xl md:text-4xl font-light text-text-heading tracking-tight font-serif border-b-2 border-executive-gold/10 pb-3 md:pb-4 w-fit mx-auto">
+    <p className="text-[14px] md:text-[16px] text-text-muted font-light font-display">Sayın,</p>
+    <p className="text-2xl md:text-4xl font-light text-text-heading tracking-tight font-display border-b-2 border-executive-gold/10 pb-3 md:pb-4 w-fit mx-auto">
       {assignee?.fullName || 'Başarılı Personel'}
     </p>
     <p className="text-[14px] md:text-[15px] text-text-muted leading-relaxed max-w-lg mx-auto font-light">

@@ -89,13 +89,13 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
 
           <div className="flex flex-col gap-2">
-            <h3 className="text-lg font-light text-text-heading tracking-tight font-serif uppercase">Modül Yüklenemedi</h3>
+            <h3 className="text-lg font-light text-text-heading tracking-tight font-display uppercase">Modül Yüklenemedi</h3>
             <p className="text-text-muted text-body font-light leading-relaxed">
               {message}
             </p>
             {isFirebaseError && (
               <div className="inline-flex mx-auto mt-2 px-4 py-1.5 bg-status-danger/10 border border-status-danger/20 rounded-full">
-                <p className="text-micro text-status-danger font-medium uppercase tracking-[0.16em]">
+                <p className="text-micro text-status-danger font-medium uppercase tracking-label">
                   Yetki Doğrulama Hatası (RBAC Protocol)
                 </p>
               </div>
@@ -109,7 +109,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
           <Button
             onClick={this.handleRetry}
-            className="w-full h-11 tracking-[0.16em]"
+            className="w-full h-11 tracking-label"
           >
             <RefreshCw className="w-4 h-4 mr-2 stroke-[1.5]" />
             TEKRAR DENE
@@ -131,13 +131,13 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
 
           <div className="flex flex-col gap-4">
-            <h2 className="text-3xl font-light text-text-heading tracking-tight font-serif uppercase">Dizge Kesintisi</h2>
+            <h2 className="text-3xl font-light text-text-heading tracking-tight font-display uppercase">Dizge Kesintisi</h2>
             <p className="text-text-muted text-[15px] font-light leading-relaxed">
               {message}
             </p>
             {isFirebaseError && (
               <div className="inline-flex mx-auto mt-4 px-6 py-2 bg-status-danger/10 border border-status-danger/20 rounded-full">
-                <p className="text-micro text-status-danger font-medium uppercase tracking-[0.16em]">
+                <p className="text-micro text-status-danger font-medium uppercase tracking-label">
                   Yetki Doğrulama Hatası (RBAC Protocol)
                 </p>
               </div>
@@ -152,7 +152,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="flex flex-col gap-4 w-full pt-8 border-t border-makam-border/5">
             <Button
               onClick={this.handleReload}
-              className="w-full h-16 tracking-[0.16em]"
+              className="w-full h-16 tracking-label"
             >
               <RefreshCw className="w-5 h-5 mr-3 stroke-[1.5]" />
               DİZGEYİ YENİLE
@@ -160,7 +160,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <Button
               variant="secondary"
               onClick={() => window.location.href = '/'}
-              className="w-full h-16 tracking-[0.16em]"
+              className="w-full h-16 tracking-label"
             >
               <Home className="w-5 h-5 mr-3 stroke-[1.5]" />
               ANA SAYFAYA DÖN

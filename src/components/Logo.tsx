@@ -222,7 +222,7 @@ export const Logo = ({ className, size = 'md', withText = true, variant = 'dark'
         <div className="flex flex-col justify-center">
           <span
             className={cn(
-              'font-display font-light leading-none tracking-[0.15em] uppercase',
+              'font-display font-light leading-none tracking-label uppercase',
               size === 'sm' ? 'text-[16px]' :
               size === 'md' ? 'text-[20px]' :
               size === 'lg' ? 'text-[26px]' : 'text-[34px]',

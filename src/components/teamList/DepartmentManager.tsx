@@ -6,6 +6,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { EmptyState } from '../ui/EmptyState';
 import { useUIStore } from '../../store/uiStore';
 import { logger } from '../../lib/logger';
 
@@ -137,9 +138,7 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
           </p>
 
           {departments.length === 0 ? (
-            <div className="py-6 flex items-center justify-center rounded-xl border border-dashed border-executive-blue/[0.05] bg-surface-glass">
-              <span className="text-micro text-text-tertiary uppercase tracking-[0.35em]">Kayıtlı Birim Yok</span>
-            </div>
+            <EmptyState size="sm" message="Kayıtlı Birim Yok" />
           ) : (
             <ul className="flex flex-col gap-1.5">
               {departments.map(dept => {
@@ -149,10 +148,10 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
                     key={dept.id}
                     className="flex items-center gap-2 px-2.5 py-2 bg-surface-glass border border-surface-border rounded-xl"
                   >
-                    <span className="text-caption font-medium text-executive-blue font-serif truncate flex-1 min-w-0">
+                    <span className="text-caption font-medium text-executive-blue font-display truncate flex-1 min-w-0">
                       {dept.name}
                     </span>
-                    <span className="hidden sm:inline text-micro text-text-tertiary uppercase tracking-[0.2em] flex-shrink-0">
+                    <span className="hidden sm:inline text-micro text-text-tertiary uppercase tracking-caps flex-shrink-0">
                       {usage ? `${usage.tasks} talimat · ${usage.users} personel` : 'kullanımda değil'}
                     </span>
                     <button
@@ -193,7 +192,7 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
               bağlamaz (htmlFor/id yok), yani ekran okuyucu ve testler için
               erişilebilir bir ad oluşmaz — Settings.tsx'teki onay girdisi de
               aynı nedenle bu deseni kullanır. */}
-          <label htmlFor="department-rename-input" className="text-micro font-medium text-text-muted uppercase tracking-[0.2em] px-1">
+          <label htmlFor="department-rename-input" className="text-micro font-medium text-text-muted uppercase tracking-caps px-1">
             Yeni Birim Adı
           </label>
           <Input
@@ -211,7 +210,7 @@ export const DepartmentManager = ({ departments, users, tasks, onRename, onDelet
           {error && (
             <div className="flex items-start gap-2 p-2.5 bg-status-danger/10 border border-status-danger/20 rounded-xl">
               <AlertTriangle className="w-3.5 h-3.5 text-status-danger flex-shrink-0 mt-0.5" />
-              <p className="text-micro text-status-danger font-semibold uppercase tracking-[0.1em] leading-relaxed">{error}</p>
+              <p className="text-micro text-status-danger font-semibold uppercase tracking-label leading-relaxed">{error}</p>
             </div>
           )}
           <div className="flex justify-end gap-2.5 pt-4 border-t border-executive-blue/[0.04]">

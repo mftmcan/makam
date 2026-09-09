@@ -455,7 +455,7 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
               <div className="flex items-center justify-center p-20 min-h-[400px]">
                 <div className="flex flex-col items-center gap-4">
                   <div className="w-8 h-8 border-2 border-executive-gold/20 border-t-executive-gold rounded-full animate-spin" />
-                  <span className="text-micro text-text-muted font-medium uppercase tracking-[0.3em] opacity-50">MODÜL YÜKLENİYOR...</span>
+                  <span className="text-micro text-text-muted font-medium uppercase tracking-eyebrow opacity-50">MODÜL YÜKLENİYOR...</span>
                 </div>
               </div>
             }>
