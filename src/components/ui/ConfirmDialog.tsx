@@ -100,7 +100,7 @@ export const ConfirmDialog = ({
         {warning && (
           <div className="flex items-start gap-2 p-2.5 bg-status-danger/10 border border-status-danger/20 rounded-xl">
             <AlertTriangle className="w-3.5 h-3.5 text-status-danger flex-shrink-0 mt-0.5" />
-            <p className="text-micro text-status-danger font-semibold uppercase tracking-[0.1em] leading-relaxed">{warning}</p>
+            <p className="text-micro text-status-danger font-semibold uppercase tracking-label leading-relaxed">{warning}</p>
           </div>
         )}
 

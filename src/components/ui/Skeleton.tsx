@@ -7,6 +7,7 @@
  */
 import React from 'react';
 import { cn } from '../../lib/utils';
+import { PageShell } from './PageShell';
 
 interface SkeletonProps {
   className?: string;
@@ -76,6 +77,24 @@ export const TableRowSkeleton = ({ cols = 5 }: { cols?: number }) => (
 );
 
 /**
+ * GridTableRowSkeleton — `TableRowSkeleton`'ın CSS Grid kardeşi. GridDataTable
+ * (sanallaştırılmış tablo — TaskBoard, TeamList'in >30 kişi dalı) kendi
+ * `gridTemplateColumns`'ını satırlarla paylaşmak zorunda; flex tabanlı
+ * `TableRowSkeleton` bu hizayı koruyamaz (bkz. tasarım denetimi).
+ */
+export const GridTableRowSkeleton = ({ gridTemplateColumns, cols = 5 }: { gridTemplateColumns: string; cols?: number }) => (
+  <div style={{ gridTemplateColumns }} className="grid items-center px-4 py-3.5 border-b border-executive-blue/[0.03]">
+    {Array.from({ length: cols }).map((_, i) => (
+      <Skeleton
+        key={i}
+        className="h-3"
+        style={{ width: i === Math.floor(cols / 2) ? '60%' : (i === 0 || i === cols - 1) ? '16px' : '80px' } as React.CSSProperties}
+      />
+    ))}
+  </div>
+);
+
+/**
  * AuditLogRowSkeleton / AuditLogListSkeleton — Denetim İzleri yükleme iskeleti
  *
  * Diğer altı modülün (Dashboard/Reports/TeamList/BlockerList/Settings/
@@ -106,7 +125,7 @@ export const AuditLogRowSkeleton = () => (
 );
 
 export const AuditLogListSkeleton = () => (
-  <div className="flex flex-col gap-5 py-4 max-w-[1440px] mx-auto font-sans" aria-label="Denetim izleri yükleniyor..." role="status">
+  <PageShell aria-label="Denetim izleri yükleniyor..." role="status">
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-executive-blue/[0.04]">
       <div className="flex items-center gap-2.5">
         <Skeleton className="h-8 w-8" rounded="lg" />
@@ -122,7 +141,7 @@ export const AuditLogListSkeleton = () => (
     <div className="flex flex-col gap-5">
       {[...Array(5)].map((_, i) => <AuditLogRowSkeleton key={i} />)}
     </div>
-  </div>
+  </PageShell>
 );
 
 /**
@@ -137,7 +156,7 @@ export const AuditLogListSkeleton = () => (
  * Performans Analitiği grafik kartı.
  */
 export const DashboardSkeleton = () => (
-  <div className="flex flex-col gap-5 py-4 max-w-[1440px] mx-auto" aria-label="Yükleniyor..." role="status">
+  <PageShell aria-label="Yükleniyor..." role="status">
     {/* Stratejik Sağlık Endeksi banner'ı */}
     <div className="makam-card p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <div className="flex items-center gap-4">
@@ -185,5 +204,5 @@ export const DashboardSkeleton = () => (
         <Skeleton className="h-2.5 w-20" />
       </div>
     </div>
-  </div>
+  </PageShell>
 );

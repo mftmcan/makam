@@ -26,7 +26,7 @@ export const StatusBanner = ({ status }: { status: { type: 'success' | 'error' |
       ) : (
         <AlertCircle className="w-4 h-4 flex-shrink-0 stroke-[1.5]" />
       )}
-      <span className="uppercase tracking-[0.2em]">{status.message}</span>
+      <span className="uppercase tracking-caps">{status.message}</span>
     </motion.div>
   );
 };

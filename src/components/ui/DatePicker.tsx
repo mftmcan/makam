@@ -199,7 +199,7 @@ export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, tr
             exit={{ opacity: 0, scale: 0.96, y: placement === 'bottom' ? -6 : 6 }}
             transition={{ type: 'spring', damping: 28, stiffness: 380 }}
             className={cn(
-              'absolute z-50 left-0 w-64 p-3 rounded-2xl bg-surface-elevated backdrop-blur-xl border border-surface-border shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)]',
+              'absolute z-50 left-0 w-64 p-3 rounded-2xl bg-surface-elevated backdrop-blur-xl border border-surface-border shadow-popover',
               placement === 'bottom' ? 'top-[calc(100%+8px)]' : 'bottom-[calc(100%+8px)]'
             )}
           >
@@ -212,7 +212,7 @@ export const DatePicker = ({ id, value, onChange, ariaLabel, className, icon, tr
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <span className="text-caption font-medium text-text-heading uppercase tracking-widest font-serif">
+              <span className="text-caption font-medium text-text-heading uppercase tracking-widest font-display">
                 {format(viewMonth, 'LLLL yyyy', { locale: tr })}
               </span>
               <button

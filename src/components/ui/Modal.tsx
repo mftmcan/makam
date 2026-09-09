@@ -191,7 +191,7 @@ export const Modal = ({ isOpen, onClose, title, ariaLabel, children, footer, siz
               transition={{ type: 'spring', damping: 30, stiffness: 400 }}
               className={cn(
                 'relative z-10 w-full !p-0 overflow-hidden flex flex-col max-h-[90vh]',
-                'shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)]',
+                'shadow-overlay',
                 'bg-surface-elevated backdrop-blur-[40px] border border-surface-border rounded-[40px]',
                 sizes[size]
               )}
@@ -202,7 +202,7 @@ export const Modal = ({ isOpen, onClose, title, ariaLabel, children, footer, siz
                 <div className="flex items-center justify-between px-6 py-4 border-b border-makam-border/5 shrink-0">
                   <h3
                     id={modalId}
-                    className="text-[20px] font-light text-text-heading tracking-tight font-serif uppercase"
+                    className="text-[20px] font-light text-text-heading tracking-tight font-display uppercase"
                   >
                     {title}
                   </h3>

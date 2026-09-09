@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { SPRING_ROW, staggerDelay } from '../../lib/motion';
 
 // components/settings/SharedUI.tsx içindeydi — Settings.tsx'e özel sanılıyordu,
 // ama GuideModal.tsx zaten kendi başına import edip kullanıyordu (bkz. tasarım
@@ -29,7 +30,7 @@ export const SettingsCard = ({ title, description, icon: Icon, accentColor = 'sl
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 28, delay: index * 0.06 }}
+      transition={{ ...SPRING_ROW, delay: staggerDelay(index, 0.06) }}
       className={cn(
         'flex flex-col gap-3 p-4 bg-makam-glass backdrop-blur-xl border rounded-2xl',
         'shadow-card hover:shadow-card-hover',
@@ -44,9 +45,9 @@ export const SettingsCard = ({ title, description, icon: Icon, accentColor = 'sl
           <Icon className="w-4 h-4 stroke-[1.5]" />
         </div>
         <div className="flex flex-col gap-0.5">
-          <h3 className="text-body-sm font-medium text-executive-blue tracking-tight font-serif">{title}</h3>
+          <h3 className="text-body-sm font-medium text-executive-blue tracking-tight font-display">{title}</h3>
           {description && (
-            <p className="text-micro text-text-tertiary uppercase tracking-[0.25em]">{description}</p>
+            <p className="text-micro text-text-tertiary uppercase tracking-caps">{description}</p>
           )}
         </div>
       </div>

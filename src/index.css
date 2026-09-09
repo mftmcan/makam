@@ -260,6 +260,32 @@
   --text-body-sm: 0.75rem;   /* 12px — eskiden 12/12.5px */
   --text-body: 0.8125rem;    /* 13px — body'nin kendi font-size'ıyla aynı */
 
+  /* ─── 14px+ bandı — isimlendirme sözlüğü ─────────────────────────────────
+     Yukarıdaki ölçek 14px altını topladı; bu bant BİLİNÇLİ OLARAK dışarıda
+     bırakılmıştı çünkü buradaki farklar (bir KPI'ın 32px'i ile bir modal
+     başlığının 20px'i) sürüklenme değil, bağlama özgü gerçek tasarım
+     kararları. Aşağıdaki 5 token yalnızca en sık tekrarlanan noktaları
+     İSİMLENDİRİR — kaçak bir tek değeri (NotificationPrompt.tsx'teki
+     text-[17px], ölçekte başka hiçbir yerde olmayan tek değer) düzeltir.
+     Duyarlı rampalar (Logo.tsx, dashboard/subcomponents.tsx StatCard,
+     WarningModal/CertificateModal) ve Dashboard'un 32px KPI'ı gibi gerçekten
+     farklı roller bilinçli olarak bu sözlüğün dışında kalır. */
+  --text-body-lg: 0.875rem;  /* 14px */
+  --text-field: 0.9375rem;   /* 15px */
+  --text-title: 1rem;        /* 16px */
+  --text-title-lg: 1.125rem; /* 18px */
+  --text-metric: 1.375rem;   /* 22px */
+
+  /* ─── Harf aralığı (letter-spacing / tracking) ölçeği ───────────────────
+     Yukarıdaki tipografi/gölge sürüklenmesinin (F6, 3.5) üçüncü ekseni:
+     tracking-[Nem] için 13 farklı arbitrary değer, 185 kullanım — AYNI
+     "sayfa başlığı eyebrow" bileşeni altı ekranda 0.4em iken TaskBoard'da
+     0.22em'di (bkz. tasarım denetimi, mobil dokunma/tracking bulgusu). Üç
+     basamak bu aralığı toplar. */
+  --tracking-label:   0.15em;  /* form label, tablo hücresi, dar mikro etiket */
+  --tracking-caps:    0.2em;   /* varsayılan uppercase mikro etiket + rozet */
+  --tracking-eyebrow: 0.3em;   /* sayfa/bölüm başlığı eyebrow'u */
+
   /* ─── "Cam kart" gölge ölçeği ────────────────────────────────────────────
      Tipografideki AYNI sürüklenme (bkz. yukarısı) gölgede de vardı: aynı
      "hafif cam kart" dinlenme gölgesi (0 1px 8px rgba(22,21,19,0.02)) 7 ayrı
@@ -274,6 +300,22 @@
      bağlamına özgü, kartlarla aynı "elevation" ailesinden değil. */
   --shadow-card: 0 1px 8px rgba(22, 21, 19, 0.02);
   --shadow-card-hover: 0 8px 30px rgba(0, 0, 0, 0.06);
+
+  /* ─── Yüzen katman (overlay) yükseklik ailesi ────────────────────────────
+     Kart gölgesi token'landıktan sonra ÜÇÜNCÜ bir aile (popover/sheet/modal)
+     hiç ele alınmamıştı: 9 kullanım yerinde 8 farklı arbitrary değer, hatta
+     mürekkep tabanı bile tutarsızdı (kimi rgba(0,0,0,…), kimi
+     rgba(22,21,19,…) — bkz. --shadow-base'in kullandığı AYNI mürekkep tonu).
+     Üç semantik katman: popover (takvim/menü), sheet (mobil dock taşma
+     paneli, uygulama içi bildirim), overlay (tam ekran modal paneli). */
+  --shadow-popover: 0 16px 48px -12px rgba(22, 21, 19, 0.18);
+  --shadow-sheet: 0 20px 60px -12px rgba(22, 21, 19, 0.14);
+  --shadow-overlay: 0 40px 90px -24px rgba(22, 21, 19, 0.18);
+
+  /* Badge.tsx'in 4 varyantında (default/success/warning/info) birebir
+     tekrarlanan iç parlaklık — danger'ın kendi (bilinçli farklı) inset'i
+     buna dahil değil. */
+  --shadow-badge-inset: inset 0 1px 1px rgba(255, 255, 255, 0.15);
 
   /* Global Theme Overrides - Mapping full spectrum to Executive Palette */
   --color-blue-50: #F8FAFC;
@@ -368,9 +410,15 @@
      tanımlamayı unutursa (ör. outline-none kullanılıp karşılığı konmamışsa,
      bkz. kod denetimi), klavye odağı yine de görünür kalsın. Bileşen bazlı
      ring'ler (Button, ActionButton, Modal vb.) bu kuraldan daha spesifik
-     olduğu için normal cascade sırasıyla üzerine yazar. */
+     olduğu için normal cascade sırasıyla üzerine yazar.
+     Renk mavi (executive-blue): projedeki 65 focus-visible:ring-* kullanımının
+     ezici çoğunluğu (45+) zaten bu rengi kullanıyor — dört yerde (Sidebar nav,
+     Dashboard StatCard/InterventionRow) altın sürüklenmişti, bunlar da bu
+     standarda çekildi (bkz. tasarım denetimi). Durum-renkli ring'ler (sil/
+     onay/uyarı butonları) BİLİNÇLİ OLARAK dışarıda bırakıldı — kendi
+     eyleminin anlamını taşıyorlar. */
   :focus-visible {
-    outline: 2px solid var(--color-executive-gold);
+    outline: 2px solid var(--color-executive-blue);
     outline-offset: 2px;
   }
 }
@@ -392,17 +440,20 @@
   }
   
   .makam-button {
-    @apply px-6 py-2.5 rounded-full font-medium transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 uppercase tracking-[0.14em] text-[10px];
+    @apply px-6 py-2.5 rounded-full font-medium transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 uppercase text-[10px];
+    letter-spacing: var(--tracking-label);
   }
 
   .makam-button-primary {
-    @apply bg-executive-gold rounded-full transition-all duration-200 hover:scale-[1.01] active:scale-[0.98] shadow-lg shadow-executive-gold/15 flex items-center justify-center gap-2 text-[12px] uppercase tracking-[0.14em] font-semibold px-8 py-3.5 relative overflow-hidden;
+    @apply bg-executive-gold rounded-full transition-all duration-200 hover:scale-[1.01] active:scale-[0.98] shadow-lg shadow-executive-gold/15 flex items-center justify-center gap-2 text-[12px] uppercase font-semibold px-8 py-3.5 relative overflow-hidden;
+    letter-spacing: var(--tracking-label);
     color: var(--btn-primary-text);
     background-image: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%);
   }
   
   .makam-button-secondary {
-    @apply backdrop-blur-xl border border-makam-border/5 text-text-heading rounded-full transition-all duration-200 hover:bg-makam-elevated hover:shadow-lg flex items-center justify-center gap-2 text-[12px] uppercase tracking-[0.14em] px-8 py-3.5;
+    @apply backdrop-blur-xl border border-makam-border/5 text-text-heading rounded-full transition-all duration-200 hover:bg-makam-elevated hover:shadow-lg flex items-center justify-center gap-2 text-[12px] uppercase px-8 py-3.5;
+    letter-spacing: var(--tracking-label);
     background-color: var(--btn-secondary-bg);
   }
   
@@ -608,7 +659,7 @@
   color: #C5A059;
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.2em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   border-radius: 0 0 1rem 1rem;
   text-decoration: none;

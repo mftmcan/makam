@@ -34,7 +34,7 @@ export const EmptyState = ({ icon, message, action, className, size = 'lg', dimI
   <div
     className={cn(
       'flex flex-col items-center justify-center gap-2 text-center',
-      'text-text-tertiary uppercase tracking-[0.18em] text-micro font-medium',
+      'text-text-tertiary uppercase tracking-caps text-micro font-medium',
       'border border-dashed rounded-2xl',
       size === 'lg'
         ? 'py-16 px-4 border-makam-border/10'
