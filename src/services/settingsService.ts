@@ -14,29 +14,103 @@ import type { SLAConfigEntry } from '../lib/sla';
 // açık bir kayıt tipi kullanılır.
 type BackupRecord = Record<string, unknown>;
 
+/** restoreBackup'ın ön-doğrulamasının (şema veya çapraz-referans iş kuralı)
+ *  ürettiği, kullanıcıya AYNEN gösterilecek hata — mesaj zaten Türkçe ve
+ *  kayıt-bazlıdır. Firebase/SDK hatalarından (DataTab'ta humanizeError'a giden)
+ *  ayrılması için ayrı bir sınıf: bu hata insanlaştırılmaya ÇEVRİLMEMELİDİR. */
+export class RestoreValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RestoreValidationError';
+  }
+}
+
+// ── firestore.rules'ın istemci tarafı EŞDEĞERLERİ ───────────────────────────
+// Kural dosyası istemciden okunamadığından burada elle kopyalanmıştır. TEK
+// senkronizasyon aracı tests/rules/firestore.rules.test.ts'teki "restoreBackup
+// CREATE yolu: Admin istisnası OLMAYAN kısıtlar" belgeleme bloğudur — kural
+// değişirse o test kırmızıya döner ve buradaki sabitlerin de güncellenmesi
+// gerektiğini haber verir.
+const RULES_ID_RE = /^[a-zA-Z0-9_.@+-]+$/;                                  // firestore.rules isValidId
+const RULES_EMAIL_RE = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;  // firestore.rules isValidUser
+
+const firestoreIdSchema = z.string()
+  .min(1, 'Kimlik alanı boş olamaz')
+  .max(128, 'Kimlik alanı 128 karakteri aşamaz')
+  .regex(RULES_ID_RE, 'Kimlik yalnızca harf, rakam ve _ . @ + - içerebilir');
+
+// Görevlerde departmentId ZORUNLU ve boş OLAMAZ (firestore.rules requiredFields
+// + isValidDepartmentId). Kullanıcılarda ise boş dize/null/hiç yok = "organizasyon
+// geneli" anlamına gelir ve AÇIKÇA geçerlidir (userDepartmentIsValid) — bu
+// yüzden iki AYRI şema, tek bir departmentIdSchema ikisi için de YANLIŞ olurdu.
+const taskDepartmentIdSchema = z.string().min(1, 'Departman boş olamaz').max(100, 'Departman adı 100 karakteri aşamaz');
+const userDepartmentIdSchema = z.string().max(100, 'Departman adı 100 karakteri aşamaz').nullable().optional();
+
 // ── Yedek Doğrulama Şemaları (Restore) ──────────────────────────────────────
 // role/status/priority değerleri types.ts'teki KANONİK enum'lardan alınır —
 // burada elle kopyalanmış bağımsız bir liste tutulursa, types.ts'e yeni bir
 // durum eklendiğinde bu şema güncellenmediği sürece tamamen geçerli, güncel
 // bir MAKAM yedeği bile reddedilir (bkz. settingsService.restoreBackup).
+//
+// Uzunluk/enum/zorunlu-alan sınırları BİLİNÇLİ olarak firestore.rules'taki
+// isValidUser/isValidTaskCreate/isValidBlocker ile BİREBİR eşleşir: aksi
+// halde istemci "geçerli" derken sunucu reddedip TÜM batch'i (bu kaydın
+// bulunduğu grup) düşürür (bkz. kod denetimi, 2026-09-12 — fcmTokens/
+// departmentId/changedBy vb. dört ayrı canlı hatanın ortak kök nedeni aynı
+// sınıftandı: yedekteki veri, bu sınırlardan birini karşılamıyordu).
 export const userBackupSchema = z.object({
-  uid: z.string(),
-  fullName: z.string(),
-  email: z.string().email(),
-  role: UserRoleSchema
+  uid: firestoreIdSchema,
+  fullName: z.string().min(1, 'Ad Soyad boş olamaz').max(100, 'Ad Soyad 100 karakteri aşamaz'),
+  email: z.string().regex(RULES_EMAIL_RE, 'E-posta biçimi geçersiz'),
+  role: UserRoleSchema,
+  departmentId: userDepartmentIdSchema,
+  photoURL: z.string().optional(),
+  fcmTokens: z.array(z.string()).optional(),   // sınır (≤10) restoreBackup'ta KIRPILIR, reddedilmez
 });
 
 export const taskBackupSchema = z.object({
-  id: z.string(),
-  title: z.string().min(1),
-  description: z.string(),
-  creatorId: z.string(),
-  assigneeId: z.string(),
+  id: firestoreIdSchema,
+  title: z.string().min(1, 'Başlık boş olamaz').max(200, 'Başlık 200 karakteri aşamaz'),
+  description: z.string().min(1, 'Açıklama boş olamaz').max(2000, 'Açıklama 2000 karakteri aşamaz'),
+  creatorId: firestoreIdSchema,
+  assigneeId: firestoreIdSchema,
+  departmentId: taskDepartmentIdSchema,
   status: TaskStatusSchema,
   priority: TaskPrioritySchema,
+  // coordinatorId, firestore.rules'ta (boş dize İÇİN kaçış YOK) ya null ya da
+  // geçerli bir kimlik olmak zorunda — restoreBackup boş dizeyi normalize
+  // ederken (aşağıda) null'a çevirir, şema bu yüzden regex'li kalabilir.
+  coordinatorId: firestoreIdSchema.nullable().optional(),
+  // parentId'nin AKSİNE: firestore.rules yalnızca `is string` istiyor, isValidId
+  // regex'i UYGULANMIYOR (boş dize dahil HER string geçerli — hasValidSubtaskAssignee
+  // boş dizeyi de "alt görev değil" sayıyor). Regex'li firestoreIdSchema
+  // kullanmak burada YANLIŞ olurdu.
+  parentId: z.string().max(128, 'Üst talimat kimliği 128 karakteri aşamaz').nullable().optional(),
+  evidence: z.string().max(1000, 'Kanıt metni 1000 karakteri aşamaz').nullable().optional(),
+  evidenceType: z.string().max(100, 'Kanıt türü 100 karakteri aşamaz').nullable().optional(),
+  comments: z.array(z.unknown()).max(200, "Yorum sayısı 200'ü aşamaz").nullable().optional(),
+  tags: z.array(z.unknown()).max(10, "Etiket sayısı 10'u aşamaz").nullable().optional(),
+  checklist: z.array(z.unknown()).max(100, 'Kontrol listesi 100 maddeyi aşamaz').nullable().optional(),
+  estimatedHours: z.number().min(0).nullable().optional(),
+  lockVersion: z.number().nullable().optional(),
+  totalPausedTime: z.number().nullable().optional(),
+  pausedAt: z.number().nullable().optional(),
+  completedAt: z.unknown().optional(),   // toTsOrDrop normalize eder (Timestamp/ISO/null)
   deadline: z.any(),
   createdAt: z.any(),
-  updatedAt: z.any()
+  updatedAt: z.any(),
+});
+
+// YENİ — blockers artık users/tasks ile AYNI ön-doğrulamadan geçer
+// (firestore.rules isValidBlocker) — eskiden hiç zod kontrolünden geçmiyordu.
+export const blockerBackupSchema = z.object({
+  id: firestoreIdSchema,
+  taskId: firestoreIdSchema,
+  reason: z.string().min(1, 'Engel gerekçesi boş olamaz').max(500, 'Engel gerekçesi 500 karakteri aşamaz'),
+  severity: TaskPrioritySchema.nullable().optional(),
+  isResolved: z.boolean(),
+  createdAt: z.any(),
+  resolvedAt: z.unknown().optional(),   // toTsOrDrop normalize eder
 });
 
 export const restoreBackupSchema = z.object({
@@ -59,6 +133,22 @@ const cleanDataObj = (obj: unknown): unknown => {
   return n;
 };
 
+/** Yalnızca ÜST DÜZEY null alanları siler (nested null'lara dokunmaz — kurallar
+ *  dizilerin yalnızca size()'ına bakar, içeriğine değil). `keepNullKeys`
+ *  listesindeki alanlar için null KORUNUR — firestore.rules'ta bu alanlar için
+ *  AÇIK bir null kaçışı vardır (ör. coordinatorId, pausedAt, users
+ *  departmentId); diğer TÜM alanlarda null için kaçış YOKTUR ("değer yok" ile
+ *  "alan yok" JSON açısından aynı anlama gelir, bu yüzden alan sessizce
+ *  düşürülür — veri anlamını DEĞİŞTİRMEZ). */
+const stripNulls = (obj: BackupRecord, keepNullKeys: string[]): BackupRecord => {
+  const result: BackupRecord = {};
+  Object.keys(obj).forEach(k => {
+    if (obj[k] === null && !keepNullKeys.includes(k)) return;
+    result[k] = obj[k];
+  });
+  return result;
+};
+
 const toTs = (val: unknown, fb?: number): number => {
   if (val == null) return fb ?? Date.now();
   if (typeof val === 'number') return val;
@@ -67,10 +157,106 @@ const toTs = (val: unknown, fb?: number): number => {
   return fb ?? Date.now();
 };
 
+/** null/parse edilemeyen değer için alanı DÜŞÜRÜR — toTs'in aksine Date.now()
+ *  UYDURMAZ: completedAt/resolvedAt gibi "olay zamanı" alanları için "şimdi"
+ *  yazmak o olayın gerçek zamanını sessizce bozardı (bkz. kod denetimi). */
+const toTsOrDrop = (val: unknown): number | undefined => {
+  if (val == null) return undefined;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const t = new Date(val).getTime();
+    return Number.isNaN(t) ? undefined : t;
+  }
+  if (typeof val === 'object' && 'seconds' in val) return (val as { seconds: number }).seconds * 1000;
+  return undefined;
+};
+
 const pick = (obj: BackupRecord, keys: string[]) => {
   const r: BackupRecord = {};
   keys.forEach(k => { if (k in obj && obj[k] !== undefined) r[k] = obj[k]; });
   return r;
+};
+
+// firestore.rules isValidUser/isValidTaskCreate/isValidBlocker'daki allowedFields
+// ile BİREBİR — 'changedBy' bilinçli olarak TASK_ALLOWED_FIELDS'ta YOK: ne
+// CREATE (isValidTaskCreate.allowedFields'ta hiç yok) ne UPDATE
+// (data.changedBy == request.auth.uid şartı) yolunda restore edilen tarihi
+// bir değer geçemez; audit_logs zaten geri yüklenemediğinden (bkz.
+// restoreBackupSchema) bu alanın kalıcı bir anlamı kalmamıştır — sessizce ve
+// zararsızca düşürülür.
+const USER_ALLOWED_FIELDS = ['uid', 'fullName', 'email', 'role', 'departmentId', 'photoURL', 'fcmTokens'];
+const TASK_ALLOWED_FIELDS = [
+  'id', 'parentId', 'title', 'description', 'creatorId', 'assigneeId', 'coordinatorId',
+  'status', 'priority', 'deadline', 'createdAt', 'updatedAt', 'evidence', 'evidenceType',
+  'pausedAt', 'totalPausedTime', 'comments', 'lockVersion', 'departmentId',
+  'completedAt', 'estimatedHours', 'tags', 'checklist',
+];
+// 'id' bilinçli olarak DIŞARIDA: doküman ID'si olarak kullanılıyor
+// (blockerService.addBlocker ile AYNI davranış), ayrıca alan olarak yazmaya
+// gerek yok.
+const BLOCKER_ALLOWED_FIELDS = ['taskId', 'reason', 'severity', 'isResolved', 'createdAt', 'resolvedAt'];
+
+interface TaskRuleViolations {
+  adminCoordinator: string[];
+  nonStaffSubtask: string[];
+  nonManagerDelegation: string[];
+}
+
+/** isValidTaskBusinessRules'ın hasNoAdminCoordinator / hasValidSubtaskAssignee /
+ *  hasValidDelegationTarget dallarının BİREBİR istemci kopyası (firestore.rules)
+ *  — HİÇBİRİNDE Admin istisnası yoktur (bkz. tests/rules "restoreBackup CREATE
+ *  yolu" belgeleme bloğu). Saf fonksiyon: rol çözümleyici dışarıdan verilir. */
+function collectTaskRuleViolations(
+  tasks: BackupRecord[],
+  roleOf: (userId: string) => string | undefined
+): TaskRuleViolations {
+  const adminCoordinator: string[] = [];
+  const nonStaffSubtask: string[] = [];
+  const nonManagerDelegation: string[] = [];
+
+  tasks.forEach(t => {
+    const id = String(t.id);
+
+    const coordinatorId = t.coordinatorId as string | undefined;
+    if (coordinatorId && roleOf(coordinatorId) === 'Admin') adminCoordinator.push(id);
+
+    const parentId = t.parentId as string | undefined;
+    if (parentId && roleOf(t.assigneeId as string) !== 'Staff') nonStaffSubtask.push(id);
+
+    if (t.status === 'PENDING_DELEGATION' && roleOf(t.assigneeId as string) !== 'Manager') {
+      nonManagerDelegation.push(id);
+    }
+  });
+
+  return { adminCoordinator, nonStaffSubtask, nonManagerDelegation };
+}
+
+/** Rolleri restore'un GÖRECEĞİ sırayla çözer: users grubu tasks'tan ÖNCE
+ *  yazıldığından (bkz. restoreBackup) yedekteki rol GÜNCEL roldür ve
+ *  önceliklidir; yedekte olmayan referanslar için veritabanı okunur —
+ *  yalnızca GERÇEKTEN referans edilen id'ler için (gereksiz okuma yapılmaz). */
+async function buildRoleResolver(
+  backupUsers: BackupRecord[],
+  referencedIds: Set<string>
+): Promise<(userId: string) => string | undefined> {
+  const roleByBackupUid = new Map<string, string>();
+  backupUsers.forEach(u => {
+    if (typeof u.uid === 'string' && typeof u.role === 'string') roleByBackupUid.set(u.uid, u.role);
+  });
+
+  const roleByDbUid = new Map<string, string | undefined>();
+  for (const id of referencedIds) {
+    if (roleByBackupUid.has(id)) continue;
+    const snap = await runWithRetry(() => getDoc(doc(db, 'users', id)));
+    roleByDbUid.set(id, snap.exists() ? (snap.data() as { role?: string }).role : undefined);
+  }
+
+  return (userId: string) => roleByBackupUid.get(userId) ?? roleByDbUid.get(userId);
+}
+
+const formatIds = (ids: string[]): string => {
+  const shown = ids.slice(0, 5).join(', ');
+  return ids.length > 5 ? `${shown} ve ${ids.length - 5} kayıt daha` : shown;
 };
 
 export interface SlaConfigInput {
@@ -141,8 +327,15 @@ export const settingsService = {
   },
 
   /** Bir yedek JSON metnini doğrular ve dizgeye geri yükler; ilerleme
-   *  yüzdesini (0-100) onProgress ile bildirir. Doğrulama hatası veya
-   *  format hatası durumunda Error fırlatır. */
+   *  yüzdesini (0-100) onProgress ile bildirir.
+   *
+   *  Doğrulama İKİ AŞAMALIDIR ve HİÇBİRİ tek bir yazım yapılmadan önce
+   *  tamamlanmadan restore başlamaz ("kısmi geri yükleme yok" ilkesi):
+   *   1) Şekil doğrulaması (zod) — uzunluk/enum/zorunlu-alan/kimlik biçimi.
+   *   2) Çapraz-referans iş kuralı doğrulaması — koordinatör/alt-görev
+   *      sorumlusu/devir hedefi rolleri (bkz. collectTaskRuleViolations).
+   *  Şekil hataları Error, iş kuralı ihlalleri RestoreValidationError
+   *  fırlatır (DataTab bu ikisini FARKLI gösterir, bkz. o dosyadaki catch). */
   async restoreBackup(rawJson: string, userId: string, fileName: string, onProgress?: (percent: number) => void): Promise<RestoreResult> {
     const data = JSON.parse(rawJson);
 
@@ -161,6 +354,15 @@ export const settingsService = {
     }
 
     if (Array.isArray(data.tasks)) {
+      // parentId/coordinatorId için boş dize ("") ve null AYNI anlama gelir
+      // ("ilişki yok") — ama coordinatorId şeması regex'li olduğundan (bkz.
+      // yukarısı) "" değerini reddederdi. Şema değerlendirilmeden ÖNCE "" →
+      // null normalize edilir ki bu meşru, çok yaygın tarihi veri deseni
+      // gereksiz yere restore'u tamamen bloke etmesin.
+      data.tasks.forEach((t: BackupRecord) => {
+        if (t.coordinatorId === '') t.coordinatorId = null;
+        if (t.parentId === '') t.parentId = null;
+      });
       data.tasks.forEach((t: BackupRecord) => {
         const parsed = taskBackupSchema.safeParse(t);
         if (!parsed.success) {
@@ -168,6 +370,103 @@ export const settingsService = {
         }
       });
     }
+
+    if (Array.isArray(data.blockers)) {
+      data.blockers.forEach((b: BackupRecord) => {
+        const parsed = blockerBackupSchema.safeParse(b);
+        if (!parsed.success) {
+          throw new Error(`Engel verisi doğrulanamadı (${(b.reason as string) || 'Bilinmeyen'}). Hata: ${parsed.error.issues[0]?.message || parsed.error.message}`);
+        }
+      });
+    }
+
+    // ── Normalizasyon (YAZMA YOK, saf dönüşüm) ─────────────────────────────
+    const userItems: { ref: DocumentReference; data: BackupRecord }[] = [];
+    if (Array.isArray(data.users)) {
+      data.users.forEach((u: BackupRecord) => {
+        const cleaned = stripNulls(cleanDataObj(u) as BackupRecord, ['departmentId']);
+        const picked = pick(cleaned, USER_ALLOWED_FIELDS);
+        // firestore.rules isValidUser, fcmTokens'ı EN FAZLA 10 kayıtla sınırlar
+        // (Admin için de istisnasız). Uzun süredir kullanılan hesaplarda
+        // (her cihaz/tarayıcı yenilemesinde eklenip hiç temizlenmeyen FCM
+        // token'ları) bu sınır aşılmış olabilir — yedekteki TEK bir kullanıcının
+        // aşırı büyük dizisi, aynı batch'teki TÜM kullanıcı yazımlarını
+        // "Missing or insufficient permissions" ile düşürür (bkz. kod
+        // denetimi, 2026-09-12: muftum@gmail.com'un 96 fcmTokens girdisiyle
+        // canlıda görüldü). En YENİ 10 token korunur.
+        if (Array.isArray(picked.fcmTokens) && picked.fcmTokens.length > 10) {
+          picked.fcmTokens = picked.fcmTokens.slice(-10);
+        }
+        userItems.push({ ref: doc(db, 'users', u.uid as string), data: picked });
+      });
+    }
+
+    const taskItems: { id: string; ref: DocumentReference; data: BackupRecord }[] = [];
+    if (Array.isArray(data.tasks)) {
+      data.tasks.forEach((t: BackupRecord) => {
+        const cleaned = stripNulls(cleanDataObj(t) as BackupRecord, ['coordinatorId', 'pausedAt']);
+        const picked = pick(cleaned, TASK_ALLOWED_FIELDS);
+        picked.deadline = toTs(picked.deadline);
+        picked.createdAt = toTs(picked.createdAt);
+        picked.updatedAt = toTs(picked.updatedAt);
+        if ('completedAt' in picked) {
+          const ts = toTsOrDrop(picked.completedAt);
+          if (ts === undefined) delete picked.completedAt; else picked.completedAt = ts;
+        }
+        taskItems.push({ id: t.id as string, ref: doc(db, 'tasks', t.id as string), data: picked });
+      });
+    }
+
+    const blockerItems: { ref: DocumentReference; data: BackupRecord }[] = [];
+    if (Array.isArray(data.blockers)) {
+      data.blockers.forEach((b: BackupRecord) => {
+        const cleaned = stripNulls(cleanDataObj(b) as BackupRecord, []);
+        const picked = pick(cleaned, BLOCKER_ALLOWED_FIELDS);
+        picked.createdAt = toTs(picked.createdAt);
+        if ('resolvedAt' in picked) {
+          const ts = toTsOrDrop(picked.resolvedAt);
+          if (ts === undefined) delete picked.resolvedAt; else picked.resolvedAt = ts;
+        }
+        blockerItems.push({ ref: doc(db, 'blockers', b.id as string), data: picked });
+      });
+    }
+
+    // ── Çapraz-referans iş kuralı doğrulaması (YAZMA YOK) ──────────────────
+    // firestore.rules isValidTaskBusinessRules'ın hasNoAdminCoordinator /
+    // hasValidSubtaskAssignee / hasValidDelegationTarget dallarının HİÇBİRİNDE
+    // Admin istisnası yoktur (bkz. tests/rules "restoreBackup CREATE yolu"
+    // belgeleme bloğu) — bu yüzden yazmadan ÖNCE burada tespit edilip TEK bir
+    // raporla bildirilir; aksi halde ilgili chunk sunucuda opak bir
+    // "Missing or insufficient permissions" ile düşerdi (bkz. kod denetimi,
+    // 2026-09-12).
+    const referencedUserIds = new Set<string>();
+    taskItems.forEach(({ data: t }) => {
+      if (typeof t.coordinatorId === 'string') referencedUserIds.add(t.coordinatorId);
+      if (typeof t.parentId === 'string' && typeof t.assigneeId === 'string') referencedUserIds.add(t.assigneeId);
+      if (t.status === 'PENDING_DELEGATION' && typeof t.assigneeId === 'string') referencedUserIds.add(t.assigneeId);
+    });
+    const roleOf = await buildRoleResolver(Array.isArray(data.users) ? data.users : [], referencedUserIds);
+    const violations = collectTaskRuleViolations(taskItems.map(i => i.data), roleOf);
+
+    const violationLines: string[] = [];
+    if (violations.adminCoordinator.length > 0) {
+      violationLines.push(`• Koordinatörü Admin olan ${violations.adminCoordinator.length} talimat: ${formatIds(violations.adminCoordinator)} — koordinatör alanını boşaltın veya Admin olmayan bir kullanıcıya çevirin.`);
+    }
+    if (violations.nonStaffSubtask.length > 0) {
+      violationLines.push(`• Sorumlusu Memur OLMAYAN ${violations.nonStaffSubtask.length} alt talimat: ${formatIds(violations.nonStaffSubtask)} — alt talimatların sorumlusu Memur olmalı ve dizgede kayıtlı olmalıdır.`);
+    }
+    if (violations.nonManagerDelegation.length > 0) {
+      violationLines.push(`• Devir bekleyen (PENDING_DELEGATION) ama sorumlusu Müdür olmayan ${violations.nonManagerDelegation.length} talimat: ${formatIds(violations.nonManagerDelegation)}.`);
+    }
+    if (violationLines.length > 0) {
+      throw new RestoreValidationError(
+        `Geri yükleme BAŞLATILMADI (hiçbir veri yazılmadı) — aşağıdaki kayıtlar dizge iş kurallarını karşılamıyor:\n${violationLines.join('\n')}`
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ↓↓↓ BURADAN İTİBAREN YAZIM VAR — yukarısı tamamen saf/salt-okunurdu ↓↓↓
+    // ═══════════════════════════════════════════════════════════════════════
 
     // Departman REFERANS bütünlüğü (bkz. firestore.rules userDepartmentIsValid
     // / isValidTaskBusinessRules.hasValidDepartment): departmentId taşıyan her
@@ -182,68 +481,17 @@ export const settingsService = {
     // reddedilir (bkz. kod denetimi, 2026-09-12: muftim'e proje göçü sonrası
     // ilk restore denemesinde canlıda görüldü).
     const referencedDeptIds = new Set<string>();
-    if (Array.isArray(data.users)) {
-      data.users.forEach((u: BackupRecord) => {
-        if (typeof u.departmentId === 'string' && u.departmentId) referencedDeptIds.add(u.departmentId);
-      });
-    }
-    if (Array.isArray(data.tasks)) {
-      data.tasks.forEach((t: BackupRecord) => {
-        if (typeof t.departmentId === 'string' && t.departmentId) referencedDeptIds.add(t.departmentId);
-      });
-    }
+    userItems.forEach(({ data: u }) => { if (typeof u.departmentId === 'string' && u.departmentId) referencedDeptIds.add(u.departmentId); });
+    taskItems.forEach(({ data: t }) => { if (typeof t.departmentId === 'string' && t.departmentId) referencedDeptIds.add(t.departmentId); });
     for (const deptId of referencedDeptIds) {
       const deptRef = doc(db, 'departments', deptId);
-      const deptSnap = await getDoc(deptRef);
+      const deptSnap = await runWithRetry(() => getDoc(deptRef));
       if (!deptSnap.exists()) {
         // Şekil, firestore.rules isValidDepartment ile birebir eşleşir
         // (allowedFields hasOnly + name == departmentId) — bkz.
         // departmentService.createDepartment'taki aynı yazım.
         await runWithRetry(() => setDoc(deptRef, { name: deptId, createdAt: Date.now(), createdBy: userId }));
       }
-    }
-
-    const userItems: { ref: DocumentReference; data: BackupRecord }[] = [];
-    if (Array.isArray(data.users)) {
-      data.users.forEach((u: BackupRecord) => {
-        if (!u.uid) return;
-        const picked = pick(cleanDataObj(u) as BackupRecord, ['uid', 'fullName', 'email', 'role', 'departmentId', 'photoURL', 'fcmTokens']);
-        // firestore.rules isValidUser, fcmTokens'ı EN FAZLA 10 kayıtla sınırlar
-        // (Admin için de istisnasız). Uzun süredir kullanılan hesaplar
-        // (ör. her cihaz/tarayıcı yenilemesinde eklenip hiç temizlenmeyen FCM
-        // token'ları) bu sınırı çoktan aşmış olabilir — yedekteki TEK bir
-        // kullanıcının aşırı büyük fcmTokens dizisi, aynı batch'teki TÜM
-        // kullanıcı yazımlarını "Missing or insufficient permissions" ile
-        // düşürür (bkz. kod denetimi, 2026-09-12: muftum@gmail.com'un 96
-        // fcmTokens girdisiyle canlıda görüldü). En YENİ 10 token korunur.
-        if (Array.isArray(picked.fcmTokens) && picked.fcmTokens.length > 10) {
-          picked.fcmTokens = picked.fcmTokens.slice(-10);
-        }
-        userItems.push({ ref: doc(db, 'users', u.uid as string), data: picked });
-      });
-    }
-    const taskItems: { id: string; ref: DocumentReference; data: BackupRecord }[] = [];
-    if (Array.isArray(data.tasks)) {
-      data.tasks.forEach((t: BackupRecord) => {
-        if (t.id) {
-          const s = cleanDataObj(t) as BackupRecord;
-          s.deadline  = toTs(s.deadline);
-          s.createdAt = toTs(s.createdAt);
-          s.updatedAt = toTs(s.updatedAt);
-          taskItems.push({ id: t.id as string, ref: doc(db, 'tasks', t.id as string), data: s });
-        }
-      });
-    }
-    const blockerItems: { ref: DocumentReference; data: BackupRecord }[] = [];
-    if (Array.isArray(data.blockers)) {
-      data.blockers.forEach((b: BackupRecord) => {
-        if (b.id) {
-          const { id, ...rest } = cleanDataObj(b) as BackupRecord;
-          rest.createdAt = toTs(rest.createdAt);
-          if (rest.resolvedAt) rest.resolvedAt = toTs(rest.resolvedAt);
-          blockerItems.push({ ref: doc(db, 'blockers', id as string), data: rest });
-        }
-      });
     }
 
     // system/stats agregat sayaçları (Dashboard'un canlı okuduğu totalTasks/
@@ -263,7 +511,7 @@ export const settingsService = {
     // hiçbir zaman gerçek veriden sapmaz.
     const taskDeltaById = new Map<string, Record<string, number>>();
     for (const item of taskItems) {
-      const prevSnap = await getDoc(item.ref);
+      const prevSnap = await runWithRetry(() => getDoc(item.ref));
       const newStatus = item.data.status as string | undefined;
       const delta: Record<string, number> = {};
       if (!prevSnap.exists()) {
@@ -280,23 +528,38 @@ export const settingsService = {
     }
 
     const CHUNK = 50;
+    // Görev grubu AYRI ve daha KÜÇÜK bir chunk boyutu kullanır: her görev
+    // CREATE'i isValidTaskBusinessRules içinde assignee/coordinator/department
+    // dokümanlarına erişir ve bunlar (users grubunun aksine) görevler arasında
+    // FARKLI dokümanlardır. Emulator'a karşı ikili arama ile ÖLÇÜLDÜ (bkz.
+    // tests/rules "batched write: görev grubu için doküman-erişim kotası"
+    // bloğu, 2026-09-12): 19 farklı sorumlulu görev TEK batch'te başarılı,
+    // 20 KESİN başarısız (Firestore'un batched-write başına doküman-erişim
+    // kotası). 15, ölçülen sınırın altında güvenli bir pay bırakır
+    // (departmentService.ts MAX_BATCH_OPS=450'nin 500 sınırının altında
+    // kalmasıyla AYNI gerekçe — sınırın dibinde çalışmak, ileride chunk
+    // başına tek bir yardımcı yazım eklendiğinde sessizce taşardı).
+    const TASK_CHUNK = 15;
     const totalItems = userItems.length + taskItems.length + blockerItems.length;
     let writtenCount = 0;
 
     // Kullanıcı/görev/engel yazımları ayrı chunk GRUPLARINDA commit edilir —
-    // tek bir karışık diziyi 50'lik parçalara bölmek yerine. Gerekçe:
-    // Firestore kuralları bir batch İÇİNDEKİ yazımları görmez (get()/exists()
-    // her zaman batch ÖNCESİ durumu okur — departmentService.renameDepartment'ta
-    // AYNI kısıt nedeniyle adımlar ayrı commit'lere bölünmüştü). Karışık bir
+    // tek bir karışık diziyi parçalara bölmek yerine. Gerekçe: Firestore
+    // kuralları bir batch İÇİNDEKİ yazımları görmez (get()/exists() her zaman
+    // batch ÖNCESİ durumu okur — departmentService.renameDepartment'ta AYNI
+    // kısıt nedeniyle adımlar ayrı commit'lere bölünmüştü). Karışık bir
     // chunk'ta AYNI batch'te hem yeni bir kullanıcı hem de onu assigneeId/
     // coordinatorId olarak referans eden bir görev yazılırsa,
     // isValidTaskBusinessRules'taki assignee/coordinator rol kontrolleri o
     // kullanıcıyı henüz YOK sayar ve görev reddedilirdi. Gruplar arası sıra
     // (users → tasks → blockers) bu yüzden kasıtlıdır: blockers taskId'ye,
     // tasks assigneeId/coordinatorId üzerinden users'a bağımlıdır.
-    const writeGroup = async (list: { ref: DocumentReference; data: BackupRecord; id?: string }[]) => {
-      for (let i = 0; i < list.length; i += CHUNK) {
-        const chunk = list.slice(i, i + CHUNK);
+    const writeGroup = async (
+      list: { ref: DocumentReference; data: BackupRecord; id?: string }[],
+      chunkSize: number
+    ) => {
+      for (let i = 0; i < list.length; i += chunkSize) {
+        const chunk = list.slice(i, i + chunkSize);
 
         const chunkStatsDelta: Record<string, number> = {};
         chunk.forEach(it => {
@@ -335,9 +598,9 @@ export const settingsService = {
       }
     };
 
-    await writeGroup(userItems);
-    await writeGroup(taskItems);
-    await writeGroup(blockerItems);
+    await writeGroup(userItems, CHUNK);
+    await writeGroup(taskItems, TASK_CHUNK);
+    await writeGroup(blockerItems, CHUNK);
 
     // Register restore audit log — hangi dosyadan, kaç kayıt geri yüklendiği kaydedilir
     await runWithRetry(() => addDoc(collection(db, 'audit_logs'), {
@@ -347,11 +610,13 @@ export const settingsService = {
       ...auditLogType('STATUS'),
       changedBy: userId,
       oldValue: `Yedek dosyası: ${fileName}`,
-      newValue: `${data.users?.length ?? 0} kullanıcı, ${data.tasks?.length ?? 0} talimat, ${data.blockers?.length ?? 0} engel geri yüklendi`,
+      newValue: `${userItems.length} kullanıcı, ${taskItems.length} talimat, ${blockerItems.length} engel geri yüklendi`,
       timestamp: Date.now()
     }));
 
-    return { userCount: data.users?.length ?? 0, taskCount: data.tasks?.length ?? 0, blockerCount: data.blockers?.length ?? 0 };
+    // Artık sessiz atlama YOK (uid/id eksik kayıtlar şema aşamasında bloke
+    // edilir) — bu sayımlar GERÇEKTEN yazılan kayıt sayısıdır.
+    return { userCount: userItems.length, taskCount: taskItems.length, blockerCount: blockerItems.length };
   },
 
   /** Denetim izi dışa aktarımının kendisini audit_logs'a kaydeder — kayıtların

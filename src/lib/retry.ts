@@ -1,3 +1,4 @@
+import { FirebaseError } from '../firebase';
 import { logger } from './logger';
 
 // taskStateMachine/taskService'in fırlattığı DETERMİNİSTİK iş kuralı/durum
@@ -16,7 +17,24 @@ const NON_RETRYABLE_MESSAGE_PATTERNS = [
   /yalnızca Müdür/,
 ];
 
+// firestore.rules reddi DETERMİNİSTİKtir: aynı istek 3 kez daha gönderilse de
+// aynı kuralla reddedilir — kullanıcı yalnızca exponential backoff kadar
+// (≈1.5sn) boşuna bekletilir (bkz. kod denetimi, 2026-09-12: restoreBackup'ın
+// her chunk reddinde bu bedel ödeniyordu). offlineQueue.ts AYNI sınıflandırmayı
+// zaten yapıyor (NON_RETRYABLE_CODES) — burada kasıtlı olarak MESAJ deseni
+// DEĞİL, `code` alanı kullanılır: bu dosyayı kullanan servislerin genel retry
+// testleri (ör. blockerService.test.ts) rastgele bir `new Error('permission-denied')`
+// ile genel hata tükenmesini simüle ediyor; bir mesaj regex'i bunları
+// sessizce davranış değiştirerek kırardı. Gerçek SDK reddi HER ZAMAN `code`
+// taşır (bkz. retry.test.ts).
+const NON_RETRYABLE_ERROR_CODES = new Set(['permission-denied', 'invalid-argument']);
+
+function hasNonRetryableCode(error: unknown): boolean {
+  return error instanceof FirebaseError && NON_RETRYABLE_ERROR_CODES.has(error.code);
+}
+
 function isNonRetryableBusinessError(error: unknown): boolean {
+  if (hasNonRetryableCode(error)) return true;
   const msg = error instanceof Error ? error.message : String(error);
   return NON_RETRYABLE_MESSAGE_PATTERNS.some(p => p.test(msg));
 }

@@ -13,12 +13,25 @@ import { Settings } from './Settings';
 import { settingsService } from '../services/settingsService';
 import type { User } from '../types';
 
+// RestoreValidationError gerçek modülle AYNI ŞEKİLDE (Error alt sınıfı, aynı
+// `name`) mock'lanır — DataTab.tsx'in catch bloğundaki `instanceof` kontrolü
+// gerçek sınıfa bakar; mock burada eksik olsaydı `instanceof undefined`
+// çalışma zamanında TypeError fırlatırdı (bkz. aşağıdaki hata gösterimi testleri).
+// `vi.hoisted` şart: `vi.mock` factory'si dosyanın EN BAŞINA taşınır, normal
+// bir `class` bildirimi bu noktada henüz tanımlanmamış olurdu.
+const { MockRestoreValidationError } = vi.hoisted(() => {
+  class MockRestoreValidationError extends Error {
+    constructor(message: string) { super(message); this.name = 'RestoreValidationError'; }
+  }
+  return { MockRestoreValidationError };
+});
 vi.mock('../services/settingsService', () => ({
   settingsService: {
     restoreBackup: vi.fn().mockResolvedValue({ userCount: 1, taskCount: 2, blockerCount: 0 }),
     saveSlaConfig: vi.fn().mockResolvedValue(undefined),
     archiveAuditLogs: vi.fn().mockResolvedValue(undefined),
   },
+  RestoreValidationError: MockRestoreValidationError,
 }));
 vi.mock('../services/auditLogService', () => ({
   auditLogService: { fetchAllPaged: vi.fn().mockResolvedValue([]) },
@@ -140,5 +153,47 @@ describe('Settings — geri yükleme yazarak doğrulama', () => {
 
     await user.type(screen.getByLabelText(/Onaylamak için/i), 'GERİ YÜKLE{Enter}');
     expect(settingsService.restoreBackup).not.toHaveBeenCalled();
+  });
+});
+
+describe('Settings — geri yükleme hata gösterimi', () => {
+  // KÖK NEDEN (2026-09-12 canlı): restoreBackup'ın fırlattığı ham SDK hatası
+  // ("Missing or insufficient permissions.") kullanıcıya OLDUĞU GİBİ
+  // basılıyordu. Artık iki AYRI yol var: settingsService'in KENDİ ön
+  // doğrulamasının ürettiği RestoreValidationError aynen gösterilir (zaten
+  // Türkçe + kayıt-bazlı); diğer TÜM hatalar (Firebase/SDK) humanizeError'dan
+  // geçer.
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('RestoreValidationError mesajı AYNEN gösterilir (kayıt-bazlı bilgi kaybolmaz)', async () => {
+    vi.mocked(settingsService.restoreBackup).mockRejectedValueOnce(
+      new MockRestoreValidationError(
+        'Geri yükleme BAŞLATILMADI (hiçbir veri yazılmadı) — aşağıdaki kayıtlar dizge iş kurallarını karşılamıyor:\n• Koordinatörü Admin olan 1 talimat: task-1.'
+      )
+    );
+    const user = userEvent.setup();
+    renderSettings();
+    await openRestoreModal(user);
+    await user.type(screen.getByLabelText(/Onaylamak için/i), 'GERİ YÜKLE');
+    await user.click(confirmButton());
+
+    await screen.findByText(/Koordinatörü Admin olan 1 talimat: task-1/);
+    expect(screen.queryByText(/Missing or insufficient permissions/i)).not.toBeInTheDocument();
+  });
+
+  it('Firebase/SDK hatası ham metinle DEĞİL, humanizeError çevirisiyle gösterilir', async () => {
+    vi.mocked(settingsService.restoreBackup).mockRejectedValueOnce(
+      Object.assign(new Error('Missing or insufficient permissions.'), { code: 'permission-denied' })
+    );
+    const user = userEvent.setup();
+    renderSettings();
+    await openRestoreModal(user);
+    await user.type(screen.getByLabelText(/Onaylamak için/i), 'GERİ YÜKLE');
+    await user.click(confirmButton());
+
+    await screen.findByText(/Yetkiniz Yok/);
+    expect(screen.queryByText(/Missing or insufficient permissions/i)).not.toBeInTheDocument();
   });
 });

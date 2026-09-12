@@ -1594,3 +1594,215 @@ describe('Belgelenmiş (sürpriz olabilecek) mevcut davranışlar', () => {
     }));
   });
 });
+
+// =============================================================================
+// 13. restoreBackup (Admin toplu geri yükleme) — Admin istisnası OLMAYAN kısıtlar
+// =============================================================================
+// Kural dosyası bu bölümle DEĞİŞMEDİ — aşağıdaki testler yalnızca bugünkü
+// davranışı BELGELER ve kilitler. Amaç: settingsService.restoreBackup'ın
+// istemci tarafında ön-doğrulamayla kapatması gereken kısıtları somutlaştırmak
+// (bkz. kod denetimi, 2026-09-12 — 4 ayrı canlı restore hatasının kök nedeni
+// hep bu sınıftandı: yedekteki veri, bu kısıtlardan birini karşılamıyordu).
+// Admin'in status=='ASSIGNED' istisnası (satır ~237) gibi BİLİNÇLİ bir gevşetme
+// buradaki hiçbir kısıt için YOK — bu yüzden restoreBackup, yazmadan ÖNCE bu
+// ihlalleri kendisi tespit edip kullanıcıya raporlamak zorundadır.
+describe('restoreBackup CREATE yolu: Admin istisnası OLMAYAN kısıtlar', () => {
+  it('Admin, changedBy alanı taşıyan bir görevi OLUŞTURAMAZ (create allowlist\'inde yok)', async () => {
+    // firestore.rules isValidTaskCreate.allowedFields listesinde 'changedBy'
+    // YOK (isValidTaskUpdate.allowedFields'da VAR — bilinçsiz asimetri).
+    // taskService her durum geçişinde göreve changedBy yazdığından, en az bir
+    // kez durum değiştirmiş HER görev yedekte bu alanı taşır.
+    await assertFails(setDoc(doc(admin(), 'tasks', 'restore-changedby'), taskDoc({
+      creatorId: 'admin-uid', changedBy: 'admin-uid',
+    })));
+  });
+
+  it('Admin, parentId: null taşıyan bir görevi OLUŞTURAMAZ (null için kaçış yok)', async () => {
+    // coordinatorId (satır ~247) ve pausedAt'in aksine parentId kontrolünde
+    // `data.parentId == null` kaçışı yok — yalnızca `is string` kabul edilir.
+    await assertFails(setDoc(doc(admin(), 'tasks', 'restore-parentid-null'), taskDoc({
+      creatorId: 'admin-uid', parentId: null,
+    })));
+  });
+
+  it('Admin, parentId alanı hiç bulunmayan bir görevi oluşturabilir (karşılaştırma)', async () => {
+    await assertSucceeds(setDoc(doc(admin(), 'tasks', 'restore-parentid-none'), taskDoc({
+      creatorId: 'admin-uid',
+    })));
+  });
+
+  it('Admin, completedAt: null taşıyan bir görevi OLUŞTURAMAZ (null için kaçış yok)', async () => {
+    await assertFails(setDoc(doc(admin(), 'tasks', 'restore-completedat-null'), taskDoc({
+      creatorId: 'admin-uid', completedAt: null,
+    })));
+  });
+
+  it('Admin, pausedAt: null taşıyan bir görevi oluşturabilir (completedAt ile ASİMETRİ)', async () => {
+    // pausedAt, isValidTaskCreate'te hiçbir tip kontrolüne tabi değil —
+    // completedAt ise `is number` istiyor. Aynı "duraklama zaman damgası"
+    // kavramı iki alanda farklı davranıyor.
+    await assertSucceeds(setDoc(doc(admin(), 'tasks', 'restore-pausedat-null'), taskDoc({
+      creatorId: 'admin-uid', pausedAt: null,
+    })));
+  });
+
+  it('Admin, koordinatörü Admin olan bir görevi OLUŞTURAMAZ (hasNoAdminCoordinator)', async () => {
+    // Eski projeden taşınan bir görevde coordinatorId, o kullanıcı SONRADAN
+    // Admin'e terfi ettiği için artık bir Admin'e işaret ediyor olabilir.
+    // restoreBackup users grubunu tasks'tan ÖNCE yazdığından (settingsService.ts)
+    // kural GÜNCEL (terfi etmiş) rolü görür.
+    await assertFails(setDoc(doc(admin(), 'tasks', 'restore-admin-coordinator'), taskDoc({
+      creatorId: 'admin-uid', coordinatorId: 'admin-uid',
+    })));
+  });
+
+  it('Admin, koordinatörü Müdür olan bir görevi oluşturabilir (karşılaştırma)', async () => {
+    await assertSucceeds(setDoc(doc(admin(), 'tasks', 'restore-manager-coordinator'), taskDoc({
+      creatorId: 'admin-uid', coordinatorId: 'mgr-b',
+    })));
+  });
+
+  it('Admin, sorumlusu Memur OLMAYAN bir alt görevi OLUŞTURAMAZ (hasValidSubtaskAssignee)', async () => {
+    await assertFails(setDoc(doc(admin(), 'tasks', 'restore-subtask-nonstaff'), taskDoc({
+      creatorId: 'admin-uid', parentId: 'sm-ASSIGNED', assigneeId: 'mgr-a',
+    })));
+  });
+
+  it('Admin, sorumlusu Memur olan bir alt görevi oluşturabilir (karşılaştırma)', async () => {
+    await assertSucceeds(setDoc(doc(admin(), 'tasks', 'restore-subtask-staff'), taskDoc({
+      creatorId: 'admin-uid', parentId: 'sm-ASSIGNED', assigneeId: 'staff-a',
+    })));
+  });
+
+  it('Admin, sorumlusu hiç VAR OLMAYAN bir alt görevi oluşturamaz', async () => {
+    // assigneeDoc == null → hasValidSubtaskAssignee'nin son koşulu
+    // (assigneeDoc != null && role == 'Staff') değerlendirilemez, kural reddeder.
+    // Yedekteki bir kullanıcı silinmiş/hiç restore edilmemişse gerçekçi.
+    await assertFails(setDoc(doc(admin(), 'tasks', 'restore-subtask-missing'), taskDoc({
+      creatorId: 'admin-uid', parentId: 'sm-ASSIGNED', assigneeId: 'hic-yok-kullanici',
+    })));
+  });
+
+  it('Admin, devir hedefi (PENDING_DELEGATION) Memur olan bir görevi OLUŞTURAMAZ (hasValidDelegationTarget)', async () => {
+    // Düzeltme #2'nin (Admin'in PENDING_DELEGATION dahil tarihi durumla create
+    // edebilmesi, isValidTaskCreate satır ~237) DOĞRUDAN çelişkisi: kural
+    // create'e izin verir, iş kuralı aynı yazımı reddedebilir.
+    await assertFails(setDoc(doc(admin(), 'tasks', 'restore-delegation-staff'), taskDoc({
+      creatorId: 'admin-uid', status: 'PENDING_DELEGATION', assigneeId: 'staff-a',
+    })));
+  });
+
+  it('Admin, devir hedefi Müdür olan PENDING_DELEGATION görevi oluşturabilir (karşılaştırma)', async () => {
+    await assertSucceeds(setDoc(doc(admin(), 'tasks', 'restore-delegation-manager'), taskDoc({
+      creatorId: 'admin-uid', status: 'PENDING_DELEGATION', assigneeId: 'mgr-b',
+    })));
+  });
+
+  it('Admin, resolvedAt: null taşıyan bir engeli OLUŞTURAMAZ (isValidBlocker null kaçışı yok)', async () => {
+    await assertFails(setDoc(doc(admin(), 'blockers', 'restore-blocker-null'), {
+      taskId: 'task-a', reason: 'Test', isResolved: true, createdAt: NOW, resolvedAt: null,
+    }));
+  });
+
+  it('Admin, resolvedAt sayı olan bir engeli oluşturabilir (karşılaştırma)', async () => {
+    await assertSucceeds(setDoc(doc(admin(), 'blockers', 'restore-blocker-number'), {
+      taskId: 'task-a', reason: 'Test', isResolved: true, createdAt: NOW, resolvedAt: NOW,
+    }));
+  });
+
+  it('Admin, 11 fcmTokens taşıyan bir kullanıcı OLUŞTURAMAZ (isValidUser sınırı, Admin dahil)', async () => {
+    // Bugünkü canlı hatanın (2026-09-12, 96 elemanlı fcmTokens) kural
+    // tarafındaki regresyon kilidi.
+    await assertFails(setDoc(doc(admin(), 'users', 'restore-user-manytokens'), {
+      uid: 'restore-user-manytokens', fullName: 'Test', email: 'many@makam.test',
+      role: 'Manager', departmentId: 'dept-a',
+      fcmTokens: Array.from({ length: 11 }, (_, i) => `tok-${i}`),
+    }));
+  });
+
+  it('Admin, 10 fcmTokens taşıyan bir kullanıcı oluşturabilir (karşılaştırma)', async () => {
+    await assertSucceeds(setDoc(doc(admin(), 'users', 'restore-user-tentokens'), {
+      uid: 'restore-user-tentokens', fullName: 'Test', email: 'ten@makam.test',
+      role: 'Manager', departmentId: 'dept-a',
+      fcmTokens: Array.from({ length: 10 }, (_, i) => `tok-${i}`),
+    }));
+  });
+});
+
+// =============================================================================
+// 14. Batched write — doküman-erişim kotası ölçümü (settingsService CHUNK=50)
+// =============================================================================
+describe('batched write: görev grubu için doküman-erişim kotası ÖLÇÜLDÜ (settingsService.TASK_CHUNK)', () => {
+  // ── ÖLÇÜM SONUCU (emulator, 2026-09-12) ─────────────────────────────────────
+  // Her görev CREATE'i isValidTaskBusinessRules içinde assigneeDoc (parentId
+  // dolu olduğundan hasValidSubtaskAssignee üzerinden) + departmentExists
+  // erişimi tetikler (firestore.rules ~543-579) — assignee burada BİLİNÇLİ
+  // olarak her görevde FARKLI bir dokümandır (restoreBackup'ın gerçek görev
+  // grubuyla aynı "farklı doküman" profili). İkili arama ile ölçüldü:
+  // n=19 farklı sorumlulu görev TEK batch'te BAŞARILI, n=20 KESİN BAŞARISIZ
+  // ("Service call error" / PERMISSION_DENIED — Firestore'un batched-write
+  // başına doküman-erişim kotası). Bu, users grubunun aksine (bkz. aşağıdaki
+  // ikinci test, 50'de hâlâ başarılı) TAMAMEN BEKLENDİK: users grubunun tek
+  // yazımı (isAdmin() custom claim ile) hiç get() tetiklemezken, her görev
+  // YENİ bir assignee/coordinator/department dokümanına erişir.
+  //
+  // settingsService.ts'teki TASK_CHUNK bu ölçülen sınırın (19) altında, güvenli
+  // bir payla (departmentService.ts'teki MAX_BATCH_OPS=450'nin 500 sınırının
+  // altında kalması ile AYNI gerekçe) tutulmalıdır — bu test o payı kilitler.
+  it('Admin, 15 FARKLI sorumluya ait görevi TEK writeBatch ile oluşturabilir (TASK_CHUNK güvenli payı)', async () => {
+    const n = 15;
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      for (let i = 0; i < n; i++) {
+        await setDoc(doc(db, 'users', `bulk-staff-${i}`), userDoc(`bulk-staff-${i}`, 'Staff', 'dept-a'));
+      }
+    });
+    const adminDb = admin();
+    const batch = writeBatch(adminDb);
+    for (let i = 0; i < n; i++) {
+      batch.set(doc(adminDb, 'tasks', `bulk-task-${i}`), taskDoc({
+        creatorId: 'admin-uid', assigneeId: `bulk-staff-${i}`, parentId: 'sm-ASSIGNED',
+      }));
+    }
+    await assertSucceeds(batch.commit());
+  });
+
+  it('20 FARKLI sorumluya ait görev TEK batch\'te KESİN BAŞARISIZ olur (ölçülen kota sınırı)', async () => {
+    // Bu test kırmızıya dönerse (yani 20 artık geçerse) firestore.rules ya da
+    // emulator davranışı değişmiş demektir — TASK_CHUNK'ın YENİDEN ölçülmesi
+    // gerekir, kilit kaldırılamaz.
+    const n = 20;
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      for (let i = 0; i < n; i++) {
+        await setDoc(doc(db, 'users', `bulk-deny-staff-${i}`), userDoc(`bulk-deny-staff-${i}`, 'Staff', 'dept-a'));
+      }
+    });
+    const adminDb = admin();
+    const batch = writeBatch(adminDb);
+    for (let i = 0; i < n; i++) {
+      batch.set(doc(adminDb, 'tasks', `bulk-deny-task-${i}`), taskDoc({
+        creatorId: 'admin-uid', assigneeId: `bulk-deny-staff-${i}`, parentId: 'sm-ASSIGNED',
+      }));
+    }
+    await assertFails(batch.commit());
+  });
+
+  it('Admin, 50 farklı kullanıcıyı TEK writeBatch ile yazabilir (users grubu — üretimde kanıtlanmış yolun regresyon kilidi)', async () => {
+    // settingsService.restoreBackup'ın users grubu için CANLIDA (muftim,
+    // 2026-09-12) 6 kullanıcılık tek batch'in başarıyla geçtiği doğrulandı;
+    // bu test aynı yolu CHUNK sınırının tamamında (50) kilitler. Görev
+    // grubundan FARKLI olarak users yazımı hiçbir çapraz-referans get()'i
+    // tetiklemez (Admin custom claim ile isAdmin() anında true döner), bu
+    // yüzden 50'de hiç sorun yaşanmaz.
+    const adminDb = admin();
+    const batch = writeBatch(adminDb);
+    for (let i = 0; i < 50; i++) {
+      batch.set(doc(adminDb, 'users', `bulk-user-${i}`), {
+        uid: `bulk-user-${i}`, fullName: `Toplu ${i}`, email: `bulk-${i}@makam.test`,
+        role: 'Manager', departmentId: 'dept-a',
+      });
+    }
+    await assertSucceeds(batch.commit());
+  });
+});

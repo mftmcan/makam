@@ -4,8 +4,9 @@ import type { Task, User, TaskBlocker } from '../../types';
 import { downloadBlob } from '../../lib/utils';
 import { taskService } from '../../services/taskService';
 import { auditLogService } from '../../services/auditLogService';
-import { settingsService } from '../../services/settingsService';
+import { settingsService, RestoreValidationError } from '../../services/settingsService';
 import { logger } from '../../lib/logger';
+import { humanizeError } from '../../lib/errorMessages';
 import { SettingsCard } from '../ui/SettingsCard';
 import { ActionButton } from '../ui/ActionButton';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
@@ -68,8 +69,8 @@ export function DataTab({ tasks, users, blockers, isOnline, currentUser, isAdmin
       setImportStatus({ type: 'success', message: 'Dizge yedeği başarıyla indirildi.' });
     } catch (err) {
       logger.error('Export failed:', err);
-      const msg = err instanceof Error ? err.message : String(err);
-      setImportStatus({ type: 'error', message: `Yedekleme Hatası: ${msg}` });
+      const { title, body } = humanizeError(err);
+      setImportStatus({ type: 'error', message: `${title}: ${body}` });
     }
   };
 
@@ -121,8 +122,21 @@ export function DataTab({ tasks, users, blockers, isOnline, currentUser, isAdmin
       });
       setImportStatus({ type: 'success', message: 'Dizge başarıyla önceki sürüme döndürüldü.' });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setImportStatus({ type: 'error', message: `Hata: ${msg}` });
+      // KÖK NEDEN (2026-09-12 canlı): ham SDK mesajı kullanıcıya doğrudan
+      // basılıyordu ("Hata: Missing or insufficient permissions.") — oysa
+      // lib/errorMessages.ts'teki humanizeError permission-denied için
+      // ZATEN "Yetkiniz Yok" eşlemesi taşıyor. settingsService'in KENDİ ön
+      // doğrulamasının ürettiği RestoreValidationError İSTİSNADIR: mesajı
+      // zaten Türkçe ve kayıt-bazlıdır (ör. "Koordinatörü Admin olan 3
+      // talimat: ...") — humanizeError'dan geçirmek bu bilgiyi "Dizge
+      // Hatası"na düzleştirip yok ederdi.
+      logger.error('Restore failed:', err);
+      if (err instanceof RestoreValidationError) {
+        setImportStatus({ type: 'error', message: err.message });
+      } else {
+        const { title, body } = humanizeError(err);
+        setImportStatus({ type: 'error', message: `${title}: ${body}` });
+      }
     } finally {
       if (restoreFileInputRef.current) restoreFileInputRef.current.value = '';
     }
@@ -164,8 +178,9 @@ export function DataTab({ tasks, users, blockers, isOnline, currentUser, isAdmin
 
       setImportStatus({ type: 'success', message: `${logs.length} denetim izi kaydı başarıyla yerel diske aktarıldı.` });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setImportStatus({ type: 'error', message: `Arşivleme Hatası: ${msg}` });
+      logger.error('Archive failed:', err);
+      const { title, body } = humanizeError(err);
+      setImportStatus({ type: 'error', message: `${title}: ${body}` });
     } finally {
       setIsArchiving(false);
     }

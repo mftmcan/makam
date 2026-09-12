@@ -1,14 +1,21 @@
 /**
- * settingsService testleri (P0-4).
+ * settingsService testleri (P0-4 + 2026-09-12 kural-uyumu sertleştirmesi).
  *
  * restoreBackup, uygulamadaki tek GERİ DÖNÜŞÜ OLMAYAN toplu veritabanı
  * işlemidir: mevcut personel/talimat/engel dokümanlarının üzerine chunk'lar
  * halinde yazar ve system/stats agregat sayaçlarını elle hesapladığı delta ile
- * düzeltir. Buna rağmen hiç birim testi yoktu (bkz. kod denetimi) — bu dosya
- * şema reddi, chunk sınırı ve sayaç deltası davranışlarını sabitler.
+ * düzeltir. Bu dosya şema reddi, normalizasyon, çapraz-referans iş kuralı
+ * doğrulaması, chunk sınırı ve sayaç deltası davranışlarını sabitler.
+ *
+ * KÖK NEDEN (2026-09-12, muftim projesi canlı hataları): restoreBackup,
+ * yazdığı veriyi firestore.rules'ın create-path kısıtlarına göre hiç
+ * şekillendirmiyordu — dört ayrı üretim hatası (departman referans bütünlüğü,
+ * görev durumu ASSIGNED-only kısıtı, fcmTokens>10 sınırı, aynı sınıftan
+ * changedBy/null-alan/iş-kuralı ihlalleri) hep bu yüzden oluştu. Şemalar artık
+ * firestore.rules'taki uzunluk/enum/zorunlu-alan sınırlarıyla BİREBİR eşleşir.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { settingsService } from './settingsService';
+import { settingsService, RestoreValidationError } from './settingsService';
 import * as firebase from '../firebase';
 import { SESSION_TIMEOUT_STORAGE_KEY } from '../hooks/useSessionTimeout';
 import {
@@ -43,8 +50,14 @@ const validUser = (over: Record<string, unknown> = {}) => ({
 const validTask = (over: Record<string, unknown> = {}) => ({
   id: 'task-1', title: 'Talimat', description: 'Açıklama',
   creatorId: 'mgr-1', assigneeId: 'user-1', status: 'ASSIGNED', priority: 'Medium',
+  // ZORUNLU (firestore.rules requiredFields) — bkz. kod denetimi 2026-09-12.
+  departmentId: 'dept-a',
   deadline: 1_700_000_000_000, createdAt: 1_700_000_000_000, updatedAt: 1_700_000_000_000,
   ...over,
+});
+
+const validBlocker = (over: Record<string, unknown> = {}) => ({
+  id: 'blk-1', taskId: 'task-1', reason: 'Engel', isResolved: false, createdAt: 1, ...over,
 });
 
 beforeEach(() => {
@@ -114,10 +127,70 @@ describe('restoreBackup — yedek şeması reddi', () => {
       .rejects.toThrow(/Personel verisi doğrulanamadı/);
   });
 
+  it('boş Ad Soyad taşıyan personel kaydı reddedilir', async () => {
+    const backup = makeBackup({ users: [validUser({ fullName: '' })] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(/Ad Soyad boş olamaz/);
+  });
+
+  it('uid alanı eksik/boş olan personel kaydı BLOKE EDİLİR (artık sessizce atlanmaz)', async () => {
+    // Kullanıcı kararı (2026-09-12): sessiz veri kaybı yerine açık, kayıt
+    // bazlı bir hata — bkz. plan "Kullanıcı kararı" bölümü.
+    const backup = makeBackup({ users: [validUser({ uid: '' })] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(/Kimlik alanı boş olamaz/);
+    expect(batches).toHaveLength(0);
+  });
+
   it('geçersiz bir talimat kaydı, hangi talimat olduğunu söyleyerek reddedilir', async () => {
     const backup = makeBackup({ tasks: [validTask({ status: 'YOK_BOYLE_DURUM', title: 'Bozuk Talimat' })] });
     await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
       .rejects.toThrow(/Talimat verisi doğrulanamadı \(Bozuk Talimat\)/);
+  });
+
+  it('departmentId taşımayan bir talimat kaydı reddedilir (firestore.rules requiredFields)', async () => {
+    const backup = makeBackup({ tasks: [{ ...validTask(), departmentId: undefined }] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(/Talimat verisi doğrulanamadı/);
+  });
+
+  it('id alanı eksik/boş olan bir talimat BLOKE EDİLİR', async () => {
+    const backup = makeBackup({ tasks: [validTask({ id: '' })] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(/Kimlik alanı boş olamaz/);
+    expect(batches).toHaveLength(0);
+  });
+
+  it.each([
+    ['title', 'a'.repeat(201), /Başlık 200 karakteri aşamaz/],
+    ['description', '', /Açıklama boş olamaz/],
+    ['description', 'a'.repeat(2001), /Açıklama 2000 karakteri aşamaz/],
+    ['evidence', 'a'.repeat(1001), /Kanıt metni 1000 karakteri aşamaz/],
+    ['comments', Array.from({ length: 201 }, () => ({})), /Yorum sayısı 200'ü aşamaz/],
+    ['tags', Array.from({ length: 11 }, (_, i) => `t${i}`), /Etiket sayısı 10'u aşamaz/],
+    ['checklist', Array.from({ length: 101 }, () => ({})), /Kontrol listesi 100 maddeyi aşamaz/],
+  ])('firestore.rules uzunluk/adet sınırını aşan %s alanı reddedilir', async (field, value, expected) => {
+    const backup = makeBackup({ tasks: [validTask({ [field]: value })] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(expected as RegExp);
+  });
+
+  it('isValidId regex\'ini karşılamayan bir assigneeId reddedilir (ör. boşluk içeren ad)', async () => {
+    const backup = makeBackup({ tasks: [validTask({ assigneeId: 'ali veli' })] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(/Kimlik yalnızca harf, rakam/);
+  });
+
+  it('engel verisi zod doğrulamasından geçer — eskiden HİÇ doğrulanmıyordu', async () => {
+    const backup = makeBackup({ blockers: [validBlocker({ reason: '' })] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(/Engel verisi doğrulanamadı/);
+  });
+
+  it('geçersiz severity taşıyan bir engel reddedilir', async () => {
+    const backup = makeBackup({ blockers: [validBlocker({ severity: 'Kritik' })] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(/Engel verisi doğrulanamadı/);
   });
 
   it('doğrulama başarısız olursa HİÇBİR yazma yapılmaz (kısmi geri yükleme yok)', async () => {
@@ -133,69 +206,94 @@ describe('restoreBackup — yedek şeması reddi', () => {
   });
 });
 
-// ── Chunk sınırı ─────────────────────────────────────────────────────────────
-describe('restoreBackup — chunk sınırı', () => {
-  it('50 kayıtlık chunk sınırını aşmaz ve her chunk ayrı batch olarak commit edilir', async () => {
-    const tasks = Array.from({ length: 120 }, (_, i) => validTask({ id: `task-${i}` }));
-    await settingsService.restoreBackup(JSON.stringify(makeBackup({ tasks })), 'u1', 'x.json');
-
-    expect(batches).toHaveLength(3); // 50 + 50 + 20
-    // İlk iki batch: 50 görev + 1 stats yazımı; son batch: 20 görev + 1 stats
-    expect(batches[0]!.set).toHaveBeenCalledTimes(51);
-    expect(batches[1]!.set).toHaveBeenCalledTimes(51);
-    expect(batches[2]!.set).toHaveBeenCalledTimes(21);
-    batches.forEach(b => expect(b.commit).toHaveBeenCalledOnce());
-  });
-
-  it('tam 50 kayıt tek bir chunk olarak yazılır', async () => {
-    const tasks = Array.from({ length: 50 }, (_, i) => validTask({ id: `task-${i}` }));
-    await settingsService.restoreBackup(JSON.stringify(makeBackup({ tasks })), 'u1', 'x.json');
-    expect(batches).toHaveLength(1);
-  });
-
-  it('kayıt yoksa hiç batch açılmaz ama denetim izi yine de düşülür', async () => {
-    await settingsService.restoreBackup(JSON.stringify(makeBackup()), 'u1', 'bos.json');
-    expect(batches).toHaveLength(0);
-    expect(firebase.addDoc).toHaveBeenCalledOnce();
-  });
-
-  it('ilerleme yüzdesi her chunk sonunda ve en son %100 olarak bildirilir', async () => {
-    const tasks = Array.from({ length: 120 }, (_, i) => validTask({ id: `task-${i}` }));
-    const progress: number[] = [];
-    await settingsService.restoreBackup(
-      JSON.stringify(makeBackup({ tasks })), 'u1', 'x.json', p => progress.push(p)
-    );
-    expect(progress).toEqual([42, 83, 100]);
-  });
-
-  it('kullanıcı, görev ve engeller AYRI gruplarda, users → tasks → blockers sırasıyla yazılır', async () => {
-    // Firestore kuralları bir batch İÇİNDEKİ yazımları görmez (get()/exists()
-    // batch ÖNCESİ durumu okur) — bu yüzden users/tasks/blockers tek bir
-    // karışık kuyrukta DEĞİL, üç ayrı grup/batch'te ve bu sırada commit edilir
-    // (bkz. restoreBackup'taki writeGroup yorumu). Aksi halde AYNI batch'te
-    // hem yeni bir kullanıcı hem onu assigneeId olarak referans eden bir görev
-    // yazılırsa, görev tarafı o kullanıcıyı henüz YOK sayardı.
-    const backup = makeBackup({
-      users: [validUser()],
-      tasks: [validTask()],
-      blockers: [{ id: 'blk-1', taskId: 'task-1', reason: 'Engel', isResolved: false, createdAt: 1 }],
-    });
-    const res = await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
-
-    expect(res).toEqual({ userCount: 1, taskCount: 1, blockerCount: 1 });
-    expect(batches).toHaveLength(3);
-    expect(batches[0]!.set.mock.calls.map(([ref]) => pathOf(ref))).toContain('users/user-1');
-    expect(batches[1]!.set.mock.calls.map(([ref]) => pathOf(ref))).toContain('tasks/task-1');
-    expect(batches[2]!.set.mock.calls.map(([ref]) => pathOf(ref))).toContain('blockers/blk-1');
-  });
-
-  it('uid/id taşımayan kayıtlar sessizce atlanır (yazma hedefi yok)', async () => {
-    const backup = makeBackup({
-      users: [validUser({ uid: '' })],
-      blockers: [{ taskId: 'task-1', reason: 'Engel', isResolved: false, createdAt: 1 }],
-    });
+// ── Normalizasyon (şema geçer, ama alan sessizce düzeltilir/düşürülür) ───────
+describe('restoreBackup — normalizasyon (veri anlamını DEĞİŞTİRMEYEN sessiz düzeltmeler)', () => {
+  it('changedBy alanı görevden tamamen kaldırılır (create allowlist\'inde yok)', async () => {
+    const backup = makeBackup({ tasks: [validTask({ changedBy: 'birisi' })] });
     await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
-    expect(batches).toHaveLength(0);
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'tasks/task-1');
+    expect(written![1]).not.toHaveProperty('changedBy');
+  });
+
+  it('parentId: null alanı düşürülür (kuralda null kaçışı yok)', async () => {
+    const backup = makeBackup({ tasks: [validTask({ parentId: null })] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'tasks/task-1');
+    expect(written![1]).not.toHaveProperty('parentId');
+  });
+
+  it('completedAt: null alanı düşürülür, Date.now() UYDURULMAZ', async () => {
+    const backup = makeBackup({ tasks: [validTask({ completedAt: null })] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'tasks/task-1');
+    expect(written![1]).not.toHaveProperty('completedAt');
+  });
+
+  it('completedAt ISO string ise epoch ms\'e çevrilir', async () => {
+    const backup = makeBackup({ tasks: [validTask({ completedAt: '2026-01-01T00:00:00.000Z' })] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'tasks/task-1');
+    expect(written![1].completedAt).toBe(new Date('2026-01-01T00:00:00.000Z').getTime());
+  });
+
+  it('coordinatorId: null alanı KORUNUR (kuralda açık null kaçışı var)', async () => {
+    const backup = makeBackup({ tasks: [validTask({ coordinatorId: null })] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'tasks/task-1');
+    expect(written![1].coordinatorId).toBeNull();
+  });
+
+  it('coordinatorId: "" boş dizesi null\'a normalize edilir (şema regex\'ini gereksiz yere reddetmesin diye)', async () => {
+    const backup = makeBackup({ tasks: [validTask({ coordinatorId: '' })] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'tasks/task-1');
+    expect(written![1].coordinatorId).toBeNull();
+  });
+
+  it('pausedAt: null alanı KORUNUR (completedAt ile ASİMETRİ, kuralda tip kontrolü bile yok)', async () => {
+    const backup = makeBackup({ tasks: [validTask({ pausedAt: null })] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'tasks/task-1');
+    expect(written![1].pausedAt).toBeNull();
+  });
+
+  it('users departmentId: null alanı KORUNUR (userDepartmentIsValid null\'u açıkça kabul eder)', async () => {
+    const backup = makeBackup({ users: [validUser({ departmentId: null })] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'users/user-1');
+    expect(written![1].departmentId).toBeNull();
+  });
+
+  it('şema dışı (allowlist dışı) bir alan sessizce düşürülür', async () => {
+    const backup = makeBackup({ tasks: [{ ...validTask(), keyfiAlan: 'x' } as Record<string, unknown>] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'tasks/task-1');
+    expect(written![1]).not.toHaveProperty('keyfiAlan');
+  });
+
+  it('engelde resolvedAt: null alanı düşürülür', async () => {
+    const backup = makeBackup({ blockers: [validBlocker({ isResolved: true, resolvedAt: null })] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'blockers/blk-1');
+    expect(written![1]).not.toHaveProperty('resolvedAt');
+  });
+
+  it('engelde \'id\' alanı doküman verisine YAZILMAZ (doküman ID\'si olarak kullanılıyor)', async () => {
+    const backup = makeBackup({ blockers: [validBlocker()] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'blockers/blk-1');
+    expect(written![1]).not.toHaveProperty('id');
   });
 
   it('10\'dan fazla fcmTokens taşıyan bir kullanıcı EN YENİ 10 token\'a kırpılır (firestore.rules isValidUser sınırı)', async () => {
@@ -215,6 +313,182 @@ describe('restoreBackup — chunk sınırı', () => {
 
     const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'users/user-1');
     expect(written![1].fcmTokens).toEqual(fewTokens);
+  });
+});
+
+// ── Çapraz-referans iş kuralı doğrulaması ────────────────────────────────────
+// firestore.rules isValidTaskBusinessRules'ın hasNoAdminCoordinator /
+// hasValidSubtaskAssignee / hasValidDelegationTarget dallarının HİÇBİRİNDE
+// Admin istisnası yoktur (bkz. tests/rules "restoreBackup CREATE yolu"
+// belgeleme bloğu) — restoreBackup bu yüzden yazmadan ÖNCE kendisi tespit
+// edip RestoreValidationError ile raporlamak zorundadır.
+describe('restoreBackup — çapraz-referans iş kuralı doğrulaması (yazmadan ÖNCE bloke eder)', () => {
+  it('koordinatörü YEDEKTEKİ bir Admin olan görev bloke edilir ve raporda id\'si geçer', async () => {
+    const backup = makeBackup({
+      users: [validUser({ uid: 'admin-1', role: 'Admin' })],
+      tasks: [validTask({ coordinatorId: 'admin-1' })],
+    });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(RestoreValidationError);
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(/Koordinatörü Admin olan 1 talimat: task-1/);
+    expect(batches).toHaveLength(0);
+  });
+
+  it('koordinatörü VERİTABANINDAKİ (yedekte olmayan) bir Admin olan görev bloke edilir', async () => {
+    existingDocs['users/admin-1'] = { role: 'Admin' };
+    const backup = makeBackup({ tasks: [validTask({ coordinatorId: 'admin-1' })] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(/Koordinatörü Admin olan/);
+  });
+
+  it('koordinatörü Müdür olan görev İZİN VERİLİR (karşılaştırma)', async () => {
+    const backup = makeBackup({
+      users: [validUser({ uid: 'mgr-1', role: 'Manager' })],
+      tasks: [validTask({ coordinatorId: 'mgr-1' })],
+    });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json')).resolves.toBeDefined();
+  });
+
+  it('koordinatörü yedekte de veritabanında da hiç olmayan görev İZİN VERİLİR (coordDoc==null kuralda geçerli)', async () => {
+    const backup = makeBackup({ tasks: [validTask({ coordinatorId: 'hic-yok' })] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json')).resolves.toBeDefined();
+  });
+
+  it('sorumlusu Memur OLMAYAN bir alt görev (parentId dolu) bloke edilir', async () => {
+    const backup = makeBackup({
+      users: [validUser({ uid: 'mgr-1', role: 'Manager' })],
+      tasks: [validTask({ parentId: 'ust-gorev', assigneeId: 'mgr-1' })],
+    });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(/Sorumlusu Memur OLMAYAN 1 alt talimat: task-1/);
+  });
+
+  it('sorumlusu Memur olan bir alt görev İZİN VERİLİR (karşılaştırma)', async () => {
+    const backup = makeBackup({
+      users: [validUser({ uid: 'user-1', role: 'Staff' })],
+      tasks: [validTask({ parentId: 'ust-gorev' })],
+    });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json')).resolves.toBeDefined();
+  });
+
+  it('sorumlusu hiç VAR OLMAYAN bir alt görev bloke edilir (assigneeDoc==null)', async () => {
+    const backup = makeBackup({ tasks: [validTask({ parentId: 'ust-gorev', assigneeId: 'hic-yok' })] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(/Sorumlusu Memur OLMAYAN/);
+  });
+
+  it('devir hedefi (PENDING_DELEGATION) Memur olan görev bloke edilir', async () => {
+    const backup = makeBackup({
+      users: [validUser({ uid: 'user-1', role: 'Staff' })],
+      tasks: [validTask({ status: 'PENDING_DELEGATION' })],
+    });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json'))
+      .rejects.toThrow(/Devir bekleyen \(PENDING_DELEGATION\) ama sorumlusu Müdür olmayan 1 talimat: task-1/);
+  });
+
+  it('devir hedefi Müdür olan PENDING_DELEGATION görevi İZİN VERİLİR (karşılaştırma)', async () => {
+    const backup = makeBackup({
+      users: [validUser({ uid: 'mgr-1', role: 'Manager' })],
+      tasks: [validTask({ status: 'PENDING_DELEGATION', assigneeId: 'mgr-1' })],
+    });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json')).resolves.toBeDefined();
+  });
+
+  it('birden fazla kategori aynı anda ihlal edilirse TEK raporda hepsi listelenir', async () => {
+    const backup = makeBackup({
+      users: [
+        validUser({ uid: 'admin-1', role: 'Admin' }),
+        validUser({ uid: 'mgr-1', role: 'Manager' }),
+      ],
+      tasks: [
+        validTask({ id: 'task-a', coordinatorId: 'admin-1' }),
+        validTask({ id: 'task-b', parentId: 'ust', assigneeId: 'mgr-1' }),
+        validTask({ id: 'task-c', status: 'PENDING_DELEGATION', assigneeId: 'user-1' }),
+      ],
+    });
+    const err = await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json').catch(e => e);
+    expect(err).toBeInstanceOf(RestoreValidationError);
+    expect(err.message).toMatch(/Koordinatörü Admin olan 1 talimat: task-a/);
+    expect(err.message).toMatch(/Sorumlusu Memur OLMAYAN 1 alt talimat: task-b/);
+    expect(err.message).toMatch(/PENDING_DELEGATION.*task-c/);
+  });
+
+  it('5\'ten fazla ihlal varsa rapor "ve N kayıt daha" ile kısaltılır', async () => {
+    const backup = makeBackup({
+      users: [validUser({ uid: 'admin-1', role: 'Admin' })],
+      tasks: Array.from({ length: 7 }, (_, i) => validTask({ id: `task-${i}`, coordinatorId: 'admin-1' })),
+    });
+    const err = await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json').catch(e => e);
+    expect(err.message).toMatch(/task-0, task-1, task-2, task-3, task-4 ve 2 kayıt daha/);
+  });
+});
+
+// ── Chunk sınırı ─────────────────────────────────────────────────────────────
+describe('restoreBackup — chunk sınırı', () => {
+  it('görev grubu TASK_CHUNK=15 sınırını aşmaz ve her chunk ayrı batch olarak commit edilir', async () => {
+    // Görev grubu, users/blockers'tan (CHUNK=50) FARKLI ve daha küçük bir
+    // chunk boyutu (15) kullanır — bkz. settingsService.ts'teki TASK_CHUNK
+    // yorumu: her görev CREATE'i assignee/coordinator/department dokümanlarına
+    // erişir ve bunlar farklı dokümanlardır; emulator'da ölçülen batched-write
+    // doküman-erişim kotası 20'de kesin başarısız oluyordu (bkz. tests/rules).
+    const tasks = Array.from({ length: 32 }, (_, i) => validTask({ id: `task-${i}` }));
+    await settingsService.restoreBackup(JSON.stringify(makeBackup({ tasks })), 'u1', 'x.json');
+
+    expect(batches).toHaveLength(3); // 15 + 15 + 2
+    expect(batches[0]!.set).toHaveBeenCalledTimes(16); // 15 görev + 1 stats
+    expect(batches[1]!.set).toHaveBeenCalledTimes(16);
+    expect(batches[2]!.set).toHaveBeenCalledTimes(3);  // 2 görev + 1 stats
+    batches.forEach(b => expect(b.commit).toHaveBeenCalledOnce());
+  });
+
+  it('tam TASK_CHUNK (15) görev tek bir chunk olarak yazılır', async () => {
+    const tasks = Array.from({ length: 15 }, (_, i) => validTask({ id: `task-${i}` }));
+    await settingsService.restoreBackup(JSON.stringify(makeBackup({ tasks })), 'u1', 'x.json');
+    expect(batches).toHaveLength(1);
+  });
+
+  it('users grubu CHUNK=50 sınırını kullanır (görev grubundan FARKLI, üretimde kanıtlanmış yol)', async () => {
+    const users = Array.from({ length: 51 }, (_, i) => validUser({ uid: `user-${i}` }));
+    await settingsService.restoreBackup(JSON.stringify(makeBackup({ users })), 'u1', 'x.json');
+    expect(batches).toHaveLength(2); // 50 + 1
+  });
+
+  it('kayıt yoksa hiç batch açılmaz ama denetim izi yine de düşülür', async () => {
+    await settingsService.restoreBackup(JSON.stringify(makeBackup()), 'u1', 'bos.json');
+    expect(batches).toHaveLength(0);
+    expect(firebase.addDoc).toHaveBeenCalledOnce();
+  });
+
+  it('ilerleme yüzdesi her chunk sonunda ve en son %100 olarak bildirilir', async () => {
+    const tasks = Array.from({ length: 120 }, (_, i) => validTask({ id: `task-${i}` }));
+    const progress: number[] = [];
+    await settingsService.restoreBackup(
+      JSON.stringify(makeBackup({ tasks })), 'u1', 'x.json', p => progress.push(p)
+    );
+    // 120 / TASK_CHUNK(15) = tam 8 chunk: 15,30,...,120.
+    expect(progress).toEqual([13, 25, 38, 50, 63, 75, 88, 100]);
+  });
+
+  it('kullanıcı, görev ve engeller AYRI gruplarda, users → tasks → blockers sırasıyla yazılır', async () => {
+    // Firestore kuralları bir batch İÇİNDEKİ yazımları görmez (get()/exists()
+    // batch ÖNCESİ durumu okur) — bu yüzden users/tasks/blockers tek bir
+    // karışık kuyrukta DEĞİL, üç ayrı grup/batch'te ve bu sırada commit edilir
+    // (bkz. restoreBackup'taki writeGroup yorumu). Aksi halde AYNI batch'te
+    // hem yeni bir kullanıcı hem onu assigneeId olarak referans eden bir görev
+    // yazılırsa, görev tarafı o kullanıcıyı henüz YOK sayardı.
+    const backup = makeBackup({
+      users: [validUser()],
+      tasks: [validTask()],
+      blockers: [validBlocker()],
+    });
+    const res = await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    expect(res).toEqual({ userCount: 1, taskCount: 1, blockerCount: 1 });
+    expect(batches).toHaveLength(3);
+    expect(batches[0]!.set.mock.calls.map(([ref]) => pathOf(ref))).toContain('users/user-1');
+    expect(batches[1]!.set.mock.calls.map(([ref]) => pathOf(ref))).toContain('tasks/task-1');
+    expect(batches[2]!.set.mock.calls.map(([ref]) => pathOf(ref))).toContain('blockers/blk-1');
   });
 });
 
@@ -253,6 +527,20 @@ describe('restoreBackup — departman referans bütünlüğü', () => {
 
     const deptCalls = vi.mocked(firebase.setDoc).mock.calls.filter(([ref]) => pathOf(ref) === 'departments/Operasyon');
     expect(deptCalls).toHaveLength(1);
+  });
+
+  it('departman getDoc\'u bir kez reddedip sonra başarılı olursa restore yine tamamlanır (runWithRetry)', async () => {
+    let call = 0;
+    vi.mocked(firebase.getDoc).mockImplementation((async (ref: any) => {
+      if (pathOf(ref) === 'departments/Operasyon' && call++ === 0) {
+        throw new firebase.FirebaseError('unavailable', 'Geçici hata');
+      }
+      const data = existingDocs[pathOf(ref)];
+      return { exists: () => data !== undefined, data: () => data };
+    }) as any);
+
+    const backup = makeBackup({ users: [validUser({ departmentId: 'Operasyon' })] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'admin-1', 'x.json')).resolves.toBeDefined();
   });
 });
 
@@ -330,28 +618,42 @@ describe('restoreBackup — system/stats delta hesabı', () => {
     // yalnızca SON chunk'a ekleniyordu; restore yarıda kesilirse önceki
     // chunk'ların görev yazımları commit edilmiş ama telafi edici delta hiç
     // uygulanmamış olurdu ve sayaçlar kalıcı olarak saparddı.
-    const tasks = Array.from({ length: 120 }, (_, i) => validTask({ id: `task-${i}`, status: 'ASSIGNED' }));
+    const tasks = Array.from({ length: 32 }, (_, i) => validTask({ id: `task-${i}`, status: 'ASSIGNED' }));
     await settingsService.restoreBackup(JSON.stringify(makeBackup({ tasks })), 'u1', 'x.json');
 
     expect(batches).toHaveLength(3);
     expect(statsPayloadOf(batches[0]!)).toEqual({
-      totalTasks: { __increment: 50 }, status_ASSIGNED: { __increment: 50 },
+      totalTasks: { __increment: 15 }, status_ASSIGNED: { __increment: 15 },
     });
     expect(statsPayloadOf(batches[1]!)).toEqual({
-      totalTasks: { __increment: 50 }, status_ASSIGNED: { __increment: 50 },
+      totalTasks: { __increment: 15 }, status_ASSIGNED: { __increment: 15 },
     });
     expect(statsPayloadOf(batches[2]!)).toEqual({
-      totalTasks: { __increment: 20 }, status_ASSIGNED: { __increment: 20 },
+      totalTasks: { __increment: 2 }, status_ASSIGNED: { __increment: 2 },
     });
   });
 
   it('kullanıcı ve engel kayıtları stats deltasına katkı yapmaz', async () => {
     const backup = makeBackup({
       users: [validUser()],
-      blockers: [{ id: 'blk-1', taskId: 'task-1', reason: 'E', isResolved: false, createdAt: 1 }],
+      blockers: [validBlocker()],
     });
     await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
     expect(statsPayloadOf(batches[0]!)).toBeUndefined();
+  });
+
+  it('görev delta getDoc\'u bir kez reddedip sonra başarılı olursa restore yine tamamlanır (runWithRetry)', async () => {
+    let call = 0;
+    vi.mocked(firebase.getDoc).mockImplementation((async (ref: any) => {
+      if (pathOf(ref) === 'tasks/task-1' && call++ === 0) {
+        throw new firebase.FirebaseError('unavailable', 'Geçici hata');
+      }
+      const data = existingDocs[pathOf(ref)];
+      return { exists: () => data !== undefined, data: () => data };
+    }) as any);
+
+    const backup = makeBackup({ tasks: [validTask()] });
+    await expect(settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json')).resolves.toBeDefined();
   });
 });
 
