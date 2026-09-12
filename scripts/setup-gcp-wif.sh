@@ -17,7 +17,7 @@
 # attribute-condition'a (yalnızca mftmcan/makam reposu) dayanır.
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:-makam-1453}"            # .firebaserc → projects.default
+PROJECT_ID="${PROJECT_ID:-muftim}"            # .firebaserc → projects.default
 GITHUB_REPO="${GITHUB_REPO:-mftmcan/makam}"        # owner/repo — attribute condition bunu sınar
 SA_NAME="${SA_NAME:-github-deploy}"
 POOL_ID="${POOL_ID:-github}"

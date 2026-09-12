@@ -10,7 +10,7 @@
  *
  * Emulator zorunluluğu (bkz. scripts/seedE2E.ts'teki AYNI koruma deseni):
  * bu testler yalnızca `firebase emulators:exec` içinden, emulator ortam
- * değişkenleri set edilmişken çalışır — gerçek `makam-1453` projesine hiçbir
+ * değişkenleri set edilmişken çalışır — gerçek `muftim` projesine hiçbir
  * koşulda bağlanmaz. Çalıştırma: `npm run test:rules`.
  */
 import { readFileSync } from 'fs';
@@ -42,7 +42,7 @@ const [EMULATOR_HOST, EMULATOR_PORT] = process.env.FIRESTORE_EMULATOR_HOST.split
 // firebase.json'da `singleProjectMode: true` olduğundan projectId, .firebaserc'
 // deki emulator projesiyle AYNI olmalı — farklı bir id emulator tarafından
 // reddedilir. Yine de bu yalnızca emulator içindeki izole bir projedir.
-const PROJECT_ID = 'makam-1453';
+const PROJECT_ID = 'muftim';
 
 const NOW = 1_700_000_000_000;
 const DAY = 24 * 60 * 60 * 1000;

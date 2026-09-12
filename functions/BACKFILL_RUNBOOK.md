@@ -183,7 +183,7 @@ yapamadığından aşağıdaki salt-okunur script kullanılır.
 import { initializeApp, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-initializeApp({ credential: applicationDefault(), projectId: 'makam-1453' });
+initializeApp({ credential: applicationDefault(), projectId: 'muftim' });
 const db = getFirestore();
 
 const departments = new Set((await db.collection('departments').get()).docs.map(d => d.id));

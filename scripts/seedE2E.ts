@@ -22,7 +22,7 @@ if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_
   process.exit(1);
 }
 
-initializeApp({ projectId: 'makam-1453' });
+initializeApp({ projectId: 'muftim' });
 
 const db = getFirestore();
 const auth = getAuth();

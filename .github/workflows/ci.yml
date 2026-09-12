@@ -203,7 +203,7 @@ jobs:
       # Kimlik doğrulama: Workload Identity Federation (anahtarsız). Eskiden
       # `firebase login:ci` ile üretilen kişisel bir FIREBASE_TOKEN kullanılıyordu
       # — 2026-09-12'de token geçersizleşti ("Failed to get Firebase project
-      # makam-1453"), üstelik `--token` firebase-tools'ta deprecated. Servis
+      # muftim"), üstelik `--token` firebase-tools'ta deprecated. Servis
       # hesabı JSON ANAHTARI da seçilmedi: anahtar üretimi daha önce GCP
       # kotasına takılmıştı ve anahtar dosyası sızma/rotasyon yükü taşır. WIF'te
       # GitHub'ın kısa ömürlü OIDC token'ı doğrudan servis hesabına eşlenir;
@@ -212,7 +212,7 @@ jobs:
       # GOOGLE_APPLICATION_CREDENTIALS'ı ayarlar; firebase-tools (>=13) ADC
       # üzerinden bunu otomatik kullanır. GCP tarafı tek seferlik kurulum:
       # scripts/setup-gcp-wif.sh. Proje hedefi .firebaserc'teki
-      # "default": "makam-1453"'ten geliyor, ayrıca bir PROJECT_ID gerekmiyor.
+      # "default": "muftim"'ten geliyor, ayrıca bir PROJECT_ID gerekmiyor.
       - name: GCP Kimlik Doğrulama (Workload Identity Federation)
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
@@ -243,21 +243,21 @@ jobs:
       # bkz. index.html) içerip içermediğine bakar. Otomatik rollback KASITLI
       # olarak eklenmedi (yanlış bir rollback daha kötü olabilir) — bu adım
       # yalnızca job'ı FAILED yapıp görünürlük sağlar; gerekirse elle geri
-      # almak için: `firebase hosting:releases:list --project makam-1453` ile
+      # almak için: `firebase hosting:releases:list --project muftim` ile
       # önceki release'i bulup `firebase hosting:clone
-      # makam-1453:<ONCEKI_RELEASE_ID> makam-1453:live` çalıştırın (bkz. kod
+      # muftim:<ONCEKI_RELEASE_ID> muftim:live` çalıştırın (bkz. kod
       # denetimi).
       - name: Deploy Sonrası Sağlık Kontrolü (Smoke Test)
         run: |
-          URL="https://makam-1453.web.app"
+          URL="https://muftim.web.app"
           echo "Kontrol ediliyor: $URL"
           BODY=$(curl -sf --retry 3 --retry-delay 5 "$URL")
           if [ $? -ne 0 ]; then
-            echo "::error::Deploy sonrası $URL adresine erişilemedi. Elle rollback için: 'firebase hosting:releases:list --project makam-1453' ardından 'firebase hosting:clone makam-1453:<ONCEKI_RELEASE_ID> makam-1453:live'"
+            echo "::error::Deploy sonrası $URL adresine erişilemedi. Elle rollback için: 'firebase hosting:releases:list --project muftim' ardından 'firebase hosting:clone muftim:<ONCEKI_RELEASE_ID> muftim:live'"
             exit 1
           fi
           if ! echo "$BODY" | grep -q 'id="root"'; then
-            echo "::error::Deploy edilen sayfa beklenen SPA kök elemanını (id=\"root\") içermiyor — bozuk bir build yayınlanmış olabilir. Elle rollback için: 'firebase hosting:releases:list --project makam-1453' ardından 'firebase hosting:clone makam-1453:<ONCEKI_RELEASE_ID> makam-1453:live'"
+            echo "::error::Deploy edilen sayfa beklenen SPA kök elemanını (id=\"root\") içermiyor — bozuk bir build yayınlanmış olabilir. Elle rollback için: 'firebase hosting:releases:list --project muftim' ardından 'firebase hosting:clone muftim:<ONCEKI_RELEASE_ID> muftim:live'"
             exit 1
           fi
           echo "Sağlık kontrolü başarılı."
