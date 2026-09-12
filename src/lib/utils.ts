@@ -6,7 +6,9 @@ import type { User } from '../types';
 /**
  * tailwind-merge kendi tema uzantılarımızı (bkz. index.css @theme:
  * --text-micro/caption/body-sm/body) tanımıyor; varsayılan config bunları
- * boyut değil RENK sınıfı sanıp gerçek bir `text-[color:var(...)]`/
+ * boyut değil RENK sınıfı sanıp gerçek bir arbitrary renk sınıfını (CSS
+ * değişkenli `color:` değeri — burada sınıf sözdizimiyle yazılmadı, Tailwind
+ * yorumları da tarayıp sözde-sınıfı derliyordu) ya da
  * `text-status-*` sınıfını SESSİZCE eliyordu (bkz. tasarım denetimi 3.1
  * sonrası bulunan gerçek regresyon: TaskDetails'teki "SÜRECİ BAŞLAT" butonu
  * altın zemin üzerinde mirasla gelen düşük kontrastlı bir renge düşüyordu).

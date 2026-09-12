@@ -99,6 +99,21 @@ export default defineConfig(({ mode }) => {
       // bir şişme olursa (ör. yeni bir ağır bağımlılık) eşik yine tetiklenir.
       chunkSizeWarningLimit: 800,
       rollupOptions: {
+        // zod v4'ün kendi kaynağındaki (v4/core/util.js, regexes.js) iki açıklama
+        // yorumu `@__PURE__` ifadesini Rollup'ın annotation olarak
+        // yorumlayamadığı bir konumda içeriyor; Rollup her build'de
+        // INVALID_ANNOTATION uyarısı basıp yorumu düşürüyor. Bizim kodumuzla
+        // ilgisi yok, çıktıyı etkilemiyor (zod 4.6.2'de de aynı — upstream).
+        // Süzgeç KASITLI olarak dar: yalnızca bu kod + yalnızca zod'dan gelen
+        // uyarı; başka her uyarı (bizim kodumuzdaki gerçek bir annotation
+        // hatası dahil) olduğu gibi geçer.
+        onwarn(warning, defaultHandler) {
+          if (
+            warning.code === 'INVALID_ANNOTATION' &&
+            (warning.id ?? '').replace(/\\/g, '/').includes('/node_modules/zod/')
+          ) return;
+          defaultHandler(warning);
+        },
         output: {
           // vendor-charts (recharts) ve vendor-pdf (jsPDF) BİLEREK manualChunks'tan
           // çıkarıldı: bu ikisini adlandırılmış chunk olarak zorlamak, yalnızca
