@@ -208,7 +208,7 @@ service cloud.firestore {
              (!('fcmTokens' in data) || (data.fcmTokens is list && data.fcmTokens.size() <= 10));
     }
 
-    function isValidTaskCreate(data) {
+    function isValidTaskCreate(data, admin) {
       // departmentId ARTIK ZORUNLU (bkz. kod denetimi P0-1): departmansız bir
       // görev, aşağıdaki tasks read kuralının eski "departmanı yoksa serbest"
       // fallback'leri yüzünden organizasyondaki HERKESE açılıyordu. Alanın
@@ -225,7 +225,19 @@ service cloud.firestore {
              data.keys().hasOnly(allowedFields) &&
              data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
              data.description is string && data.description.size() >= 1 && data.description.size() <= 2000 &&
-             data.status == 'ASSIGNED' && // Yeni görev sadece ASSIGNED olarak başlayabilir
+             // Yeni görev normalde yalnızca ASSIGNED olarak başlayabilir. Admin
+             // istisnası (durum listesi TaskStatus enum'unun tamamı — keyfi bir
+             // dize DEĞİL) yalnızca settingsService.restoreBackup için: bir
+             // yedek, proje göçü sonrası (ör. muftim) SIFIRDAN bir projeye
+             // yazıldığında her görev bir CREATE'tir ve tarihi durumunu (ör.
+             // COMPLETED) korumak zorundadır — bu yol olmadan restore, geçmiş
+             // kayıtları normal durum makinesi geçişleriyle asla ulaşılamayacak
+             // biçimde ASSIGNED'a sıfırlamak zorunda kalırdı (bkz. kod denetimi,
+             // 2026-09-12).
+             (data.status == 'ASSIGNED' || (admin && data.status in [
+               'ASSIGNED', 'PENDING_DELEGATION', 'IN_PROGRESS', 'BLOCKED',
+               'AWAITING_APPROVAL', 'COMPLETED', 'CANCELLED', 'CRISIS'
+             ])) &&
              data.priority in ['Low', 'Medium', 'High', 'Urgent'] &&
              data.deadline is number && data.deadline > 0 &&
              isValidId(data.creatorId) &&
@@ -868,7 +880,7 @@ service cloud.firestore {
       );
       // Müdür artık departmanı BOŞ BIRAKARAK organizasyon geneline açık bir
       // görev oluşturamaz — departmentId zorunlu ve kendi departmanına eşit olmalı.
-      allow create: if isSignedIn() && isValidId(taskId) && isValidTaskCreate(incoming()) && (
+      allow create: if isSignedIn() && isValidId(taskId) && isValidTaskCreate(incoming(), isAdmin()) && (
         isAdmin() ||
         (isManager() && incoming().departmentId == getUserDepartment())
       ) && isValidTaskBusinessRules(incoming(), incoming().keys(), incoming().keys());

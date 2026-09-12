@@ -339,6 +339,23 @@ describe('Admin (custom claim) yetkileri', () => {
     })));
   });
 
+  it('geçmiş (ASSIGNED dışı) bir durumla yeni görev oluşturabilir (settingsService.restoreBackup)', async () => {
+    // Bir yedek, proje göçü sonrası SIFIRDAN bir projeye yazıldığında her
+    // görev bir CREATE'tir ve tarihi durumunu (ör. COMPLETED) korumak
+    // zorundadır — Manager/Staff için ASSIGNED zorunluluğu aynen sürer
+    // (bkz. "Manager departman izolasyonu" bloğundaki "yeni görevi ASSIGNED
+    // dışında bir durumla oluşturamaz" testi), yalnızca Admin için istisna.
+    await assertSucceeds(setDoc(doc(admin(), 'tasks', 'yeni-restore-completed'), taskDoc({
+      creatorId: 'admin-uid', status: 'COMPLETED',
+    })));
+  });
+
+  it('Admin dahi geçersiz (enum dışı) bir durumla yeni görev oluşturamaz', async () => {
+    await assertFails(setDoc(doc(admin(), 'tasks', 'yeni-gecersiz-durum'), taskDoc({
+      creatorId: 'admin-uid', status: 'YOK_BOYLE_DURUM',
+    })));
+  });
+
   it('başka departmandaki görevi güncelleyebilir', async () => {
     await assertSucceeds(updateDoc(doc(admin(), 'tasks', 'task-b'), { priority: 'Urgent', updatedAt: NOW + 1 }));
   });

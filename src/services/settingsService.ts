@@ -169,6 +169,40 @@ export const settingsService = {
       });
     }
 
+    // Departman REFERANS bütünlüğü (bkz. firestore.rules userDepartmentIsValid
+    // / isValidTaskBusinessRules.hasValidDepartment): departmentId taşıyan her
+    // users/tasks yazımı, departments koleksiyonunda VAR OLAN bir dokümana
+    // işaret etmek zorundadır — kural bunun için Admin'e bile istisna tanımaz
+    // (P0-2, "hayalet departman" koruması, bkz. departmentService.ts). Yedeğin
+    // kendisi departments koleksiyonunu TAŞIMAZ (restoreBackupSchema) ve bir
+    // proje göçü sonrası (ör. muftim) hedef projede bu dokümanlar henüz hiç
+    // yoktur. Bu yüzden referans edilen HER departmentId için eksik departman
+    // dokümanı, aşağıdaki users/tasks yazımlarından ÖNCE burada oluşturulur —
+    // aksi halde ilk chunk "Missing or insufficient permissions" ile
+    // reddedilir (bkz. kod denetimi, 2026-09-12: muftim'e proje göçü sonrası
+    // ilk restore denemesinde canlıda görüldü).
+    const referencedDeptIds = new Set<string>();
+    if (Array.isArray(data.users)) {
+      data.users.forEach((u: BackupRecord) => {
+        if (typeof u.departmentId === 'string' && u.departmentId) referencedDeptIds.add(u.departmentId);
+      });
+    }
+    if (Array.isArray(data.tasks)) {
+      data.tasks.forEach((t: BackupRecord) => {
+        if (typeof t.departmentId === 'string' && t.departmentId) referencedDeptIds.add(t.departmentId);
+      });
+    }
+    for (const deptId of referencedDeptIds) {
+      const deptRef = doc(db, 'departments', deptId);
+      const deptSnap = await getDoc(deptRef);
+      if (!deptSnap.exists()) {
+        // Şekil, firestore.rules isValidDepartment ile birebir eşleşir
+        // (allowedFields hasOnly + name == departmentId) — bkz.
+        // departmentService.createDepartment'taki aynı yazım.
+        await runWithRetry(() => setDoc(deptRef, { name: deptId, createdAt: Date.now(), createdBy: userId }));
+      }
+    }
+
     const userItems: { ref: DocumentReference; data: BackupRecord }[] = [];
     if (Array.isArray(data.users)) {
       data.users.forEach((u: BackupRecord) => {
@@ -232,46 +266,65 @@ export const settingsService = {
       taskDeltaById.set(item.id, delta);
     }
 
-    const items = [...userItems, ...taskItems, ...blockerItems];
     const CHUNK = 50;
-    for (let i = 0; i < items.length; i += CHUNK) {
-      const chunk = items.slice(i, i + CHUNK);
+    const totalItems = userItems.length + taskItems.length + blockerItems.length;
+    let writtenCount = 0;
 
-      const chunkStatsDelta: Record<string, number> = {};
-      chunk.forEach(it => {
-        const itemId = (it as { id?: string }).id;
-        if (!itemId) return;
-        const delta = taskDeltaById.get(itemId);
-        if (!delta) return;
-        Object.entries(delta).forEach(([key, value]) => {
-          chunkStatsDelta[key] = (chunkStatsDelta[key] ?? 0) + value;
-        });
-      });
+    // Kullanıcı/görev/engel yazımları ayrı chunk GRUPLARINDA commit edilir —
+    // tek bir karışık diziyi 50'lik parçalara bölmek yerine. Gerekçe:
+    // Firestore kuralları bir batch İÇİNDEKİ yazımları görmez (get()/exists()
+    // her zaman batch ÖNCESİ durumu okur — departmentService.renameDepartment'ta
+    // AYNI kısıt nedeniyle adımlar ayrı commit'lere bölünmüştü). Karışık bir
+    // chunk'ta AYNI batch'te hem yeni bir kullanıcı hem de onu assigneeId/
+    // coordinatorId olarak referans eden bir görev yazılırsa,
+    // isValidTaskBusinessRules'taki assignee/coordinator rol kontrolleri o
+    // kullanıcıyı henüz YOK sayar ve görev reddedilirdi. Gruplar arası sıra
+    // (users → tasks → blockers) bu yüzden kasıtlıdır: blockers taskId'ye,
+    // tasks assigneeId/coordinatorId üzerinden users'a bağımlıdır.
+    const writeGroup = async (list: { ref: DocumentReference; data: BackupRecord; id?: string }[]) => {
+      for (let i = 0; i < list.length; i += CHUNK) {
+        const chunk = list.slice(i, i + CHUNK);
 
-      // Batch, her deneme için runWithRetry closure'ının İÇİNDE yeniden
-      // oluşturulur: Firestore SDK'sı commit() çağrılan bir WriteBatch'i,
-      // istek ağ hatasıyla başarısız olsa bile kalıcı olarak "committed"
-      // işaretler. Batch dışarıda oluşturulup yalnızca commit() retry
-      // ediliyorsa, ilk deneme başarısız olduğunda ikinci deneme gerçek
-      // ağ hatası yerine "A write batch can no longer be used after
-      // commit() has been called" hatası fırlatırdı (bkz. kod denetimi —
-      // departmentService.commitInChunks'taki desenle tutarlı hale getirildi).
-      await runWithRetry(() => {
-        const batch = writeBatch(db);
-        chunk.forEach(it => batch.set(it.ref, it.data, { merge: true }));
-        if (Object.keys(chunkStatsDelta).length > 0) {
-          const statsPayload: Record<string, ReturnType<typeof increment>> = {};
-          Object.entries(chunkStatsDelta).forEach(([key, value]) => {
-            if (value !== 0) statsPayload[key] = increment(value);
+        const chunkStatsDelta: Record<string, number> = {};
+        chunk.forEach(it => {
+          if (!it.id) return;
+          const delta = taskDeltaById.get(it.id);
+          if (!delta) return;
+          Object.entries(delta).forEach(([key, value]) => {
+            chunkStatsDelta[key] = (chunkStatsDelta[key] ?? 0) + value;
           });
-          if (Object.keys(statsPayload).length > 0) {
-            batch.set(doc(db, 'system', 'stats'), statsPayload, { merge: true });
+        });
+
+        // Batch, her deneme için runWithRetry closure'ının İÇİNDE yeniden
+        // oluşturulur: Firestore SDK'sı commit() çağrılan bir WriteBatch'i,
+        // istek ağ hatasıyla başarısız olsa bile kalıcı olarak "committed"
+        // işaretler. Batch dışarıda oluşturulup yalnızca commit() retry
+        // ediliyorsa, ilk deneme başarısız olduğunda ikinci deneme gerçek
+        // ağ hatası yerine "A write batch can no longer be used after
+        // commit() has been called" hatası fırlatırdı (bkz. kod denetimi —
+        // departmentService.commitInChunks'taki desenle tutarlı hale getirildi).
+        await runWithRetry(() => {
+          const batch = writeBatch(db);
+          chunk.forEach(it => batch.set(it.ref, it.data, { merge: true }));
+          if (Object.keys(chunkStatsDelta).length > 0) {
+            const statsPayload: Record<string, ReturnType<typeof increment>> = {};
+            Object.entries(chunkStatsDelta).forEach(([key, value]) => {
+              if (value !== 0) statsPayload[key] = increment(value);
+            });
+            if (Object.keys(statsPayload).length > 0) {
+              batch.set(doc(db, 'system', 'stats'), statsPayload, { merge: true });
+            }
           }
-        }
-        return batch.commit();
-      });
-      onProgress?.(Math.round(((i + chunk.length) / items.length) * 100));
-    }
+          return batch.commit();
+        });
+        writtenCount += chunk.length;
+        onProgress?.(Math.round((writtenCount / totalItems) * 100));
+      }
+    };
+
+    await writeGroup(userItems);
+    await writeGroup(taskItems);
+    await writeGroup(blockerItems);
 
     // Register restore audit log — hangi dosyadan, kaç kayıt geri yüklendiği kaydedilir
     await runWithRetry(() => addDoc(collection(db, 'audit_logs'), {

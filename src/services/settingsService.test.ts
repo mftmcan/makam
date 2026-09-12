@@ -168,7 +168,13 @@ describe('restoreBackup — chunk sınırı', () => {
     expect(progress).toEqual([42, 83, 100]);
   });
 
-  it('kullanıcı, görev ve engeller tek bir sıralı kuyrukta yazılır', async () => {
+  it('kullanıcı, görev ve engeller AYRI gruplarda, users → tasks → blockers sırasıyla yazılır', async () => {
+    // Firestore kuralları bir batch İÇİNDEKİ yazımları görmez (get()/exists()
+    // batch ÖNCESİ durumu okur) — bu yüzden users/tasks/blockers tek bir
+    // karışık kuyrukta DEĞİL, üç ayrı grup/batch'te ve bu sırada commit edilir
+    // (bkz. restoreBackup'taki writeGroup yorumu). Aksi halde AYNI batch'te
+    // hem yeni bir kullanıcı hem onu assigneeId olarak referans eden bir görev
+    // yazılırsa, görev tarafı o kullanıcıyı henüz YOK sayardı.
     const backup = makeBackup({
       users: [validUser()],
       tasks: [validTask()],
@@ -177,10 +183,10 @@ describe('restoreBackup — chunk sınırı', () => {
     const res = await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
 
     expect(res).toEqual({ userCount: 1, taskCount: 1, blockerCount: 1 });
-    const written = batches[0]!.set.mock.calls.map(([ref]) => pathOf(ref));
-    expect(written).toContain('users/user-1');
-    expect(written).toContain('tasks/task-1');
-    expect(written).toContain('blockers/blk-1');
+    expect(batches).toHaveLength(3);
+    expect(batches[0]!.set.mock.calls.map(([ref]) => pathOf(ref))).toContain('users/user-1');
+    expect(batches[1]!.set.mock.calls.map(([ref]) => pathOf(ref))).toContain('tasks/task-1');
+    expect(batches[2]!.set.mock.calls.map(([ref]) => pathOf(ref))).toContain('blockers/blk-1');
   });
 
   it('uid/id taşımayan kayıtlar sessizce atlanır (yazma hedefi yok)', async () => {
@@ -190,6 +196,44 @@ describe('restoreBackup — chunk sınırı', () => {
     });
     await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
     expect(batches).toHaveLength(0);
+  });
+});
+
+// ── Departman referans bütünlüğü ─────────────────────────────────────────────
+// firestore.rules userDepartmentIsValid / isValidTaskBusinessRules.hasValidDepartment
+// bir departmentId'nin departments koleksiyonunda GERÇEKTEN var olmasını Admin
+// dahil hiçbir istisna olmadan zorunlu kılar. Yedek, departments koleksiyonunu
+// TAŞIMAZ — bu yüzden restoreBackup, referans edilen eksik departmanları
+// users/tasks yazımından ÖNCE kendisi oluşturmak zorundadır (2026-09-12,
+// muftim'e proje göçü sonrası "Missing or insufficient permissions" kök nedeni).
+describe('restoreBackup — departman referans bütünlüğü', () => {
+  it('yedekte referans edilen ama hedef projede olmayan departman, users/tasks yazımından ÖNCE oluşturulur', async () => {
+    const backup = makeBackup({ users: [validUser({ departmentId: 'Operasyon' })] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'admin-1', 'x.json');
+
+    const deptCall = vi.mocked(firebase.setDoc).mock.calls.find(([ref]) => pathOf(ref) === 'departments/Operasyon');
+    expect(deptCall).toBeDefined();
+    expect(deptCall![1]).toMatchObject({ name: 'Operasyon', createdBy: 'admin-1' });
+  });
+
+  it('departman zaten varsa yeniden oluşturulmaz', async () => {
+    existingDocs['departments/Operasyon'] = { name: 'Operasyon', createdAt: 1, createdBy: 'eski' };
+    const backup = makeBackup({ tasks: [validTask({ departmentId: 'Operasyon' })] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'admin-1', 'x.json');
+
+    const deptCall = vi.mocked(firebase.setDoc).mock.calls.find(([ref]) => pathOf(ref) === 'departments/Operasyon');
+    expect(deptCall).toBeUndefined();
+  });
+
+  it('users ve tasks içindeki aynı departmentId için departman yalnızca BİR kez oluşturulur', async () => {
+    const backup = makeBackup({
+      users: [validUser({ departmentId: 'Operasyon' })],
+      tasks: [validTask({ departmentId: 'Operasyon' })],
+    });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'admin-1', 'x.json');
+
+    const deptCalls = vi.mocked(firebase.setDoc).mock.calls.filter(([ref]) => pathOf(ref) === 'departments/Operasyon');
+    expect(deptCalls).toHaveLength(1);
   });
 });
 
