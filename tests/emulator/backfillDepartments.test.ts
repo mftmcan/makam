@@ -30,7 +30,7 @@ if (!process.env.FIRESTORE_EMULATOR_HOST) {
   );
 }
 
-const PROJECT_ID = 'makam-1453';
+const PROJECT_ID = 'muftim';
 const NOW = 1_700_000_000_000;
 const DAY = 24 * 60 * 60 * 1000;
 const ACTOR = 'admin-uid';

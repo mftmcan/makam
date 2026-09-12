@@ -182,6 +182,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, performance]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # `id-token: write` yalnızca WIF ile GCP'ye kimlik doğrulayan bu iki job'da
+    # (deploy/preview) açılır — üstteki workflow geneli `contents: read`
+    # diğer job'lar için geçerli kalır. Job seviyesi izin bloğu workflow
+    # genelini EZER, bu yüzden contents: read burada tekrar yazılıyor.
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Kodu İndir
@@ -192,6 +199,25 @@ jobs:
         with:
           name: dist
           path: dist/
+
+      # Kimlik doğrulama: Workload Identity Federation (anahtarsız). Eskiden
+      # `firebase login:ci` ile üretilen kişisel bir FIREBASE_TOKEN kullanılıyordu
+      # — 2026-09-12'de token geçersizleşti ("Failed to get Firebase project
+      # muftim"), üstelik `--token` firebase-tools'ta deprecated. Servis
+      # hesabı JSON ANAHTARI da seçilmedi: anahtar üretimi daha önce GCP
+      # kotasına takılmıştı ve anahtar dosyası sızma/rotasyon yükü taşır. WIF'te
+      # GitHub'ın kısa ömürlü OIDC token'ı doğrudan servis hesabına eşlenir;
+      # saklanan sır yok, süresi dolan şey yok. Bu adım `google-auth-library`nin
+      # `external_account` biçiminde bir kimlik dosyası yazıp
+      # GOOGLE_APPLICATION_CREDENTIALS'ı ayarlar; firebase-tools (>=13) ADC
+      # üzerinden bunu otomatik kullanır. GCP tarafı tek seferlik kurulum:
+      # scripts/setup-gcp-wif.sh. Proje hedefi .firebaserc'teki
+      # "default": "muftim"'ten geliyor, ayrıca bir PROJECT_ID gerekmiyor.
+      - name: GCP Kimlik Doğrulama (Workload Identity Federation)
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Firebase CLI Kur
         run: npm install -g firebase-tools
@@ -204,20 +230,10 @@ jobs:
       # bağımlı bir client değişikliği hosting'e çıktığında ilgili rules/index
       # zaten yerinde olsun.
       - name: Firestore Rules & Indexes Deploy Et
-        run: firebase deploy --only firestore:rules,firestore:indexes --token "$FIREBASE_TOKEN" --non-interactive
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: firebase deploy --only firestore:rules,firestore:indexes --non-interactive
 
-      # NOT: FirebaseExtended/action-hosting-deploy@v0 (servis hesabı JSON
-      # anahtarı) yerine `firebase login:ci` ile üretilen kişisel bir CI
-      # token'ı kullanılıyor — servis hesabı anahtarı üretimi GCP proje kotasına
-      # takılmıştı, CI token'ı bu kotadan bağımsız. Proje hedefi .firebaserc'teki
-      # "default": "makam-1453"'ten geliyor, ayrıca bir PROJECT_ID secret'ı
-      # gerekmiyor.
       - name: Firebase Hosting'e Deploy Et
-        run: firebase deploy --only hosting --token "$FIREBASE_TOKEN" --non-interactive
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: firebase deploy --only hosting --non-interactive
 
       # Bozuk bir deploy'un sessizce production'da kalmasını önlemek için
       # erken uyarı: hosting statik bir SPA servis ettiğinden (server.js /
@@ -227,21 +243,21 @@ jobs:
       # bkz. index.html) içerip içermediğine bakar. Otomatik rollback KASITLI
       # olarak eklenmedi (yanlış bir rollback daha kötü olabilir) — bu adım
       # yalnızca job'ı FAILED yapıp görünürlük sağlar; gerekirse elle geri
-      # almak için: `firebase hosting:releases:list --project makam-1453` ile
+      # almak için: `firebase hosting:releases:list --project muftim` ile
       # önceki release'i bulup `firebase hosting:clone
-      # makam-1453:<ONCEKI_RELEASE_ID> makam-1453:live` çalıştırın (bkz. kod
+      # muftim:<ONCEKI_RELEASE_ID> muftim:live` çalıştırın (bkz. kod
       # denetimi).
       - name: Deploy Sonrası Sağlık Kontrolü (Smoke Test)
         run: |
-          URL="https://makam-1453.web.app"
+          URL="https://muftim.web.app"
           echo "Kontrol ediliyor: $URL"
           BODY=$(curl -sf --retry 3 --retry-delay 5 "$URL")
           if [ $? -ne 0 ]; then
-            echo "::error::Deploy sonrası $URL adresine erişilemedi. Elle rollback için: 'firebase hosting:releases:list --project makam-1453' ardından 'firebase hosting:clone makam-1453:<ONCEKI_RELEASE_ID> makam-1453:live'"
+            echo "::error::Deploy sonrası $URL adresine erişilemedi. Elle rollback için: 'firebase hosting:releases:list --project muftim' ardından 'firebase hosting:clone muftim:<ONCEKI_RELEASE_ID> muftim:live'"
             exit 1
           fi
           if ! echo "$BODY" | grep -q 'id="root"'; then
-            echo "::error::Deploy edilen sayfa beklenen SPA kök elemanını (id=\"root\") içermiyor — bozuk bir build yayınlanmış olabilir. Elle rollback için: 'firebase hosting:releases:list --project makam-1453' ardından 'firebase hosting:clone makam-1453:<ONCEKI_RELEASE_ID> makam-1453:live'"
+            echo "::error::Deploy edilen sayfa beklenen SPA kök elemanını (id=\"root\") içermiyor — bozuk bir build yayınlanmış olabilir. Elle rollback için: 'firebase hosting:releases:list --project muftim' ardından 'firebase hosting:clone muftim:<ONCEKI_RELEASE_ID> muftim:live'"
             exit 1
           fi
           echo "Sağlık kontrolü başarılı."
@@ -251,7 +267,14 @@ jobs:
     name: PR Preview Deploy
     runs-on: ubuntu-latest
     needs: [build, performance]
-    if: github.event_name == 'pull_request'
+    # Yalnızca AYNI repodan açılan PR'lar: fork PR'larında `secrets.*` boş
+    # gelir ve `id-token: write` de verilmez, WIF adımı anlamsız bir hatayla
+    # düşerdi. (Eski --token düzeninde de fork PR'ları aynı sebeple
+    # kırılıyordu, sadece hata mesajı farklıydı.)
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Kodu İndir
@@ -263,6 +286,13 @@ jobs:
           name: dist
           path: dist/
 
+      # Bkz. deploy job'ındaki aynı adımın gerekçesi (WIF, anahtarsız).
+      - name: GCP Kimlik Doğrulama (Workload Identity Federation)
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
       - name: Firebase CLI Kur
         run: npm install -g firebase-tools
 
@@ -271,6 +301,4 @@ jobs:
       # sonraki push'lar aynı kanalı güncellesin, her seferinde yeni kanal
       # açmasın. 7 gün sonra otomatik silinir.
       - name: Firebase Preview Channel Deploy
-        run: firebase hosting:channel:deploy "pr-${{ github.event.pull_request.number }}" --token "$FIREBASE_TOKEN" --expires 7d --non-interactive
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: firebase hosting:channel:deploy "pr-${{ github.event.pull_request.number }}" --expires 7d --non-interactive
