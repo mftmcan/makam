@@ -236,8 +236,6 @@ export const settingsService = {
     const CHUNK = 50;
     for (let i = 0; i < items.length; i += CHUNK) {
       const chunk = items.slice(i, i + CHUNK);
-      const batch = writeBatch(db);
-      chunk.forEach(it => batch.set(it.ref, it.data, { merge: true }));
 
       const chunkStatsDelta: Record<string, number> = {};
       chunk.forEach(it => {
@@ -249,16 +247,29 @@ export const settingsService = {
           chunkStatsDelta[key] = (chunkStatsDelta[key] ?? 0) + value;
         });
       });
-      if (Object.keys(chunkStatsDelta).length > 0) {
-        const statsPayload: Record<string, ReturnType<typeof increment>> = {};
-        Object.entries(chunkStatsDelta).forEach(([key, value]) => {
-          if (value !== 0) statsPayload[key] = increment(value);
-        });
-        if (Object.keys(statsPayload).length > 0) {
-          batch.set(doc(db, 'system', 'stats'), statsPayload, { merge: true });
+
+      // Batch, her deneme için runWithRetry closure'ının İÇİNDE yeniden
+      // oluşturulur: Firestore SDK'sı commit() çağrılan bir WriteBatch'i,
+      // istek ağ hatasıyla başarısız olsa bile kalıcı olarak "committed"
+      // işaretler. Batch dışarıda oluşturulup yalnızca commit() retry
+      // ediliyorsa, ilk deneme başarısız olduğunda ikinci deneme gerçek
+      // ağ hatası yerine "A write batch can no longer be used after
+      // commit() has been called" hatası fırlatırdı (bkz. kod denetimi —
+      // departmentService.commitInChunks'taki desenle tutarlı hale getirildi).
+      await runWithRetry(() => {
+        const batch = writeBatch(db);
+        chunk.forEach(it => batch.set(it.ref, it.data, { merge: true }));
+        if (Object.keys(chunkStatsDelta).length > 0) {
+          const statsPayload: Record<string, ReturnType<typeof increment>> = {};
+          Object.entries(chunkStatsDelta).forEach(([key, value]) => {
+            if (value !== 0) statsPayload[key] = increment(value);
+          });
+          if (Object.keys(statsPayload).length > 0) {
+            batch.set(doc(db, 'system', 'stats'), statsPayload, { merge: true });
+          }
         }
-      }
-      await runWithRetry(() => batch.commit());
+        return batch.commit();
+      });
       onProgress?.(Math.round(((i + chunk.length) / items.length) * 100));
     }
 
