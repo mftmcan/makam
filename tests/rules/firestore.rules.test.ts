@@ -1471,6 +1471,63 @@ describe('users ilk giriş taşıması (davet dokümanı)', () => {
     }));
   });
 
+  // App.tsx'in GERÇEK taşıma şekli: uid dokümanı create + davet dokümanı
+  // delete TEK batch'te. Yukarıdaki testler yalnızca create'i sınıyordu;
+  // delete `isAdmin()` gerektirdiği için batch'in tamamı reddediliyor ve
+  // hiçbir davetli ilk girişini tamamlayamıyordu (2026-09-12 canlıda
+  // görüldü — muftim'e taşıma sonrası ilk Admin girişi sonsuz döngüye
+  // girdi). isOwnInviteMigration istisnası bunu açar; aşağıdaki üç test
+  // istisnanın darlığını da sabitler.
+  it('taşıma batch\'i (kendi uid dokümanını oluştur + kendi davet dokümanını sil) tek batch\'te kabul edilir', async () => {
+    const db = invited();
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'users', 'yeni-uid'), {
+      uid: 'yeni-uid', fullName: 'Yeni Personel', email: 'davet@makam.test',
+      role: 'Staff', departmentId: 'dept-a', photoURL: null,
+    });
+    batch.delete(doc(db, 'users', 'davet@makam.test'));
+    await assertSucceeds(batch.commit());
+  });
+
+  it('DEPARTMANSIZ Admin daveti de aynı batch ile taşınabilir (ilk Admin\'in bootstrap yolu)', async () => {
+    // Gerçek bootstrap senaryosu: sıfır bir projede ilk Admin daveti Admin SDK/
+    // REST ile departmentId OLMADAN yazılır (Admin organizasyon geneli çalışır,
+    // bkz. userDepartmentIsValid). Taşıma batch'i de tempData'yı olduğu gibi
+    // kopyaladığından iki tarafta da alan yoktur — kuraldaki departman
+    // eşleştirmesi bu "yok == yok" durumunu da kabul etmek zorunda.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', 'ilk-admin@makam.test'), {
+        uid: 'ilk-admin@makam.test', fullName: 'İlk Yönetici',
+        email: 'ilk-admin@makam.test', role: 'Admin',
+      });
+    });
+    const adminInvitee = testEnv.authenticatedContext('ilk-admin-uid', {
+      email: 'ilk-admin@makam.test', email_verified: true,
+    }).firestore();
+    const batch = writeBatch(adminInvitee);
+    batch.set(doc(adminInvitee, 'users', 'ilk-admin-uid'), {
+      uid: 'ilk-admin-uid', fullName: 'İlk Yönetici', email: 'ilk-admin@makam.test',
+      role: 'Admin', photoURL: null,
+    });
+    batch.delete(doc(adminInvitee, 'users', 'ilk-admin@makam.test'));
+    await assertSucceeds(batch.commit());
+  });
+
+  it('kendi davet dokümanını uid dokümanı OLUŞTURMADAN tek başına silemez', async () => {
+    await assertFails(deleteDoc(doc(invited(), 'users', 'davet@makam.test')));
+  });
+
+  it('BAŞKASININ davet dokümanını kendi taşıma batch\'inde silemez', async () => {
+    const db = invited();
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'users', 'yeni-uid'), {
+      uid: 'yeni-uid', fullName: 'Yeni Personel', email: 'davet@makam.test',
+      role: 'Staff', departmentId: 'dept-a',
+    });
+    batch.delete(doc(db, 'users', 'admin-davet@makam.test'));
+    await assertFails(batch.commit());
+  });
+
   // YETKİ YÜKSELTME (privilege escalation) — kuralın doğrulaması, davet
   // dokümanını `incoming().email` üzerinden bulur ama bu e-postanın GERÇEKTEN
   // isteği yapan kullanıcıya ait olduğunu kontrol etmezse, herhangi bir

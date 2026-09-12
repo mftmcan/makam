@@ -19,6 +19,17 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // users/{email} davet dokümanının, ilk giriş taşıması batch'i içinde
+    // sahibi tarafından silinmesi (gerekçe: users delete kuralındaki yorum).
+    // userId burada davet dokümanının ID'si, yani normalize (lower/trim)
+    // e-postadır; token'daki e-posta sağlayıcıdan farklı yazımla gelebilir.
+    function isOwnInviteMigration(userId) {
+      return isSignedIn() &&
+        'email' in request.auth.token &&
+        userId == request.auth.token.email.lower() &&
+        getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == existing().role;
+    }
+
     function isAdmin() {
       return isSignedIn() && (
         // Custom claim tercih edilir (hardcoded e-postadan daha güvenli)
@@ -778,7 +789,20 @@ service cloud.firestore {
         )) ||
         (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'photoURL', 'fcmTokens', 'updatedAt']) && isValidUser(incoming()))
       );
-      allow delete: if isAdmin();
+      // İlk giriş taşıması (App.tsx) TEK batch'te iki yazım yapar: users/{uid}
+      // create + users/{email} davet dokümanı delete. Delete yalnızca
+      // isAdmin() iken batch'in tamamı reddediliyordu — batch içinde get()
+      // batch ÖNCESİ durumu görür (bkz. departman taşıması notu), yani yeni
+      // kullanıcı o anda henüz Admin DEĞİLDİR (Admin daveti dahil). Sonuç:
+      // hiçbir davetli ilk girişini tamamlayamıyordu; SDK'nın iyimser yerel
+      // yazımı yüzünden UI bir an "giriş yapılmış" görünüp sunucu reddedince
+      // geri alınıyor ve taşıma sonsuz döngüde yeniden deneniyordu (2026-09-12,
+      // muftim'e taşıma sonrası ilk Admin girişinde canlıda görüldü).
+      // İstisna dar: yalnızca KENDİ e-postasına ait davet dokümanı ve yalnızca
+      // aynı batch'te kendi uid dokümanı aynı rolle oluşuyorsa (getAfter batch
+      // SONRASI durumu görür) — başkasının davetini silmek ya da davetini
+      // silip kendine doküman açmamak mümkün değil.
+      allow delete: if isAdmin() || isOwnInviteMigration(userId);
     }
 
     // Departman referans varlığı (bkz. kod denetimi P0-2). Doküman ID'si

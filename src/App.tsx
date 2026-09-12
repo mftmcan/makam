@@ -45,6 +45,15 @@ export default function App() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const isLoggingOutRef = useRef(false);
+  // İlk giriş taşıması (davet dokümanı → uid) sunucuda reddedilirse aynı auth
+  // oturumunda BİR DAHA denenmez. Gerekçe: Firestore SDK batch'i yerelde
+  // iyimser uygular → users/{uid} snapshot'ı bir an exists()==true döner →
+  // setUser + tüm dinleyiciler başlar → sunucu reddedince yerel yazım geri
+  // alınır → exists()==false → taşıma yeniden denenir → sonsuz döngü (her
+  // turda hata toast'ları + error_logs yazımı, Spark kotasını yakıyordu;
+  // 2026-09-12 canlıda görüldü). Uid ile anahtarlı: farklı hesapla giriş
+  // yeniden dener, çıkışta sıfırlanır.
+  const migrationFailedUidRef = useRef<string | null>(null);
   const tasksRef = useRef<Task[]>([]);
 
   // ─── uiStore ─────────────────────────────────────────────────────────────
@@ -194,12 +203,16 @@ export default function App() {
             setUser({ ...userData, photoURL: firebaseUser.photoURL ?? userData.photoURL });
             setLoading(false);
           } else {
-            if (userEmail) {
+            if (userEmail && migrationFailedUidRef.current !== firebaseUser.uid) {
               try {
                 const tempDocRef = doc(db, 'users', userEmail);
                 const tempDocSnap = await getDoc(tempDocRef);
                 if (tempDocSnap.exists()) {
                   const tempData = tempDocSnap.data();
+                  // create + delete TEK batch'te: firestore.rules'taki users
+                  // delete kuralı (isOwnInviteMigration) bu ikisinin aynı
+                  // batch'te olmasına dayanır (getAfter ile uid dokümanını
+                  // doğrular) — ayrı yazımlara bölmeyin.
                   const batch = writeBatch(db);
                   batch.set(doc(db, 'users', firebaseUser.uid), {
                     ...tempData,
@@ -211,7 +224,11 @@ export default function App() {
                   return;
                 }
               } catch (migrationErr) {
+                migrationFailedUidRef.current = firebaseUser.uid;
                 console.error('[Migration] Kullanıcı dökümanı taşıma hatası:', migrationErr);
+                // Eskiden yalnızca konsola düşüyordu; kullanıcı Login ekranına
+                // sebepsiz geri atılıyor, Destek Referansı da üretilmiyordu.
+                void handleFirestoreError(migrationErr, 'create', `users/${firebaseUser.uid}`);
               }
             }
             setLoading(false);
@@ -228,6 +245,7 @@ export default function App() {
         });
       } else {
         isLoggingOutRef.current = false;
+        migrationFailedUidRef.current = null;
         setUser(null);
         setLoading(false);
       }
