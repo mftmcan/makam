@@ -9,10 +9,18 @@ import { readFileSync } from 'fs';
  * o dört projede ayrı ayrı çalışır, snapshot dosya adına proje adı otomatik
  * eklenir (bkz. Playwright'ın kendi `toHaveScreenshot` davranışı).
  *
- * İlk çalıştırmada (lokal, CI dışı) eksik baseline'lar otomatik oluşturulup
- * test PASS sayılır — bilinçli bir tasarım değişikliğinden sonra farkı kabul
- * etmek için `npx playwright test --config=playwright.emulator.config.ts
- * tests/e2e/visual.spec.ts --update-snapshots` çalıştırın.
+ * Baseline'lar platform sonekiyle aranır (`<ad>-<proje>-<platform>.png`) ve
+ * repoda İKİ set tutulur: `-win32` (yerel geliştirme) ve `-linux` (CI,
+ * ubuntu). Eksik bir baseline yazılır ama test KIRMIZI kalır (Playwright
+ * `updateSnapshots: 'missing'` → softError) — yani yeni bir ekran/sekme
+ * eklendiğinde ya da bilinçli bir tasarım değişikliğinden sonra iki setin de
+ * güncellenmesi gerekir:
+ *   - win32: `npx playwright test --config=playwright.emulator.config.ts
+ *     tests/e2e/visual.spec.ts --update-snapshots` (emülatör içinde; bkz.
+ *     package.json test:e2e:emulator)
+ *   - linux: `gh workflow run e2e.yml -f update_snapshots=true`, sonra
+ *     `visual-baselines-linux` artifact'ını indirip commit (bkz. e2e.yml).
+ * Yalnızca birini güncellemek diğer platformda kırmızıya yol açar.
  */
 
 let e2eToken: string;
