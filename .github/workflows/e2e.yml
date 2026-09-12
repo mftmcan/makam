@@ -5,6 +5,19 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  # Görsel regresyon baseline'larının Linux (`-linux.png`) setini üretmek için
+  # elle tetikleme — yerel geliştirme Windows'ta olduğundan bu set yerelde
+  # üretilemez, CI'ın kendi ortamında üretilip artifact olarak indirilmeli
+  # (bkz. playwright.emulator.config.ts → updateSnapshots gerekçesi).
+  # Kullanım: `gh workflow run e2e.yml -f update_snapshots=true`, ardından
+  # `gh run download <run-id> -n visual-baselines-linux -D
+  # tests/e2e/visual.spec.ts-snapshots` ve commit.
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: 'Görsel regresyon baseline’larını (Linux) yeniden üret ve artifact olarak yükle'
+        type: boolean
+        default: false
 
 # En az ayrıcalık ilkesi — bu workflow repo içeriğini okumaktan fazlasına
 # ihtiyaç duymuyor (bkz. ci.yml'deki aynı gerekçe).
@@ -74,6 +87,10 @@ jobs:
       run: npm install -g firebase-tools
 
     - name: Run authenticated e2e tests against Firebase Emulator Suite
+      # `inputs.update_snapshots` yalnızca workflow_dispatch'te tanımlıdır;
+      # push/PR tetiklemelerinde boş kalır → '' → normal ('missing') koşu.
+      env:
+        E2E_UPDATE_SNAPSHOTS: ${{ inputs.update_snapshots == true && '1' || '' }}
       run: npm run test:e2e:emulator
 
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -82,3 +99,14 @@ jobs:
         name: playwright-report-authenticated
         path: playwright-report/
         retention-days: 30
+
+    # Yalnızca elle tetiklenen baseline üretiminde: bu koşuda yazılan Linux
+    # baseline'ları indirilip `tests/e2e/visual.spec.ts-snapshots/` altına
+    # commit'lenir. Yol yalnızca `-linux.png` ile sınırlı — repodaki `-win32`
+    # setinin yanlışlıkla ezilmemesi için.
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      if: always() && inputs.update_snapshots == true
+      with:
+        name: visual-baselines-linux
+        path: tests/e2e/visual.spec.ts-snapshots/*-linux.png
+        retention-days: 7

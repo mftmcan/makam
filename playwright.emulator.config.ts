@@ -18,6 +18,21 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1,
   reporter: 'html',
+  // Görsel regresyon baseline'ları platform sonekiyle aranır
+  // (`<ad>-<proje>-<platform>.png`); yerelde Windows'ta üretilen `-win32`
+  // seti CI'daki ubuntu koşusunda hiçbir zaman eşleşmez ve soneki düşürmek
+  // de çözüm değildir — font rasterizasyonu (ClearType vs FreeType) ve
+  // metrikleri platformlar arasında farklıdır, 0.02'lik eşik sahte kırmızı
+  // üretir. Bu yüzden `-linux` seti CI'ın KENDİSİNE ürettirilir:
+  // e2e.yml'deki workflow_dispatch → `update_snapshots=true` bu env'i
+  // ayarlar, eksik ve toleransı (maxDiffPixelRatio) aşan baseline'lar
+  // yazılır (test PASS sayılır) ve artifact olarak indirilip repoya
+  // commit'lenir. 'all' değil 'changed': 'all' canlı saat yüzünden hep
+  // birkaç piksel farklı çıkan 28 PNG'yi her koşuda yeniden yazıp gereksiz
+  // binary churn üretirdi. Normal koşuda 'missing': baseline yoksa yazılır
+  // ama test KIRMIZI kalır (Playwright softError) — eksik bir platform seti
+  // sessizce geçmesin diye.
+  updateSnapshots: process.env.E2E_UPDATE_SNAPSHOTS === '1' ? 'changed' : 'missing',
   use: {
     baseURL,
     trace: 'on-first-retry',
