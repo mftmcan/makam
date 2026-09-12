@@ -80,7 +80,10 @@ değil.
    `shadow-overlay` (tam ekran modal paneli) — üç farklı "ne kadar yükseklikte
    yüzüyor" seviyesi.
 
-Durum noktalarının renkli "glow" gölgeleri (`shadow-[0_0_Npx_var(--color-*)]`),
+Durum noktalarının renkli "glow" gölgeleri (her biri kendi durum rengiyle
+`0 0 Npx var(--color-durum)` biçiminde arbitrary bir `shadow-` değeri — burada
+gerçek sınıf sözdizimiyle yazılmadı: Tailwind v4 bu dosyayı da tarar ve
+sözde-sınıfı derleyip build uyarısı üretiyordu),
 logo drop-shadow'ları ve `Badge`/`PremiumIcon`'un iç parlaklık (`inset`)
 gölgeleri (`--shadow-badge-inset`) bu iki aileden BİLİNÇLİ OLARAK ayrı —
 kendi rengine/bağlamına özgüdürler.

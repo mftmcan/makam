@@ -294,7 +294,9 @@
      / Tailwind'in kendi shadow-md'si) sessizce sürüklenmişti — aynı kart
      deseni ekrandan ekrana farklı "kalkma" hissi veriyordu (bkz. tasarım
      denetimi 3.5). Yalnızca bu TEKRARLANAN dinlenme/hover çifti token'landı;
-     durum noktalarındaki renkli "glow" gölgeleri (shadow-[0_0_Npx_var(--color-*)]),
+     durum noktalarındaki renkli "glow" gölgeleri (arbitrary shadow: 0 0 Npx var(--color-durum) —
+     bu yorumda gerçek sınıf sözdizimiyle YAZILMAZ: Tailwind v4 yorumları da
+     tarar, sözde-sınıfı derleyip Lightning CSS uyarısı üretiyordu),
      logo drop-shadow'ları ve Badge/PremiumIcon'un iç parlaklık (inset)
      gölgeleri BİLİNÇLİ OLARAK dışarıda bırakıldı — her biri kendi rengine/
      bağlamına özgü, kartlarla aynı "elevation" ailesinden değil. */
