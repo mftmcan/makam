@@ -1,0 +1,19 @@
+# gitleaks yapılandırması (CI: ci.yml → "Gizli Anahtar Taraması").
+# Varsayılan kural setinin ÜZERİNE yalnızca bir allowlist ekler; kuralların
+# kendisi değişmez.
+[extend]
+useDefault = true
+
+[allowlist]
+description = """Firebase web istemci apiKey'i (AIza…) bir sır DEĞİLDİR:
+tasarım gereği client bundle'a girer ve yalnızca projeyi/uygulamayı tanımlar;
+erişim firestore.rules + Firebase Auth + (varsa) App Check ile korunur
+(bkz. https://firebase.google.com/docs/projects/api-keys). Anahtar bu iki
+dosyada bilinçli olarak düz metin durur (src/firebase.ts bunu import eder,
+firebase-messaging-sw.js ise elle senkron tutulan bir kopyadır). gcp-api-key
+kuralı başka her yerde (ör. bir Admin SDK anahtarı, sunucu tarafı GCP API
+anahtarı) aktif kalır — istisna yalnızca yol bazlıdır."""
+paths = [
+  '''^firebase-applet-config\.json$''',
+  '''^public/firebase-messaging-sw\.js$''',
+]
