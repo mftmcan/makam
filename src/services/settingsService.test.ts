@@ -197,6 +197,25 @@ describe('restoreBackup — chunk sınırı', () => {
     await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
     expect(batches).toHaveLength(0);
   });
+
+  it('10\'dan fazla fcmTokens taşıyan bir kullanıcı EN YENİ 10 token\'a kırpılır (firestore.rules isValidUser sınırı)', async () => {
+    const manyTokens = Array.from({ length: 96 }, (_, i) => `token-${i}`);
+    const backup = makeBackup({ users: [validUser({ fcmTokens: manyTokens })] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'users/user-1');
+    expect(written![1].fcmTokens).toEqual(manyTokens.slice(-10));
+    expect(written![1].fcmTokens).toHaveLength(10);
+  });
+
+  it('10 veya daha az fcmTokens taşıyan bir kullanıcı olduğu gibi yazılır', async () => {
+    const fewTokens = ['a', 'b', 'c'];
+    const backup = makeBackup({ users: [validUser({ fcmTokens: fewTokens })] });
+    await settingsService.restoreBackup(JSON.stringify(backup), 'u1', 'x.json');
+
+    const written = batches[0]!.set.mock.calls.find(([ref]) => pathOf(ref) === 'users/user-1');
+    expect(written![1].fcmTokens).toEqual(fewTokens);
+  });
 });
 
 // ── Departman referans bütünlüğü ─────────────────────────────────────────────

@@ -206,7 +206,20 @@ export const settingsService = {
     const userItems: { ref: DocumentReference; data: BackupRecord }[] = [];
     if (Array.isArray(data.users)) {
       data.users.forEach((u: BackupRecord) => {
-        if (u.uid) userItems.push({ ref: doc(db, 'users', u.uid as string), data: pick(cleanDataObj(u) as BackupRecord, ['uid', 'fullName', 'email', 'role', 'departmentId', 'photoURL', 'fcmTokens']) });
+        if (!u.uid) return;
+        const picked = pick(cleanDataObj(u) as BackupRecord, ['uid', 'fullName', 'email', 'role', 'departmentId', 'photoURL', 'fcmTokens']);
+        // firestore.rules isValidUser, fcmTokens'ı EN FAZLA 10 kayıtla sınırlar
+        // (Admin için de istisnasız). Uzun süredir kullanılan hesaplar
+        // (ör. her cihaz/tarayıcı yenilemesinde eklenip hiç temizlenmeyen FCM
+        // token'ları) bu sınırı çoktan aşmış olabilir — yedekteki TEK bir
+        // kullanıcının aşırı büyük fcmTokens dizisi, aynı batch'teki TÜM
+        // kullanıcı yazımlarını "Missing or insufficient permissions" ile
+        // düşürür (bkz. kod denetimi, 2026-09-12: muftum@gmail.com'un 96
+        // fcmTokens girdisiyle canlıda görüldü). En YENİ 10 token korunur.
+        if (Array.isArray(picked.fcmTokens) && picked.fcmTokens.length > 10) {
+          picked.fcmTokens = picked.fcmTokens.slice(-10);
+        }
+        userItems.push({ ref: doc(db, 'users', u.uid as string), data: picked });
       });
     }
     const taskItems: { id: string; ref: DocumentReference; data: BackupRecord }[] = [];
