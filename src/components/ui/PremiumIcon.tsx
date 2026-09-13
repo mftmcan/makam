@@ -9,6 +9,7 @@ interface PremiumIconProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   active?: boolean;
+  'aria-hidden'?: boolean;
 }
 
 export const PremiumIcon = ({
@@ -16,7 +17,8 @@ export const PremiumIcon = ({
   variant = 'glass',
   size = 'md',
   className,
-  active = false
+  active = false,
+  'aria-hidden': ariaHidden
 }: PremiumIconProps) => {
   // Sabit "appleIconSquircle" id'si her PremiumIcon örneğinde tekrarlanıyordu
   // — Sidebar gibi birden çok örneğin aynı sayfada render edildiği yerlerde
@@ -61,6 +63,7 @@ export const PremiumIcon = ({
       </svg>
 
       <motion.div
+        aria-hidden={ariaHidden}
         whileHover={{ scale: 1.08, rotate: [0, -3, 3, 0] }}
         whileTap={{ scale: 0.95 }}
         style={{ clipPath: clipPathUrl }}
