@@ -64,6 +64,14 @@ export const PremiumIcon = ({
 
       <motion.div
         aria-hidden={ariaHidden}
+        // framer-motion, whileTap/whileHover ile birlikte klavye erişilebilirliği
+        // için elementi otomatik olarak tabIndex=0 yapar — aria-hidden ile
+        // birleşince "gizli ama odaklanabilir" ihlaline (aria-hidden-focus)
+        // yol açıyordu (bkz. authenticated e2e a11y testi). Dekoratif
+        // kullanımda (aria-hidden=true, örn. Sidebar/MobileDock ikonları
+        // zaten odaklanabilir bir NavLink içinde) bu otomatik tabIndex'i
+        // bastır; ikonun kendisi hiçbir zaman ayrı bir odak hedefi değildir.
+        tabIndex={ariaHidden ? -1 : undefined}
         whileHover={{ scale: 1.08, rotate: [0, -3, 3, 0] }}
         whileTap={{ scale: 0.95 }}
         style={{ clipPath: clipPathUrl }}
