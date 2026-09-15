@@ -190,10 +190,15 @@ jobs:
       # boru zincirinin son komutu olduğu için size-limit limit aşımıyla
       # başarısız olsa bile adımın kendisi (varsayılan GitHub bash'inde
       # pipefail kapalı olduğundan) yeşil görünürdü — bütçe kapısı sessizce
-      # devre dışı kalırdı.
+      # devre dışı kalırdı. `npm run size` YERİNE doğrudan `npx size-limit`
+      # çağrılıyor: `npm run` Linux runner'larda "> makam-app@2.3.0 size"
+      # banner satırlarını STDOUT'a yazıyor (bkz. kod denetimi — ilk canlı
+      # koşuda bu satırlar size-limit-result.json'a karışıp jq'yu
+      # "Invalid numeric literal" ile patlatmıştı) — `npx` bu npm-script
+      # yaşam döngüsünü baypas ettiği için çıktı temiz JSON kalır.
       - name: Bundle Boyutu Bütçesi
         shell: bash
-        run: npm run size -- --json | tee size-limit-result.json
+        run: npx size-limit --json | tee size-limit-result.json
 
       # Best-effort özet: JSON şeması değişirse bu adım (`|| true`) performans
       # job'unu KIRMAZ — bütçe kapısının kendisi zaten önceki adımda uygulandı.
