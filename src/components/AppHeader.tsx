@@ -206,7 +206,10 @@ export function AppHeader({
       </header>
 
       {/* Mobile Header Refined */}
-      <header className="lg:hidden h-16 bg-makam-glass border-b border-makam-border/5 flex items-center justify-between px-6 sticky top-0 z-40 backdrop-blur-3xl">
+      <header
+        className="lg:hidden min-h-16 bg-makam-glass border-b border-makam-border/5 flex items-center justify-between px-6 sticky top-0 z-40 backdrop-blur-3xl"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         {/* Sidebar/Login/App.tsx'teki gibi çözümlenmiş temayı izler — eskiden
             variant sabit "light" idi, koyu temada (mobil başlık zemini de
             koyu olduğundan) koyu-üstüne-koyu render olup görünürlüğü ciddi
