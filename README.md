@@ -78,7 +78,7 @@ Bu komut `firebase emulators:exec` ile Auth+Firestore emulator'larını başlat�
 
 ## Deploy
 
-`main` branch'ine yapılan push'lar GitHub Actions üzerinden otomatik olarak Firebase Hosting'e deploy edilir (bkz. `.github/workflows/ci.yml`). Pull request'ler için ayrı bir preview channel oluşturulur. Pipeline sırası: güvenlik taraması → lint/test → build → deploy.
+`main` branch'ine yapılan push'lar GitHub Actions üzerinden otomatik olarak Firebase Hosting'e deploy edilir (bkz. `.github/workflows/ci.yml`). Pull request'ler için ayrı bir preview channel oluşturulur (sonucu PR'a otomatik yorum olarak düşer). Güvenlik taraması + kod kalitesi/test, build ile **paralel** koşar; deploy/preview yalnızca tümü (güvenlik, kalite, build, performans bütçeleri) geçtiğinde başlar. `main`'e art arda push'larda koşular kuyruklanır (eşzamanlı iki deploy'un birbirinin üstüne yazmasını önlemek için) — PR'larda ise aynı PR'a yeni push eski koşuyu iptal eder.
 
 ## Lisans
 
