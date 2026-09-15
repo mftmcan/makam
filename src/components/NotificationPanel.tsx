@@ -70,7 +70,7 @@ export function NotificationPanel({
       role="dialog"
       aria-modal="true"
       aria-label="Bekleyen Kurumsal Talimatlar"
-      className="fixed top-16 lg:top-20 right-3 lg:right-8 z-[200]
+      className="fixed top-[calc(4rem+env(safe-area-inset-top,0px))] lg:top-20 right-3 lg:right-8 z-[200]
                  w-[calc(100vw-24px)] max-w-sm lg:max-w-md
                  bg-surface-elevated backdrop-blur-2xl
                  border border-surface-border
