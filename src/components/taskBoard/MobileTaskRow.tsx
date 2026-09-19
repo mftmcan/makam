@@ -3,7 +3,7 @@ import type { RowComponentProps } from 'react-window';
 import { ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import type { Task, User } from '../../types';
+import type { Task, TaskStatus, User } from '../../types';
 import { cn } from '../../lib/utils';
 import { isTaskInCrisis } from '../../lib/executiveMetrics';
 
@@ -19,6 +19,19 @@ export interface TaskRowData {
    *  Eskiden iyimser olarak listeye bindirilen bu değişiklikler sunucuya
    *  ulaşmamış olsa bile "kesinleşmiş" görünüyordu. */
   pendingTaskIds: Set<string>;
+  /** Satır içi hızlı durum değişikliği (bkz. tasarım planı Öncelik 3, yalnızca
+   *  DesktopTaskRow kullanır) — getPrimaryAction'ın hedef kullanıcıyı
+   *  belirleyebilmesi için. */
+  currentUser: User | null;
+  /** AYNI updateTaskStatus — TaskBoardProps'takiyle birebir, yeni bir yazma
+   *  yolu İCAT EDİLMEZ (bkz. TaskBoard.tsx toplu işlem yorumu, aynı ilke). */
+  updateTaskStatus: (
+    taskId: string,
+    newStatus: TaskStatus,
+    evidence?: string,
+    evidenceType?: Task['evidenceType'],
+    options?: { silent?: boolean }
+  ) => Promise<void>;
 }
 
 export function SyncPendingBadge() {
@@ -54,6 +67,10 @@ export function MobileTaskRow({ index, style, ariaAttributes, tasks, usersById, 
         }}
         className={cn(
           'flex items-start gap-3 p-3.5 h-full box-border cursor-pointer hover:bg-makam-glass transition-all group relative overflow-hidden border-b border-makam-border/30',
+          // DesktopTaskRow.tsx ile AYNI gerekçe (bkz. o dosyadaki yorum) —
+          // seçili satırın zemini artık checkbox'tan bağımsız olarak da görünür.
+          isSelected && 'ring-1 ring-inset ring-executive-blue/20',
+          isSelected && !isCrisis && 'bg-executive-blue/[0.04]',
           isCrisis && 'bg-status-danger/[0.04]'
         )}
       >

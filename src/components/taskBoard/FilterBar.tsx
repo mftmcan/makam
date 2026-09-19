@@ -15,6 +15,9 @@ interface FilterBarProps {
   setAssigneeFilter: (value: string) => void;
   users: User[];
   hasActiveFilter: boolean;
+  /** Kaç filtrenin aktif olduğu (bkz. tasarım planı Öncelik 2) — "Sıfırla"
+   *  butonunun yanında bir sayaç olarak gösterilir. */
+  activeFilterCount: number;
   resetFilters: () => void;
   filteredCount: number;
   allFilteredSelected: boolean;
@@ -39,7 +42,7 @@ const GHOST_SELECT_CLASSNAME = 'bg-transparent border-none text-micro font-mediu
  */
 export function FilterBar({
   search, setSearch, priorityFilter, setPriorityFilter, statusFilter, setStatusFilter,
-  assigneeFilter, setAssigneeFilter, users, hasActiveFilter, resetFilters,
+  assigneeFilter, setAssigneeFilter, users, hasActiveFilter, activeFilterCount, resetFilters,
   filteredCount, allFilteredSelected, selectedCount, selectAllFiltered, clearSelection,
 }: FilterBarProps) {
   return (
@@ -105,8 +108,14 @@ export function FilterBar({
       {hasActiveFilter && (
         <button
           onClick={resetFilters}
-          className="text-micro font-medium text-status-danger/70 hover:text-status-danger px-3 uppercase tracking-label sm:tracking-caps transition-colors h-8 flex items-center justify-center gap-1 flex-1 sm:flex-none"
+          className="text-micro font-medium text-status-danger/70 hover:text-status-danger px-3 uppercase tracking-label sm:tracking-caps transition-colors h-8 flex items-center justify-center gap-1.5 flex-1 sm:flex-none"
         >
+          {/* Kaç filtrenin aktif olduğu — eskiden yalnızca metin butonu vardı,
+              hem öncelik HEM durum filtrelenmişse bunu ayrıca fark etmek
+              gerekiyordu (bkz. tasarım planı Öncelik 2). */}
+          <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-status-danger/15 text-[9px] font-bold tabular-nums normal-case tracking-normal">
+            {activeFilterCount}
+          </span>
           <X className="w-3 h-3" /> Sıfırla
         </button>
       )}

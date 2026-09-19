@@ -267,3 +267,119 @@ describe('TaskBoard — sütun başlığına tıklayarak sıralama (3.4)', () =>
     expect(desktopRowIndexOf('İvedi Talimat')).toBeLessThan(desktopRowIndexOf('Rutin Talimat'));
   });
 });
+
+// Tasarım planı Öncelik 1: eskiden yalnızca checkbox'ın kendisi dolu
+// görünürdü, satırın zemini/kenarlığı DEĞİŞMİYORDU.
+describe('TaskBoard — seçili satır vurgusu (tasarım planı Öncelik 1)', () => {
+  it('bir satır seçildiğinde masaüstü satırının kendisi de vurgulanır (yalnızca checkbox değil)', async () => {
+    const user = userEvent.setup();
+    renderBoard({ tasks: [makeTask({ id: 'task-1', title: 'Birinci Talimat' })], currentUser: admin });
+
+    // jsdom mobil VE masaüstü satırını aynı anda render eder (bkz. dosya
+    // başındaki NOT) — yalnızca masaüstü satırı role="row" taşır, className
+    // doğrulaması bu yüzden özellikle ONU hedefler.
+    const checkboxes = screen.getAllByRole('checkbox', { name: 'Birinci Talimat seçilmedi' });
+    const desktopCheckbox = checkboxes.find(cb => cb.closest('[role="row"]'))!;
+    const row = desktopCheckbox.closest('[role="row"]')!;
+    expect(row.className).not.toContain('ring-executive-blue/20');
+
+    await user.click(desktopCheckbox);
+
+    expect(row.className).toContain('ring-executive-blue/20');
+    expect(row.className).toContain('bg-executive-blue/[0.04]');
+  });
+
+  it('kriz görevinde seçim halkası (ring) eklenir ama kriz kırmızı zemini EZİLMEZ', async () => {
+    const user = userEvent.setup();
+    const crisisTask = makeTask({ id: 'task-1', title: 'Kriz Talimatı', status: 'IN_PROGRESS', deadline: Date.now() - 1000 });
+    renderBoard({ tasks: [crisisTask], currentUser: admin });
+
+    const checkboxes = screen.getAllByRole('checkbox', { name: 'Kriz Talimatı seçilmedi' });
+    const desktopCheckbox = checkboxes.find(cb => cb.closest('[role="row"]'))!;
+    const row = desktopCheckbox.closest('[role="row"]')!;
+    await user.click(desktopCheckbox);
+
+    expect(row.className).toContain('ring-executive-blue/20');
+    expect(row.className).toContain('bg-status-danger/[0.06]');
+    expect(row.className).not.toContain('bg-executive-blue/[0.04]');
+  });
+});
+
+// Tasarım planı Öncelik 2: eskiden yalnızca "Sıfırla" metin butonu vardı, kaç
+// filtrenin aktif olduğu görünmüyordu.
+describe('TaskBoard — aktif filtre sayacı (tasarım planı Öncelik 2)', () => {
+  it('hiçbir filtre aktif değilken sayaç/Sıfırla butonu hiç render edilmez', () => {
+    renderBoard({ tasks: [makeTask()], currentUser: admin });
+    expect(screen.queryByRole('button', { name: /Sıfırla/ })).not.toBeInTheDocument();
+  });
+
+  it('tek bir filtre aktifken sayaç 1 gösterir', async () => {
+    const user = userEvent.setup();
+    renderBoard({ tasks: [makeTask({ priority: 'Low' })], currentUser: admin });
+
+    await user.selectOptions(screen.getByLabelText('Öncelik filtresi'), 'Urgent');
+
+    expect(screen.getByRole('button', { name: /Sıfırla/ })).toHaveTextContent('1');
+  });
+
+  it('iki filtre birlikte aktifken sayaç 2 gösterir', async () => {
+    const user = userEvent.setup();
+    renderBoard({ tasks: [makeTask({ priority: 'Low', status: 'ASSIGNED' })], currentUser: admin });
+
+    await user.selectOptions(screen.getByLabelText('Öncelik filtresi'), 'Urgent');
+    await user.selectOptions(screen.getByLabelText('Durum filtresi'), 'BLOCKED');
+
+    expect(screen.getByRole('button', { name: /Sıfırla/ })).toHaveTextContent('2');
+  });
+});
+
+// Tasarım planı Öncelik 3: yalnızca kanıt TOPLAMAYAN ve onay GEREKTİRMEYEN
+// birincil aksiyonlarda (bkz. taskDetails/helpers.ts getPrimaryAction) satırdan
+// tek tıkla tetiklenebilir bir hızlı aksiyon sunulur.
+describe('TaskBoard — satır içi hızlı durum değişikliği (tasarım planı Öncelik 3)', () => {
+  it('ASSIGNED bir görevde (SÜRECİ BAŞLAT — kanıtsız, onaysız) hızlı aksiyon butonu görünür ve updateTaskStatus\'u doğru hedefle çağırır', async () => {
+    const user = userEvent.setup();
+    const { updateTaskStatus } = renderBoard({
+      tasks: [makeTask({ id: 'task-1', title: 'Birinci Talimat', status: 'ASSIGNED' })],
+      currentUser: admin,
+    });
+
+    const quickActionButtons = screen.getAllByRole('button', { name: 'Birinci Talimat: SÜRECİ BAŞLAT' });
+    await user.click(quickActionButtons[0]!);
+
+    expect(updateTaskStatus).toHaveBeenCalledWith('task-1', 'IN_PROGRESS');
+  });
+
+  it('hızlı aksiyona tıklamak satırın onClick\'ini (onViewTask) TETİKLEMEZ', async () => {
+    const user = userEvent.setup();
+    const { onViewTask } = renderBoard({
+      tasks: [makeTask({ id: 'task-1', title: 'Birinci Talimat', status: 'ASSIGNED' })],
+      currentUser: admin,
+    });
+
+    await user.click(screen.getAllByRole('button', { name: 'Birinci Talimat: SÜRECİ BAŞLAT' })[0]!);
+
+    expect(onViewTask).not.toHaveBeenCalled();
+  });
+
+  it('kanıt TOPLAYAN bir aksiyonda (IN_PROGRESS + Staff → TAMAMLA VE ONAYA SUN) hızlı aksiyon butonu GÖSTERİLMEZ', () => {
+    const inProgressTask = makeTask({ id: 'task-1', title: 'İkinci Talimat', status: 'IN_PROGRESS', assigneeId: staff.uid });
+    renderBoard({ tasks: [inProgressTask], currentUser: staff });
+
+    expect(screen.queryByRole('button', { name: /İkinci Talimat:/ })).not.toBeInTheDocument();
+  });
+
+  it('onay GEREKTİREN bir aksiyonda (IN_PROGRESS + Admin → KESİN TAMAMLA) hızlı aksiyon butonu GÖSTERİLMEZ', () => {
+    const inProgressTask = makeTask({ id: 'task-1', title: 'Üçüncü Talimat', status: 'IN_PROGRESS' });
+    renderBoard({ tasks: [inProgressTask], currentUser: admin });
+
+    expect(screen.queryByRole('button', { name: /Üçüncü Talimat:/ })).not.toBeInTheDocument();
+  });
+
+  it('kullanıcı bu görevde aksiyon alamıyorsa (ör. başkasına atanmış Staff görünümü) hızlı aksiyon butonu GÖSTERİLMEZ', () => {
+    const othersTask = makeTask({ id: 'task-1', title: 'Dördüncü Talimat', status: 'ASSIGNED', assigneeId: 'someone-else' });
+    renderBoard({ tasks: [othersTask], currentUser: staff });
+
+    expect(screen.queryByRole('button', { name: /Dördüncü Talimat:/ })).not.toBeInTheDocument();
+  });
+});

@@ -1,7 +1,9 @@
 import { X } from 'lucide-react';
+import { motion } from 'motion/react';
 import type { TaskStatus, User } from '../../types';
 import { STATUS_LABELS } from '../../constants';
 import { Button } from '../ui/Button';
+import { SPRING_PANEL } from '../../lib/motion';
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -31,9 +33,17 @@ export function BulkActionBar({
   canBulkReassign, bulkAssigneeTarget, setBulkAssigneeTarget, assignableUsers, handleBulkReassignApply,
 }: BulkActionBarProps) {
   return (
-    <div
+    <motion.div
       role="region"
       aria-label="Toplu İşlem Çubuğu"
+      // Eskiden {selectedIds.size > 0 && <BulkActionBar />} ile ANİDEN belirip
+      // kayboluyordu — Linear/Superhuman'ın seçim çubuğu gibi yumuşak bir
+      // giriş/çıkış için (bkz. tasarım planı Öncelik 2). Çağıran (TaskBoard.tsx)
+      // bu bileşeni AnimatePresence ile sarmalı ki `exit` gerçekten oynasın.
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 24 }}
+      transition={SPRING_PANEL}
       className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[55] w-[calc(100%-2rem)] max-w-md px-0"
     >
       <div className="flex flex-col gap-3 bg-makam-glass backdrop-blur-[30px] backdrop-saturate-[180%] border border-surface-border rounded-2xl shadow-[0_12px_40px_-10px_rgba(22,21,19,0.14),0_0_0_0.5px_rgba(22,21,19,0.04)] p-4">
@@ -109,7 +119,7 @@ export function BulkActionBar({
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

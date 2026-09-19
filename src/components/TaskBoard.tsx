@@ -5,7 +5,7 @@ import { Task, User, TaskStatus } from '../types';
 import { cn, buildUsersById } from '../lib/utils';
 import { STATUS_LABELS } from '../constants';
 import { VALID_TRANSITIONS } from '../lib/taskStateMachine';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { TaskCardSkeleton } from './ui/Skeleton';
 import { EmptyState } from './ui/EmptyState';
 import { PageHeader } from './ui/PageHeader';
@@ -133,7 +133,16 @@ export const TaskBoard = ({
     [filteredTasks, sortBy, sortDir, usersById]
   );
 
-  const hasActiveFilter = priorityFilter !== 'All' || assigneeFilter !== 'All' || statusFilter !== 'All' || search !== '';
+  // Kaç filtrenin aktif olduğu — eskiden yalnızca "Sıfırla" metin butonu vardı,
+  // hem öncelik HEM durum filtrelenmişse kullanıcı bunu ayrıca fark etmesi
+  // gerekiyordu (bkz. tasarım planı Öncelik 2). hasActiveFilter ile AYNI
+  // koşullardan türetilir, yeni bir veri kaynağı gerekmez.
+  const activeFilterCount =
+    (priorityFilter !== 'All' ? 1 : 0) +
+    (assigneeFilter !== 'All' ? 1 : 0) +
+    (statusFilter !== 'All' ? 1 : 0) +
+    (search !== '' ? 1 : 0);
+  const hasActiveFilter = activeFilterCount > 0;
 
   const resetFilters = useCallback(() => {
     onFiltersChange({ priority: 'All', assignee: 'All', status: 'All', search: '' });
@@ -306,8 +315,8 @@ export const TaskBoard = ({
 
   const rowKey = useCallback((index: number, data: TaskRowData) => data.tasks[index]?.id ?? index, []);
   const rowProps = useMemo<TaskRowData>(
-    () => ({ tasks: sortedTasks, usersById, onViewTask, selectedIds, onToggleSelect: toggleSelect, pendingTaskIds }),
-    [sortedTasks, usersById, onViewTask, selectedIds, toggleSelect, pendingTaskIds]
+    () => ({ tasks: sortedTasks, usersById, onViewTask, selectedIds, onToggleSelect: toggleSelect, pendingTaskIds, currentUser, updateTaskStatus }),
+    [sortedTasks, usersById, onViewTask, selectedIds, toggleSelect, pendingTaskIds, currentUser, updateTaskStatus]
   );
   const mobileListHeight = Math.min(filteredTasks.length * MOBILE_ROW_HEIGHT, MOBILE_LIST_MAX_HEIGHT);
   const desktopListHeight = Math.min(filteredTasks.length * DESKTOP_ROW_HEIGHT, DESKTOP_LIST_MAX_HEIGHT);
@@ -361,6 +370,7 @@ export const TaskBoard = ({
         assigneeFilter={assigneeFilter} setAssigneeFilter={setAssigneeFilter}
         users={users}
         hasActiveFilter={hasActiveFilter}
+        activeFilterCount={activeFilterCount}
         resetFilters={resetFilters}
         filteredCount={filteredTasks.length}
         allFilteredSelected={filteredTasks.every(t => selectedIds.has(t.id))}
@@ -433,23 +443,29 @@ export const TaskBoard = ({
       )}
 
       {/* ── Toplu İşlem Çubuğu (P2-18) ──────────────────────────────── */}
-      {selectedIds.size > 0 && (
-        <BulkActionBar
-          selectedCount={selectedIds.size}
-          clearSelection={clearSelection}
-          isBulkProcessing={isBulkProcessing}
-          commonStatus={commonStatus}
-          bulkStatusTarget={bulkStatusTarget}
-          setBulkStatusTarget={setBulkStatusTarget}
-          bulkStatusOptions={bulkStatusOptions}
-          handleBulkStatusButtonClick={handleBulkStatusButtonClick}
-          canBulkReassign={canBulkReassign}
-          bulkAssigneeTarget={bulkAssigneeTarget}
-          setBulkAssigneeTarget={setBulkAssigneeTarget}
-          assignableUsers={assignableUsers}
-          handleBulkReassignApply={handleBulkReassignApply}
-        />
-      )}
+      {/* AnimatePresence: BulkActionBar'ın kendi `exit` animasyonunun
+          (bkz. o dosya) gerçekten oynayabilmesi için — aksi halde koşullu
+          render, motion'a çıkış animasyonunu oynatma fırsatı vermeden
+          bileşeni anında DOM'dan kaldırırdı. */}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <BulkActionBar
+            selectedCount={selectedIds.size}
+            clearSelection={clearSelection}
+            isBulkProcessing={isBulkProcessing}
+            commonStatus={commonStatus}
+            bulkStatusTarget={bulkStatusTarget}
+            setBulkStatusTarget={setBulkStatusTarget}
+            bulkStatusOptions={bulkStatusOptions}
+            handleBulkStatusButtonClick={handleBulkStatusButtonClick}
+            canBulkReassign={canBulkReassign}
+            bulkAssigneeTarget={bulkAssigneeTarget}
+            setBulkAssigneeTarget={setBulkAssigneeTarget}
+            assignableUsers={assignableUsers}
+            handleBulkReassignApply={handleBulkReassignApply}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Terminal (COMPLETED/CANCELLED) toplu geçişler geri alınamaz ve durum
           makinesinde bu iki durumdan çıkış yoktur — yazarak doğrulama, bu en

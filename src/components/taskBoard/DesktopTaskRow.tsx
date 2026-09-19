@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import type { ReactElement } from 'react';
 import type { RowComponentProps } from 'react-window';
-import { ArrowRight, CheckCircle2, AlertTriangle, ShieldCheck, Zap, Info, Clock, AlertCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, AlertTriangle, ShieldCheck, Zap, Info, Clock, AlertCircle, Play, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
 import { STATUS_LABELS, PRIORITY_LABELS, PRIORITY_BADGE_VARIANT, STATUS_BADGE_VARIANT } from '../../constants';
 import { isTaskInCrisis } from '../../lib/executiveMetrics';
+import { getPrimaryAction } from '../taskDetails/helpers';
 import { Avatar } from '../ui/Avatar';
 import { Badge } from '../ui/Badge';
 import { TASK_BOARD_COLUMNS } from './columns';
@@ -15,12 +17,36 @@ import { SyncPendingBadge, type TaskRowData } from './MobileTaskRow';
  *  AYNI kaynağı paylaşır (bkz. columns.tsx). */
 export const DESKTOP_GRID_TEMPLATE = TASK_BOARD_COLUMNS.map((c) => c.width ?? 'minmax(0,1fr)').join(' ');
 
-export function DesktopTaskRow({ index, style, tasks, usersById, onViewTask, selectedIds, onToggleSelect, pendingTaskIds }: RowComponentProps<TaskRowData>): ReactElement | null {
+export function DesktopTaskRow({ index, style, tasks, usersById, onViewTask, selectedIds, onToggleSelect, pendingTaskIds, currentUser, updateTaskStatus }: RowComponentProps<TaskRowData>): ReactElement | null {
   const task = tasks[index];
+  const [isQuickActionSubmitting, setIsQuickActionSubmitting] = useState(false);
   if (!task) return null;
   const assignee = usersById.get(task.assigneeId);
   const isCrisis = isTaskInCrisis(task, Date.now());
   const isSelected = selectedIds.has(task.id);
+  // Satır içi hızlı durum değişikliği (bkz. tasarım planı Öncelik 3) —
+  // Footer.tsx'in KULLANDIĞI AYNI getPrimaryAction, ama yalnızca kanıt
+  // TOPLAMAYAN ve onay GEREKTİRMEYEN aksiyonlarda (SÜRECİ BAŞLAT / DEVRİ
+  // KABUL ET VE BAŞLAT) satırdan tek tıkla tetiklenebilir hale getirilir —
+  // aksi halde Footer'ın kanıt formunu/"EMİN MİSİNİZ?" onayını atlamış
+  // olurduk. Diğer tüm aksiyonlarda satır eskisi gibi yalnızca dekoratif
+  // oku gösterir, kullanıcı Talimat Detayı'na girer.
+  const primaryAction = getPrimaryAction(task, currentUser);
+  const quickAction = primaryAction && !primaryAction.collectsEvidence && !primaryAction.needsConfirm ? primaryAction : null;
+
+  const handleQuickAction = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!quickAction || isQuickActionSubmitting) return;
+    setIsQuickActionSubmitting(true);
+    try {
+      // updateTaskStatus (useAppHandlers.ts) kendi try/catch'i içinde hem
+      // hata hem başarı toast'ını zaten veriyor — burada AYRICA bir toast
+      // tetiklenmez (bkz. BulkActionBar'daki AYNI ilke).
+      await updateTaskStatus(task.id, quickAction.next);
+    } finally {
+      setIsQuickActionSubmitting(false);
+    }
+  };
   // react-window'un ariaAttributes'ı (role="listitem" + aria-posinset/
   // aria-setsize) BİLİNÇLİ OLARAK hiç spread edilmez: role aşağıda "row"a
   // çevrilir ve posinset/setsize yalnızca listitem/treegrid satırları için
@@ -41,6 +67,17 @@ export function DesktopTaskRow({ index, style, tasks, usersById, onViewTask, sel
       style={{ ...style, gridTemplateColumns: DESKTOP_GRID_TEMPLATE }}
       className={cn(
         'grid items-center border-b border-l-2 border-transparent border-b-makam-border/30 cursor-pointer transition-colors duration-200 hover:bg-makam-glass group',
+        // Toplu seçim (P2-18) — eskiden yalnızca sol uçtaki küçük checkbox
+        // dolu görünürdü, satırın geri kalanı DEĞİŞMİYORDU; 10+ satır
+        // seçildiğinde hangilerinin seçili olduğunu görmek için her satırın
+        // checkbox'ına tek tek bakmak gerekiyordu (bkz. tasarım planı Öncelik
+        // 1 — Gmail/Linear/Notion'da seçim her zaman TÜM satırın zeminini
+        // değiştirir). Ring (box-shadow tabanlı) `bg-*`/`border-*` ile
+        // ÇAKIŞMAZ — kriz satırında da (aşağıda) ek bir onay katmanı olarak
+        // kalır; zemin tonu ise yalnızca kriz DEĞİLKEN eklenir (kriz kırmızısı
+        // önceliklidir, iki zemin tonu üst üste binmez).
+        isSelected && 'ring-1 ring-inset ring-executive-blue/20',
+        isSelected && !isCrisis && 'bg-executive-blue/[0.04]',
         // SLA ihlalli satırlar eskiden yalnızca %3 opaklıkta bir zemin tonuyla
         // ayrışıyordu — sayfa taranırken fark edilmesi zordu. Sol kenarlıktaki
         // kırmızı şerit, Harekat Merkezi'ndeki kriz kartlarıyla aynı deseni
@@ -135,15 +172,31 @@ export function DesktopTaskRow({ index, style, tasks, usersById, onViewTask, sel
         </div>
       </div>
 
-      {/* Arrow — yalnızca dekoratif: satırın kendisi zaten role="row" + onClick
-          ile tıklanabilir/klavye-erişilebilir, bu ok ayrı bir eylem taşımaz.
-          <button> olması axe-core'da "button-name" (critical) ihlaliydi —
-          erişilebilir adı yoktu (bkz. tasarım denetimi, F1'in canlı ortamda
-          bulunan yan etkisi). */}
+      {/* Ok/Hızlı Aksiyon — quickAction YOKSA (çoğu satır) tamamen dekoratif
+          kalır: satırın kendisi zaten role="row" + onClick ile tıklanabilir/
+          klavye-erişilebilir, bu ok ayrı bir eylem taşımaz. <button> olması
+          axe-core'da "button-name" (critical) ihlaliydi — erişilebilir adı
+          yoktu (bkz. tasarım denetimi, F1'in canlı ortamda bulunan yan
+          etkisi) — bu yüzden quickAction VARKEN de aria-label EKSİKSİZ verilir. */}
       <div role="cell" className="px-4 py-3 text-right">
-        <div aria-hidden="true" className="w-7 h-7 rounded-full bg-makam-glass border border-executive-blue/[0.05] flex items-center justify-center text-text-tertiary group-hover:bg-executive-gold group-hover:text-[color:var(--btn-primary-text)] group-hover:border-transparent transition-all duration-300 shadow-sm ml-auto">
-          <ArrowRight className="w-3 h-3 stroke-[2]" />
-        </div>
+        {quickAction ? (
+          <button
+            type="button"
+            onClick={(e) => { void handleQuickAction(e); }}
+            disabled={isQuickActionSubmitting}
+            aria-label={`${task.title}: ${quickAction.label}`}
+            title={quickAction.label}
+            className="w-7 h-7 rounded-full bg-makam-glass border border-executive-blue/[0.05] flex items-center justify-center text-text-tertiary hover:bg-executive-gold hover:text-[color:var(--btn-primary-text)] hover:border-transparent transition-all duration-300 shadow-sm ml-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue disabled:opacity-60 disabled:pointer-events-none"
+          >
+            {isQuickActionSubmitting
+              ? <Loader2 className="w-3 h-3 stroke-[2] animate-spin" aria-hidden="true" />
+              : <Play className="w-3 h-3 stroke-[2]" aria-hidden="true" />}
+          </button>
+        ) : (
+          <div aria-hidden="true" className="w-7 h-7 rounded-full bg-makam-glass border border-executive-blue/[0.05] flex items-center justify-center text-text-tertiary group-hover:bg-executive-gold group-hover:text-[color:var(--btn-primary-text)] group-hover:border-transparent transition-all duration-300 shadow-sm ml-auto">
+            <ArrowRight className="w-3 h-3 stroke-[2]" />
+          </div>
+        )}
       </div>
     </div>
   );
