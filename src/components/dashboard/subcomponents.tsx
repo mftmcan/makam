@@ -36,7 +36,17 @@ export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index 
     green:  { bg: 'bg-status-success/10',  text: 'text-status-success',           bar: 'bg-status-success' },
     orange: { bg: 'bg-executive-gold/10',  text: 'text-[color:var(--gold-text)]', bar: 'bg-executive-gold' },
     red:    { bg: 'bg-status-danger/10',   text: 'text-status-danger',            bar: 'bg-status-danger' },
-    gray:   { bg: 'bg-surface-glass',      text: 'text-text-muted',               bar: 'bg-text-tertiary/40' },
+    // NOT: bg-text-tertiary/40, bg-text-muted/60 VE bg-surface-border ÜÇÜ DE
+    // canlı ortamda (koyu mod) görünmez çıktı — "Bekleyen" kartının aksan
+    // şeridi diğer 5 kartın aksine gözle fark edilemiyordu (bkz. görsel
+    // doğrulama, npm run dev + gerçek veriyle). Kök neden: --color-surface-border
+    // (ve dolayısıyla onu saran diğer iki token) aslında --border-subtle'a
+    // (koyu modda rgba(255,255,255,0.04) — bkz. index.css) çözülüyor; bu değer
+    // İNCE BİR KENARLIK için tasarlanmış, 2px'lik DOLU bir şerit için neredeyse
+    // sıfır kontrast veriyor. text-tertiary'nin KENDİSİ (opaklık MODİFİYERİ
+    // OLMADAN) koyu modda gerçek/dolu bir orta gri (#8C8981) — dolu şerit
+    // için doğru token bu.
+    gray:   { bg: 'bg-surface-glass',      text: 'text-text-muted',               bar: 'bg-text-tertiary' },
   }[color];
 
   return (
