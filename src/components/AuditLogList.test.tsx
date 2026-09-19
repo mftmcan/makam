@@ -85,7 +85,11 @@ describe('AuditLogList — işlem tipi filtresi SUNUCU tarafında uygulanır (P2
 
   const selectType = async (label: string) => {
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText('İşlem Tipi Filtresi'), label);
+    // fetchFiltered çağrılmış olması, promise'in çözülüp component'in
+    // loading iskeletinden çıktığı anlamına gelmez (bkz. renderWith) — bu
+    // yüzden getByLabelText yerine tekrar deneyen findByLabelText kullanılır
+    // (CI'da ara sıra "Unable to find a label" ile patlıyordu).
+    await user.selectOptions(await screen.findByLabelText('İşlem Tipi Filtresi'), label);
   };
 
   it('"Tüm İşlemler" seçiliyken sorguya logType constraint\'i HİÇ geçilmez', async () => {
