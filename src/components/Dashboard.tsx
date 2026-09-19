@@ -1,18 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { CheckCircle2, Clock, AlertTriangle, AlertCircle, TrendingUp, Activity, Target, ArrowRight, ShieldCheck, ListChecks, Gauge, Users as UsersIcon, Info, BarChart3 } from 'lucide-react';
+import { CheckCircle2, Clock, AlertCircle, Activity, ShieldCheck, ListChecks, Gauge, Users as UsersIcon } from 'lucide-react';
 import { Task, User } from '../types';
 import { motion } from 'motion/react';
-import { Modal } from './ui/Modal';
-import { Badge } from './ui/Badge';
 import { EmptyState } from './ui/EmptyState';
-import { Tooltip as InfoTooltip } from './ui/Tooltip';
 import { PageHeader } from './ui/PageHeader';
 import { PageShell } from './ui/PageShell';
 import { SPRING_PANEL } from '../lib/motion';
 import { PANEL_CLASSNAME } from './ui/Panel';
-import { cn, formatTimeAgo, formatTime } from '../lib/utils';
-import { STATUS_LABELS, STATUS_BADGE_VARIANT, type AppTabId } from '../constants';
+import { cn } from '../lib/utils';
+import { type AppTabId } from '../constants';
 import { DashboardSkeleton } from './ui/Skeleton';
 import { useDataStore } from '../store/dataStore';
 import { useIsAdmin } from '../hooks/useIsAdmin';
@@ -23,7 +19,10 @@ import {
   computeExecutiveSignals, SIGNAL_MATCHERS,
   type QueueSignalKey, type StatCategory
 } from './dashboard/helpers';
-import { StatCard, InterventionRow, PerformanceRow, CustomTooltip } from './dashboard/subcomponents';
+import { StatCard, InterventionRow, PerformanceRow } from './dashboard/subcomponents';
+import { HealthIndexBanner } from './dashboard/HealthIndexBanner';
+import { PerformanceChart } from './dashboard/PerformanceChart';
+import { StatDetailModal } from './dashboard/StatDetailModal';
 
 interface DashboardProps {
   tasks: Task[];
@@ -133,12 +132,6 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
     [scopeTasks, completionRatePercent, slaCompliancePercent]
   );
 
-  const statModalTitle: Record<string, string> = {
-    total: 'Toplam Talimatlar', waiting: 'Bekleyen Talimatlar', inProgress: 'İcra Aşamasındakiler',
-    blocked: 'Engellenen Talimatlar', inReview: 'Onay Sürecindekiler',
-    crisis: 'SLA İhlali (Kriz)', completed: 'İcra Edilenler',
-  };
-
   if (isLoading) return <DashboardSkeleton />;
 
   return (
@@ -159,97 +152,13 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
       />
 
       {/* ── Stratejik Sağlık Endeksi Banner ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...SPRING_PANEL }}
-        className="relative overflow-hidden p-5 rounded-3xl bg-makam-glass backdrop-blur-xl border border-surface-border shadow-md flex flex-col md:flex-row items-center justify-between gap-6"
-      >
-        {/* Ambient backglow matching health score state */}
-        <div className={cn(
-          "absolute -inset-10 opacity-30 blur-3xl pointer-events-none transition-all duration-1000",
-          healthScore >= 80 ? "bg-status-success/[0.035]" :
-          healthScore >= 50 ? "bg-status-warning/[0.04]" :
-          "bg-status-danger/[0.04]"
-        )} />
-
-        <div className="relative z-10 flex items-center gap-4">
-          <div className={cn(
-            "w-12 h-12 rounded-2xl flex items-center justify-center border shadow-inner flex-shrink-0",
-            healthScore >= 80 ? "bg-status-success/10 text-status-success border-status-success/20" :
-            healthScore >= 50 ? "bg-status-warning/10 text-status-warning border-status-warning/20" :
-            "bg-status-danger/10 text-status-danger border-status-danger/20"
-          )}>
-            <Target className="w-6 h-6 stroke-[1.2]" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-body font-medium text-executive-blue tracking-tight font-display">Stratejik Sağlık Endeksi</h3>
-              {/* Veri tazeliği göstergesi — tick state'inden türetilir, ek okuma yok */}
-              <InfoTooltip content="Veriler canlı olarak izlenir; sayaçlar her dakika tazelenir." side="bottom">
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-status-success/25 bg-status-success/10 text-status-success text-micro font-semibold uppercase tracking-label tabular-nums">
-                  <span className="w-1.5 h-1.5 rounded-full bg-status-success animate-pulse" aria-hidden="true" />
-                  Canlı · {formatTime(tick)}
-                </span>
-              </InfoTooltip>
-            </div>
-            <p className="text-micro text-text-tertiary uppercase tracking-eyebrow mt-0.5">
-              {isPersonalView ? 'Kişisel Performans & İcra Düzeyi' : 'Organizasyonel Performans & İcra Düzeyi'}
-            </p>
-          </div>
-        </div>
-
-        <div className="relative z-10 flex items-center gap-8 justify-between w-full md:w-auto">
-          <div className="flex flex-col items-start md:items-end gap-1">
-            <span className="text-micro text-text-tertiary uppercase tracking-caps font-medium">Dizge Durumu</span>
-            <div className="flex items-center gap-2">
-              <span className={cn(
-                "w-2 h-2 rounded-full",
-                healthScore >= 80 ? "bg-status-success shadow-[0_0_8px_var(--color-status-success)]" :
-                healthScore >= 50 ? "bg-status-warning shadow-[0_0_8px_var(--color-status-warning)]" :
-                "bg-status-danger shadow-[0_0_8px_var(--color-status-danger)]"
-              )} />
-              <span className={cn(
-                "text-micro font-bold uppercase tracking-widest",
-                // NOT: Semantik status token'ları kullanılır — light modda AA-uyumlu
-                // koyu tonlar (#047857/#B45309/#DC2626), dark modda pastel tonlar.
-                // (Eski emerald/amber-700 + dark: çifti aynı değerlere denk geliyordu.)
-                healthScore >= 80 ? "text-status-success" :
-                healthScore >= 50 ? "text-status-warning" :
-                "text-status-danger"
-              )}>
-                {healthScore >= 80 ? "STABİL / GÜVENLİ" :
-                 healthScore >= 50 ? "GÖZETİM ALTINDA" :
-                 "ACİL PROTOKOL"}
-               </span>
-            </div>
-            {/* Sub-metrics transparency indicators */}
-            <div className="flex gap-2.5 text-micro text-text-tertiary font-bold uppercase mt-1">
-              <span>İcra: %{completionRatePercent}</span>
-              <span>SLA: %{slaCompliancePercent}</span>
-            </div>
-          </div>
-
-          <div className="h-10 w-[1px] bg-executive-blue/10 hidden md:block" />
-
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col items-center">
-              {/* 24px'ten 32px'e büyütüldü — StatCard rakamlarıyla (20-22px)
-                  arasında sayfadaki EN önemli tekil metrik olduğunu belirgin
-                  kılan bir punto farkı yoktu (bkz. kod denetimi). */}
-              <span className="text-[32px] font-display font-medium text-executive-blue tracking-tight tabular-nums leading-none">
-                {healthScore}%
-              </span>
-              <InfoTooltip content="Hesap yöntemi: İcra Oranı (%60 ağırlık) + SLA Uyumu (%40 ağırlık). Lağvedilen görevler hesaba katılmaz." side="bottom">
-                <span className="flex items-center gap-1 text-micro text-text-tertiary uppercase tracking-caps mt-1 cursor-help">
-                  SAĞLIK SKORU
-                  <Info className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
-                </span>
-              </InfoTooltip>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      <HealthIndexBanner
+        healthScore={healthScore}
+        completionRatePercent={completionRatePercent}
+        slaCompliancePercent={slaCompliancePercent}
+        isPersonalView={isPersonalView}
+        tick={tick}
+      />
 
       {/* ── Stat Cards Grid ─────────────────────────────────────────── */}
       {/* Mobile: 2 cols | Tablet: 3 cols | Desktop: 6 cols */}
@@ -265,92 +174,13 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
       {/* ── Chart ───────────────────────────────────────────────────── */}
       {/* Sayısal kartlardan hemen sonra, kuyruk/yük panellerinden önce — önce
           "genel eğilim", sonra "üzerinde durulması gereken ayrıntı" sırası. */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...SPRING_PANEL, delay: 0.32 }}
-        className={PANEL_CLASSNAME}
-      >
-        <div className="flex justify-between items-center mb-3">
-          <div>
-            <h3 className="text-body font-medium text-executive-blue tracking-tight font-display">Performans Analitiği</h3>
-            <p className="text-micro text-text-tertiary uppercase tracking-eyebrow mt-0.5">Son 7 Gün</p>
-          </div>
-          {isAdmin && (
-            <button
-              onClick={() => onNavigateTab?.('reports')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-executive-blue/[0.03] border border-executive-blue/[0.06] text-text-muted hover:bg-executive-blue hover:text-[color:var(--executive-blue-text)] transition-all duration-300 text-micro font-medium uppercase tracking-caps"
-            >
-              <TrendingUp className="w-3 h-3" />
-              Analiz
-            </button>
-          )}
-        </div>
-        {/* Chart: reduced height on mobile */}
-        <div className="h-[160px] sm:h-[200px] lg:h-[220px] w-full">
-          {!hasChartActivity ? (
-            <EmptyState
-              className="h-full justify-center border-none"
-              icon={<BarChart3 className="w-7 h-7" />}
-              message="Son 7 günde yeni talimat veya icra kaydı yok"
-            />
-          ) : (
-          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-            <BarChart data={last7DaysData} barGap={4} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-              <defs>
-                <linearGradient id="chartCreated" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--chart-created)" stopOpacity="0.8" />
-                  <stop offset="100%" stopColor="var(--chart-created)" stopOpacity="0.35" />
-                </linearGradient>
-                <linearGradient id="chartCompleted" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--chart-completed)" stopOpacity="0.8" />
-                  <stop offset="100%" stopColor="var(--chart-completed)" stopOpacity="0.35" />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="var(--color-surface-border)" strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="name"
-                stroke="transparent"
-                fontSize={9}
-                tickLine={false}
-                axisLine={false}
-                tick={{ dy: 8, fill: 'var(--text-light)', fontWeight: 400 }}
-              />
-              {/* Değerler eskiden yalnızca hover tooltip'iyle okunabiliyordu
-                  (dokunmatik cihazda pratikte hiç) — küçük, tam sayı adımlı bir
-                  eksen eklendi (bkz. tasarım denetimi F27). */}
-              <YAxis
-                allowDecimals={false}
-                fontSize={8}
-                tickLine={false}
-                axisLine={false}
-                width={28}
-                tick={{ fill: 'var(--text-light)' }}
-              />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(22, 21, 19, 0.01)' }} />
-              <Bar dataKey="Yeni Talimat" fill="url(#chartCreated)" radius={[4,4,0,0]} />
-              <Bar dataKey="İcra Edilen" fill="url(#chartCompleted)" radius={[4,4,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* Legend */}
-        <div className="flex flex-wrap items-center gap-3 mt-2 pt-2 border-t border-executive-blue/[0.04]">
-          {[
-            { color: 'var(--chart-created)', label: 'Yeni Talimat' },
-            { color: 'var(--chart-completed)', label: 'İcra Edilen' },
-          ].map(({ color, label }) => (
-            <div key={label} className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
-              <span className="text-micro text-text-tertiary uppercase tracking-caps">{label}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Ekran okuyucular için grafiğin metinsel özeti — recharts SVG'si erişilebilir değildir */}
-        <p className="sr-only">{chartSummary}</p>
-      </motion.div>
+      <PerformanceChart
+        isAdmin={isAdmin}
+        onNavigateTab={() => onNavigateTab?.('reports')}
+        hasChartActivity={hasChartActivity}
+        last7DaysData={last7DaysData}
+        chartSummary={chartSummary}
+      />
 
       {/* ── Executive Decision Surface ───────────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-[1.45fr_0.95fr] gap-3">
@@ -450,67 +280,12 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
       </div>
 
       {/* ── Stat Detail Modal ────────────────────────────────────────── */}
-      <Modal
-        isOpen={!!selectedStatCategory}
+      <StatDetailModal
+        category={selectedStatCategory}
+        tasks={filteredStatTasks}
         onClose={() => setSelectedStatCategory(null)}
-        title={selectedStatCategory ? statModalTitle[selectedStatCategory] ?? '' : ''}
-        size="lg"
-      >
-        <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-          {filteredStatTasks.length > 0 ? (
-            filteredStatTasks.map(task => (
-              <div
-                key={task.id}
-                role="button"
-                tabIndex={0}
-                aria-label={task.title}
-                className="flex items-center gap-3 p-3 bg-surface-elevated border border-surface-border rounded-xl group cursor-pointer hover:bg-makam-glass hover:border-executive-blue/10 transition-all duration-300 shadow-sm"
-                onClick={() => { setSelectedStatCategory(null); onViewTask?.(task); }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelectedStatCategory(null);
-                    onViewTask?.(task);
-                  }
-                }}
-              >
-                <div className={cn(
-                  'w-8 h-8 rounded-xl flex items-center justify-center border flex-shrink-0',
-                  task.status === 'COMPLETED' ? 'bg-status-success/10 text-status-success border-status-success/20' :
-                  task.status === 'BLOCKED'   ? 'bg-status-danger/10 text-status-danger border-status-danger/20' :
-                  task.status === 'IN_PROGRESS'? 'bg-executive-blue/5 text-executive-blue border-executive-blue/10' :
-                  'bg-surface-border/20 text-text-muted border-surface-border'
-                )}>
-                  {task.status === 'COMPLETED' ? <CheckCircle2 className="w-4 h-4 stroke-[1.3]" /> :
-                   task.status === 'BLOCKED'   ? <AlertTriangle className="w-4 h-4 stroke-[1.3]" /> :
-                   <Activity className="w-4 h-4 stroke-[1.3]" />}
-                </div>
-                <div className="flex flex-col flex-1 gap-1.5 min-w-0 items-start">
-                  <span className="text-body font-medium text-executive-blue tracking-tight line-clamp-1 font-display">{task.title}</span>
-                  <Badge variant={STATUS_BADGE_VARIANT[task.status] ?? 'default'}>
-                    {STATUS_LABELS[task.status] || task.status}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="text-micro text-text-tertiary uppercase tracking-caps hidden sm:block">
-                    {formatTimeAgo(task.updatedAt, task.status)}
-                  </span>
-                  <div className="w-7 h-7 rounded-full bg-surface-border/20 flex items-center justify-center group-hover:bg-executive-blue group-hover:text-[color:var(--executive-blue-text)] transition-all duration-300 opacity-0 group-hover:opacity-100">
-                    <ArrowRight className="w-3 h-3" />
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <EmptyState
-              dimIcon={false}
-              className="border-none opacity-40"
-              icon={<CheckCircle2 className="w-10 h-10 text-text-muted/50 stroke-[1]" />}
-              message="Veri Bulunamadı"
-            />
-          )}
-        </div>
-      </Modal>
+        onViewTask={onViewTask}
+      />
 
     </PageShell>
   );

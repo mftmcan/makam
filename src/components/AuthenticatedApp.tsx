@@ -21,7 +21,7 @@
  * ağırlığını erteler.
  */
 import { useState, useEffect, useCallback, useRef, lazy, Suspense, useMemo } from 'react';
-import type { ReactNode, RefObject } from 'react';
+import type { RefObject } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Task } from '../types';
 import { useUIStore } from '../store/uiStore';
@@ -40,23 +40,17 @@ import { WelcomeModal } from './WelcomeModal';
 import { MobileDock } from './MobileDock';
 import { Modal } from './ui/Modal';
 import { ConfirmDialog } from './ui/ConfirmDialog';
-import { Button } from './ui/Button';
 import { TaskFormModal } from './TaskFormModal';
-import { CertificateModal } from './CertificateModal';
-import { WarningModal } from './WarningModal';
 import { ErrorBoundary } from './ErrorBoundary';
 import { getPrimaryAction, type TaskDetailsTabId } from './taskDetails/helpers';
+import { buildAppScreens } from './authenticatedApp/screens';
+import { SessionTimeoutModal } from './authenticatedApp/SessionTimeoutModal';
+import { TaskDocumentModals } from './authenticatedApp/TaskDocumentModals';
 
-// Lazy loaded routes (tabs)
-const Dashboard = lazy(() => import('./Dashboard').then(m => ({ default: m.Dashboard })));
-const TaskBoard = lazy(() => import('./TaskBoard').then(m => ({ default: m.TaskBoard })));
-const BlockerList = lazy(() => import('./BlockerList').then(m => ({ default: m.BlockerList })));
-const TeamList = lazy(() => import('./TeamList').then(m => ({ default: m.TeamList })));
-const AuditLogList = lazy(() => import('./AuditLogList').then(m => ({ default: m.AuditLogList })));
-const Reports = lazy(() => import('./Reports').then(m => ({ default: m.Reports })));
-const Settings = lazy(() => import('./Settings').then(m => ({ default: m.Settings })));
 // TaskDetails, uygulamanın en büyük bileşenidir (~1000 satır) ve yalnızca bir
-// görev detayına tıklandığında Modal içinde render edilir.
+// görev detayına tıklandığında Modal içinde render edilir. Dashboard/TaskBoard/
+// BlockerList/TeamList/AuditLogList/Reports/Settings'in lazy() tanımları
+// authenticatedApp/screens.tsx'e taşındı (bkz. kod denetimi — dosya bölme).
 const TaskDetails = lazy(() => import('./TaskDetails').then(m => ({ default: m.TaskDetails })));
 const TaskDetailsFooter = lazy(() => import('./taskDetails/Footer').then(m => ({ default: m.TaskDetailsFooter })));
 
@@ -70,8 +64,9 @@ import { useSLASync } from '../hooks/useSLASync';
 import { useIdleTimer } from '../hooks/useIdleTimer';
 import { useSessionTimeout } from '../hooks/useSessionTimeout';
 import { useSelfHealing } from '../hooks/useSelfHealing';
+import { useStaleTaskEscalation } from '../hooks/useStaleTaskEscalation';
 import { useIsAdmin } from '../hooks/useIsAdmin';
-import { type AppTabId, TAB_TITLES } from '../constants';
+import { TAB_TITLES } from '../constants';
 
 interface AuthenticatedAppProps {
   user: User;
@@ -313,8 +308,11 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
     addToast({ title, body, type, taskId });
   }, [addToast]);
 
-  // ─── Self-Healing + Idle Timer ────────────────────────────────────────────
+  // ─── Self-Healing + Atıl Görev Eskalasyonu + Idle Timer ────────────────────
   useSelfHealing({ user, tasks, blockers });
+  // Spark planı kalıcı telafisi (bkz. hooks/useStaleTaskEscalation.ts) —
+  // functions/scheduledAudit.ts hiç deploy edilmedi/edilmeyecek.
+  useStaleTaskEscalation({ user, tasks, onError });
   // Oturum süresi Admin tarafından yapılandırılabilir (system/settings) —
   // hook, ayar okunamazsa/geçersizse güvenli varsayılana (30 dk) düşer.
   const sessionTimeoutMs = useSessionTimeout(user, onError);
@@ -331,86 +329,30 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
   } = useAppHandlers({ user, tasks, blockers, onError });
 
   // ─── Route ekranları ──────────────────────────────────────────────────────
-  // `Record<AppTabId, ReactNode>`: TypeScript her sekme için bir ekran
-  // zorunlu kılar, yani yeni bir AppTabId eklendiğinde route'u UNUTULAMAZ
-  // (derleme hatası). Elemanlar burada oluşturuluyor olsa da bileşenler hâlâ
-  // lazy() facade'leridir — yalnızca eşleşen route render edildiğinde chunk
+  // buildAppScreens (bkz. authenticatedApp/screens.tsx) `Record<AppTabId,
+  // ReactNode>` döner: TypeScript her sekme için bir ekran zorunlu kılar,
+  // yani yeni bir AppTabId eklendiğinde route'u UNUTULAMAZ (derleme hatası).
+  // Elemanlar burada oluşturuluyor olsa da bileşenler hâlâ lazy()
+  // facade'leridir — yalnızca eşleşen route render edildiğinde chunk
   // indirilir; React element'i oluşturmak modülü YÜKLEMEZ (bkz. vite.config.ts
   // chunkFileNames notu — Dashboard/Reports'un lazy sınırı korunmalı).
-  const screens: Record<AppTabId, ReactNode> = {
-    dashboard: (
-      <Dashboard
-        tasks={filteredTasksByFocus} users={filteredUsersByFocus} user={user}
-        onViewTask={(t) => openTask(t.id)}
-        onNavigateTab={goToTab}
-        isLoading={isDataLoading}
-        isFiltered={globalFocusDept !== 'ALL'}
-      />
-    ),
-    tasks: (
-      <TaskBoard
-        tasks={filteredTasksByFocus} users={filteredUsersByFocus} currentUser={user}
-        onAddTask={() => { setParentTaskId(undefined); setIsCreateModalOpen(true); }}
-        onViewTask={(t) => openTask(t.id)}
-        isLoading={isDataLoading}
-        updateTaskStatus={updateTaskStatus}
-        updateTask={updateTask}
-        filters={taskBoardFilters}
-        onFiltersChange={setTaskBoardFilters}
-        pendingTaskIds={pendingTaskIds}
-      />
-    ),
-    blockers: (
-      <BlockerList
-        tasks={filteredTasksByFocus} blockers={filteredBlockersByFocus} resolvedBlockers={filteredResolvedBlockersByFocus} users={filteredUsersByFocus}
-        isAdmin={isAdmin || user.role === 'Manager'}
-        isSystemAdmin={isAdmin}
-        onResolve={resolveBlocker}
-        onEditBlocker={updateBlocker}
-        onDeleteBlocker={deleteBlocker}
-        onViewTask={(t) => openTask(t.id)}
-        isLoading={isDataLoading}
-      />
-    ),
-    team: (
-      <TeamList
-        users={filteredUsersByFocus} tasks={filteredTasksByFocus} currentUser={user}
-        departments={registeredDepartments}
-        onUpdateUser={updateUserRole}
-        onDeleteUser={deleteUser}
-        onAddUser={addUser}
-        onCreateDepartment={handleCreateDepartment}
-        onRenameDepartment={handleRenameDepartment}
-        onDeleteDepartment={handleDeleteDepartment}
-        isLoading={isDataLoading}
-      />
-    ),
-    reports: (
-      <Reports
-        tasks={filteredTasksByFocus} users={filteredUsersByFocus} blockers={filteredBlockersByFocus}
-        onNavigateTab={goToTab}
-        isLoading={isDataLoading}
-      />
-    ),
-    audit: (
-      // Denetim izi BİLEREK birim odak filtresini (globalFocusDept) yoksayar —
-      // bu sekme yalnızca Admin'e açık (TAB_ROLES.audit) ve denetim kaydı
-      // tanım gereği organizasyon geneli olmalı; filtrelenmiş tasks/users
-      // geçirmek, odağın dışındaki bir birimin geçmişini "Bilinmeyen Talimat"
-      // olarak göstererek kanıt izini eksik/yanıltıcı kılıyordu (bkz. kod
-      // denetimi P1-14).
-      <AuditLogList
-        tasks={tasks} users={users}
-      />
-    ),
-    settings: (
-      <Settings
-        tasks={tasks} users={users} blockers={blockers} triggerToast={triggerToast} currentUser={user}
-        isLoading={isDataLoading} sessionTimeoutMs={sessionTimeoutMs}
-        activeSubTab={settingsTab} onActiveSubTabChange={setSettingsTab}
-      />
-    ),
-  };
+  const screens = buildAppScreens({
+    user, isAdmin, isDataLoading,
+    filteredTasksByFocus, filteredUsersByFocus, filteredBlockersByFocus, filteredResolvedBlockersByFocus, globalFocusDept,
+    tasks, users, blockers,
+    onViewTask: (taskId) => openTask(taskId),
+    onNavigateTab: goToTab,
+    onAddTask: () => { setParentTaskId(undefined); setIsCreateModalOpen(true); },
+    updateTaskStatus, updateTask,
+    taskBoardFilters, onTaskBoardFiltersChange: setTaskBoardFilters, pendingTaskIds,
+    resolveBlocker, updateBlocker, deleteBlocker,
+    registeredDepartments, updateUserRole, deleteUser, addUser,
+    onCreateDepartment: handleCreateDepartment,
+    onRenameDepartment: handleRenameDepartment,
+    onDeleteDepartment: handleDeleteDepartment,
+    triggerToast, sessionTimeoutMs,
+    settingsTab, onSettingsTabChange: setSettingsTab,
+  });
 
   return (
     <>
@@ -466,32 +408,12 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
         </AnimatePresence>
       </main>
 
-      {/* Oturum Zaman Aşımı Uyarısı — kapanmadan ~60sn önce.
-          onClose olarak continueSession verilir: Escape/arka plan tıklaması da
-          AÇIK bir kullanıcı eylemidir, oturumu uzatmalıdır. Aksi halde modal
-          kapanır ama sayaç işlemeye devam eder ve kullanıcı hiçbir uyarı
-          görmeden saniyeler içinde dışarı atılırdı. */}
-      <Modal
+      <SessionTimeoutModal
         isOpen={isSessionExpiring}
-        onClose={continueSession}
-        title="Oturum Sonlanmak Üzere"
-        size="sm"
-      >
-        <div className="flex flex-col gap-4">
-          <p className="text-body text-text-muted font-light leading-relaxed">
-            Uzun süredir işlem yapılmadığı için oturumunuz{' '}
-            <strong className="text-status-danger font-medium" aria-live="polite">
-              {Math.ceil(sessionRemainingMs / 1000)} saniye
-            </strong>{' '}
-            içinde güvenlik gereği kapatılacaktır. Çalışmaya devam etmek için aşağıdaki
-            butonu kullanın.
-          </p>
-          <div className="flex justify-end gap-2.5 pt-4 border-t border-executive-blue/[0.04]">
-            <Button variant="secondary" onClick={() => { void onLogout(); }}>Şimdi Çıkış Yap</Button>
-            <Button variant="primary" onClick={continueSession}>Devam Et</Button>
-          </div>
-        </div>
-      </Modal>
+        remainingMs={sessionRemainingMs}
+        onContinue={continueSession}
+        onLogout={onLogout}
+      />
 
       {/* Görev Form Modalı (Yeni / Düzenle) */}
       <Modal
@@ -578,21 +500,13 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
       </Suspense>
 
       {/* Belgeler - Detay Modalının Dışında */}
-      {activeCertificateTask && (
-        <CertificateModal
-          task={activeCertificateTask}
-          assignee={users.find(u => u.uid === activeCertificateTask.assigneeId || u.email === activeCertificateTask.assigneeId)}
-          onClose={() => setActiveCertificateTask(null)}
-        />
-      )}
-
-      {activeWarningTask && (
-        <WarningModal
-          task={activeWarningTask}
-          assignee={users.find(u => u.uid === activeWarningTask.assigneeId || u.email === activeWarningTask.assigneeId)}
-          onClose={() => setActiveWarningTask(null)}
-        />
-      )}
+      <TaskDocumentModals
+        users={users}
+        certificateTask={activeCertificateTask}
+        onCloseCertificate={() => setActiveCertificateTask(null)}
+        warningTask={activeWarningTask}
+        onCloseWarning={() => setActiveWarningTask(null)}
+      />
 
       <MobileDock user={user} onLogout={onLogout} notificationCount={notifications.length} />
     </>

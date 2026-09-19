@@ -2,11 +2,14 @@ import type { TaskStatus } from '../types';
 
 /**
  * Görev durum makinesi — firestore.rules'taki isValidTransition fonksiyonuyla
- * BİREBİR AYNI kurallar (Admin override hariç: rules'ta Admin her geçişi
- * bypass edebilir, ama uygulamadaki hiçbir gerçek akış buna ihtiyaç duymuyor —
- * bkz. taskDetails/helpers.ts getPrimaryAction). Bu, client tarafında ikinci
- * bir savunma hattıdır; ikisini değiştirirken diğerini de güncelleyin
- * (bkz. CLAUDE.md "Görev durum makinesi").
+ * BİREBİR AYNI kurallar. Admin override (rules'ta Admin her geçişi bypass
+ * edebilir) burada KASITLI olarak modellenmez: normal kullanıcı akışlarının
+ * (bkz. taskDetails/helpers.ts getPrimaryAction) hiçbiri buna ihtiyaç duymaz.
+ * TEK istisna aşağıdaki `isValidStaleEscalationTransition` — o, bilinçli
+ * olarak AYRI, dar bir fonksiyondur ve yalnızca useStaleTaskEscalation
+ * tarafından çağrılır; `isValidTaskTransition`'ı GEVŞETMEZ. Bu, client
+ * tarafında ikinci bir savunma hattıdır; ikisini değiştirirken diğerini de
+ * güncelleyin (bkz. CLAUDE.md "Görev durum makinesi").
  *
  * COMPLETED ve CANCELLED terminal durumlardır: her ikisinin de listesi
  * kasıtlı olarak boş — CANCELLED, aşağıdaki her aktif durumun kendi
@@ -33,4 +36,29 @@ export const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
 export function isValidTaskTransition(from: TaskStatus, to: TaskStatus): boolean {
   if (from === to) return true;
   return VALID_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
+/**
+ * Atıl görev eskalasyonu (bkz. hooks/useStaleTaskEscalation.ts) için DAR,
+ * kasıtlı bir istisna — firestore.rules'taki `isValidTransition(...) ||
+ * isAdmin()` override'ının client karşılığı. `VALID_TRANSITIONS` tablosunda
+ * BLOCKED/AWAITING_APPROVAL/PENDING_DELEGATION → CRISIS yoktur (yalnızca
+ * IN_PROGRESS → CRISIS izinlidir) çünkü bu üç durum SLA sayacını zaten
+ * durdurmuştur; ama 24 saattir hiç güncellenmeyen bir görev, hangi durumda
+ * olursa olsun, dikkat gerektirir. Cloud Functions'ın karşılığı
+ * (`functions/scheduledAudit.ts`) bunu Admin SDK ile rules'ı bypass ederek
+ * yapıyordu, ama Spark planında hiç deploy edilmedi ve MAKAM Spark'ta kalıcı
+ * kalacağından (bkz. CLAUDE.md) asla deploy edilmeyecek — bu fonksiyon AYNI
+ * istisnayı, gerçek bir Admin oturumu altında ve rules'ın zaten izin verdiği
+ * `isAdmin()` yolundan uygular.
+ *
+ * `isValidTaskTransition`'dan tamamen AYRI tutulur (aynı tabloya eklenmez):
+ * bu istisna yalnızca useStaleTaskEscalation'ın çağırdığı
+ * `taskService.escalateStaleTask` içinde kullanılır — `isValidTaskTransition`
+ * her yerde (getPrimaryAction, updateTask, vb.) kullanıldığından oraya
+ * eklemek bu istisnayı normal kullanıcı akışlarına da sessizce açardı.
+ */
+export function isValidStaleEscalationTransition(from: TaskStatus, to: TaskStatus): boolean {
+  if (to !== 'CRISIS') return false;
+  return from === 'IN_PROGRESS' || from === 'BLOCKED' || from === 'AWAITING_APPROVAL' || from === 'PENDING_DELEGATION';
 }

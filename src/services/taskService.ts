@@ -9,6 +9,8 @@ import {
   runTransaction,
   writeBatch,
   getDoc,
+  setDoc,
+  getCountFromServer,
   increment,
   db
 } from '../firebase';
@@ -18,7 +20,7 @@ import type { AuditLogType } from '../types';
 import { calculateDeadline, getSLAConfigForPriority } from '../lib/sla';
 import { cleanData } from '../lib/utils';
 import { runWithRetry } from '../lib/retry';
-import { isValidTaskTransition } from '../lib/taskStateMachine';
+import { isValidTaskTransition, isValidStaleEscalationTransition } from '../lib/taskStateMachine';
 
 /**
  * Bir audit_logs kaydına, YAZILDIĞI andaki görev başlığını donduran
@@ -104,6 +106,10 @@ async function transitionTaskInTransaction(
      *  edildiğinde `pausedAt` 17:00 olarak işaretlenir ve gerçek 3 saatlik
      *  duraklama SLA hesabına hiç yansımaz (deadline haksız yere daralır). */
     timestampOverride?: number;
+    /** Yalnızca useStaleTaskEscalation (atıl görev süpürmesi) tarafından
+     *  `true` geçilir — bkz. isValidStaleEscalationTransition. Normal
+     *  kullanıcı akışları bunu ASLA geçmemeli. */
+    isSystemEscalation?: boolean;
   }
 ): Promise<Task> {
   const taskRef = doc(db, 'tasks', taskId);
@@ -126,7 +132,17 @@ async function transitionTaskInTransaction(
   // aynı kurallar (bkz. lib/taskStateMachine.ts). Rules zaten bunu ayrıca
   // uyguluyor; bu kontrol yalnızca hatayı sunucuya gitmeden, daha erken ve
   // daha anlaşılır bir mesajla yakalar.
-  if (!isValidTaskTransition(task.status, newStatus)) {
+  //
+  // isSystemEscalation=true iken DAR bir istisna devreye girer: firestore.rules'taki
+  // `isValidTransition(...) || isAdmin()` override'ının client karşılığı
+  // (bkz. isValidStaleEscalationTransition). Yalnızca useStaleTaskEscalation
+  // çağırır ve yalnızca bir Admin oturumu altında sunucuya ulaşabilir —
+  // rules aynı override'ı zaten uyguladığından bu istisna sunucuyla PARİTE
+  // içindedir, onu GEVŞETMEZ.
+  const transitionIsValid = options?.isSystemEscalation
+    ? isValidStaleEscalationTransition(task.status, newStatus)
+    : isValidTaskTransition(task.status, newStatus);
+  if (!transitionIsValid) {
     throw new Error(`INVALID_TRANSITION: '${task.status}' durumundan '${newStatus}' durumuna geçiş izinli değil.`);
   }
 
@@ -396,6 +412,7 @@ export const taskService = {
       evidenceType?: Task['evidenceType'];
       assigneeId?: string;
       expectedVersion?: number;
+      isSystemEscalation?: boolean;
     }
   ) {
     return runWithRetry(async () => {
@@ -579,6 +596,21 @@ export const taskService = {
     return this.transitionTask(taskId, newStatus, userId, { evidence, evidenceType, expectedVersion });
   },
 
+  /**
+   * Atıl görev eskalasyonu (bkz. hooks/useStaleTaskEscalation.ts) tarafından
+   * çağrılır — 24 saattir güncellenmeyen bir görevi CRISIS'e yükseltir.
+   * `isSystemEscalation: true`, ASSIGNED/BLOCKED/AWAITING_APPROVAL/
+   * PENDING_DELEGATION dahil her aktif durumdan CRISIS'e geçişe izin veren
+   * dar istisnayı devreye sokar (bkz. isValidStaleEscalationTransition).
+   * Sunucu tarafında bu yalnızca `isAdmin()` override'ıyla (firestore.rules
+   * canUpdateTask) kabul edilir — çağıran (useStaleTaskEscalation) bu yüzden
+   * yalnızca Admin oturumu altında çalışır; başka bir rolle çağrılırsa
+   * transaction Firestore tarafından reddedilir.
+   */
+  async escalateStaleTask(taskId: string, userId: string, expectedVersion?: number) {
+    return this.transitionTask(taskId, 'CRISIS', userId, { expectedVersion, isSystemEscalation: true });
+  },
+
   // İzin/mazeret devri: görev başka bir Müdür'e devredilir ve PENDING_DELEGATION'a
   // alınır (SLA sayacı BLOCKED/AWAITING_APPROVAL ile aynı şekilde duraklar).
   // Yeni sorumlunun Müdür olması firestore.rules'ta da (isValidTaskBusinessRules)
@@ -652,5 +684,60 @@ export const taskService = {
     }
 
     return result;
+  },
+
+  /**
+   * Ayarlar > "Sayaç Mutabakatı" butonunun arkasındaki elle mutabakat.
+   *
+   * SPARK PLANI KALICI TELAFİSİ: bunu yapması gereken
+   * `functions/statsReconciliation.ts` (günlük 03:30, Admin SDK ile)
+   * Blaze gerektirdiğinden hiç deploy edilmedi ve MAKAM Spark planında
+   * kalıcı kalacağından (bkz. CLAUDE.md) asla deploy edilmeyecek.
+   * `system/stats`'teki `totalTasks`/`status_X` sayaçları client tarafından
+   * increment()/decrement() ile bağımsız güncellendiğinden (bkz.
+   * transitionTaskInTransaction, updateTaskInTransaction, deleteTask)
+   * eşzamanlı yarışlar/yeniden denenen offline mutasyonlar yüzünden zamanla
+   * gerçek `tasks` koleksiyonundan sapabilir — `dashboard/helpers.ts`'teki
+   * `computeStats` bu sapmayı yalnızca ANLIK/lokal olarak düzeltir, kalıcı
+   * değildir. Bu fonksiyon, Cloud Function'ın YAPACAĞI hesaplamanın
+   * BİREBİR AYNISINI (count() agregasyonu — doküman sayısından bağımsız
+   * ucuz maliyetli, Spark'a uygun) client SDK ile yapar ve sapma varsa
+   * `system/stats`'i tamamen üzerine yazar (increment değil, set+merge).
+   *
+   * `firestore.rules`'ta `system/stats` yazımı Admin'e her zaman açıktır
+   * (`allow write: if isAdmin() || ...`) — bu yüzden bu fonksiyon yalnızca
+   * Admin oturumu altında çağrılmalıdır (DataTab zaten Admin-only render
+   * koşuluyla korunuyor).
+   *
+   * @returns sapma tespit edilip edilmediği ve yeniden hesaplanan değerler —
+   *          DataTab kullanıcıya somut bir sonuç gösterebilsin diye.
+   */
+  async reconcileStats(): Promise<{ driftDetected: boolean; reconciled: Record<string, number> }> {
+    const TASK_STATUSES: TaskStatus[] = [
+      'ASSIGNED', 'PENDING_DELEGATION', 'IN_PROGRESS', 'BLOCKED',
+      'AWAITING_APPROVAL', 'COMPLETED', 'CANCELLED', 'CRISIS',
+    ];
+
+    const totalSnap = await getCountFromServer(collection(db, 'tasks'));
+    const statusSnaps = await Promise.all(
+      TASK_STATUSES.map(status =>
+        getCountFromServer(query(collection(db, 'tasks'), where('status', '==', status)))
+      )
+    );
+
+    const reconciled: Record<string, number> = { totalTasks: totalSnap.data().count };
+    TASK_STATUSES.forEach((status, i) => {
+      reconciled[`status_${status}`] = statusSnaps[i]!.data().count;
+    });
+
+    const currentSnap = await getDoc(doc(db, 'system', 'stats'));
+    const current = (currentSnap.exists() ? currentSnap.data() : {}) as Record<string, unknown>;
+    const driftDetected = Object.entries(reconciled).some(([key, value]) => (current[key] ?? 0) !== value);
+
+    if (driftDetected) {
+      await setDoc(doc(db, 'system', 'stats'), reconciled, { merge: true });
+    }
+
+    return { driftDetected, reconciled };
   }
 };

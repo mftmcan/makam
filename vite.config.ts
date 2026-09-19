@@ -207,16 +207,25 @@ export default defineConfig(({ mode }) => {
         include: ['src/lib/**', 'src/services/**', 'src/hooks/**', 'src/components/**'],
         exclude: ['src/test/**', 'src/components/ui/**', 'node_modules/**'],
         // CLAUDE.md'de belgelenen kapsam hedefi src/lib + src/services'tir —
-        // src/hooks/src/components henüz sistematik olarak birim testli değil
-        // (çoğunlukla e2e/manuel test kapsıyor), bu yüzden tüm `include`
-        // üzerinden TEK bir global eşik anlamsız olurdu (~%45 gibi düşük ve
-        // yanıltıcı bir sayıya kilitlenirdi). Bunun yerine yalnızca zaten iyi
-        // test edilen iki klasöre, MEVCUT ölçümün (lib ~%79, services ~%76)
-        // biraz altında bir taban konur — eşiksiz olduğundan (bkz. kod
-        // denetimi) kapsam zamanla sessizce erozyona uğrayabiliyordu.
+        // src/components henüz sistematik olarak birim testli değil (çoğunlukla
+        // e2e/manuel test kapsıyor), bu yüzden tüm `include` üzerinden TEK bir
+        // global eşik anlamsız olurdu (~%45 gibi düşük ve yanıltıcı bir sayıya
+        // kilitlenirdi). Bunun yerine yalnızca zaten iyi test edilen klasörlere,
+        // MEVCUT ölçümün (lib ~%79, services ~%76, hooks ~%69) biraz altında bir
+        // taban konur — eşiksiz olduğundan (bkz. kod denetimi) kapsam zamanla
+        // sessizce erozyona uğrayabiliyordu.
+        //
+        // src/hooks/** eşiği sonradan eklendi (bkz. kod denetimi P1-4): iş
+        // mantığı taşıyan hook'ların (useOfflineQueue, useSelfHealing,
+        // useTaskBoardFilters, useStaleTaskEscalation) hiçbiri test edilmiyordu.
+        // Hâlâ zayıf kapsamlı hook'lar var (useDepartments, useNotifications,
+        // usePWAInstall, useSLASync, useSessionTimeout, useTabSearchParam) —
+        // eşik bu yüzden lib/services'ten daha düşük tutuldu; onları da
+        // test ederken eşiği yukarı çekmeyi unutmayın.
         thresholds: {
           'src/lib/**': { statements: 70, branches: 55, functions: 70, lines: 70 },
           'src/services/**': { statements: 65, branches: 50, functions: 65, lines: 65 },
+          'src/hooks/**': { statements: 60, branches: 50, functions: 60, lines: 60 },
         },
       },
     },

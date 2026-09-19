@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isValidTaskTransition } from './taskStateMachine';
+import { isValidTaskTransition, isValidStaleEscalationTransition } from './taskStateMachine';
 
 describe('isValidTaskTransition', () => {
   it('aynı duruma geçiş her zaman izinlidir (no-op)', () => {
@@ -56,5 +56,35 @@ describe('isValidTaskTransition', () => {
     expect(isValidTaskTransition('CANCELLED', 'COMPLETED')).toBe(false);
     expect(isValidTaskTransition('COMPLETED', 'IN_PROGRESS')).toBe(false);
     expect(isValidTaskTransition('CANCELLED', 'IN_PROGRESS')).toBe(false);
+  });
+});
+
+describe('isValidStaleEscalationTransition (useStaleTaskEscalation — dar sistem istisnası)', () => {
+  it('IN_PROGRESS/BLOCKED/AWAITING_APPROVAL/PENDING_DELEGATION -> CRISIS izinlidir', () => {
+    expect(isValidStaleEscalationTransition('IN_PROGRESS', 'CRISIS')).toBe(true);
+    expect(isValidStaleEscalationTransition('BLOCKED', 'CRISIS')).toBe(true);
+    expect(isValidStaleEscalationTransition('AWAITING_APPROVAL', 'CRISIS')).toBe(true);
+    expect(isValidStaleEscalationTransition('PENDING_DELEGATION', 'CRISIS')).toBe(true);
+  });
+
+  it('normal isValidTaskTransition BUNLARIN hiçbirine izin vermez (istisna ile normal tablo AYRIDIR)', () => {
+    expect(isValidTaskTransition('BLOCKED', 'CRISIS')).toBe(false);
+    expect(isValidTaskTransition('AWAITING_APPROVAL', 'CRISIS')).toBe(false);
+    expect(isValidTaskTransition('PENDING_DELEGATION', 'CRISIS')).toBe(false);
+  });
+
+  it('ASSIGNED -> CRISIS reddedilir (hiçbir tabloda yok)', () => {
+    expect(isValidStaleEscalationTransition('ASSIGNED', 'CRISIS')).toBe(false);
+  });
+
+  it('terminal/CRISIS durumlarından -> CRISIS reddedilir', () => {
+    expect(isValidStaleEscalationTransition('COMPLETED', 'CRISIS')).toBe(false);
+    expect(isValidStaleEscalationTransition('CANCELLED', 'CRISIS')).toBe(false);
+    expect(isValidStaleEscalationTransition('CRISIS', 'CRISIS')).toBe(false);
+  });
+
+  it('CRISIS DIŞINDA bir hedefe asla izin vermez (yalnızca eskalasyon içindir)', () => {
+    expect(isValidStaleEscalationTransition('IN_PROGRESS', 'COMPLETED')).toBe(false);
+    expect(isValidStaleEscalationTransition('BLOCKED', 'IN_PROGRESS')).toBe(false);
   });
 });

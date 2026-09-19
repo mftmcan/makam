@@ -7,16 +7,12 @@
  * Ücretsiz plan (Spark) uyumlu — Cloud Functions KULLANMAZ.
  * Firestore'a doğrudan yazar.
  *
- * ⚠️ TEMİZLİK: Bu koleksiyonun ŞU AN otomatik temizliği YOKTUR. Eski yorum
- * "TTL tabanlı temizlik için Security Rules'a güvenir" diyordu — Security Rules
- * TTL temizliği YAPMAZ, yalnızca erişimi kısıtlar (bkz. backend denetimi).
- * Gerçek temizlik `functions/src/cleanup.ts`'te (30 günden eski kayıtları siler)
- * ama proje Spark planında olduğundan o fonksiyon deploy EDİLMEMİŞTİR — yani
- * `error_logs` şu anda sınırsız büyüyor. Kalıcı çözüm seçenekleri: Firestore
- * TTL policy (Timestamp tipinde bir `expiresAt` alanı gerektirir; bu dosya
- * `Date.now()` yani number yazıyor) veya `taskService.cleanupDatabase()`'in
- * (Ayarlar > Dizge Optimizasyonu) bu koleksiyonu da kapsayacak şekilde
- * genişletilmesi.
+ * TEMİZLİK: Bunu yapması gereken `functions/src/cleanup.ts` (30 günden eski
+ * kayıtları siler) Blaze gerektirdiğinden hiç deploy edilmedi ve MAKAM Spark
+ * planında kalıcı kalacağından (bkz. CLAUDE.md) asla deploy edilmeyecek.
+ * Kalıcı telafisi `taskService.cleanupDatabase()`'tir (Ayarlar > Dizge
+ * Optimizasyonu) — bu koleksiyonu da kapsar (30 günden eski kayıtlar), Admin
+ * elle tetikler.
  */
 import { db, collection, addDoc } from '../firebase';
 import { auth } from '../firebase';

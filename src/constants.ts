@@ -150,6 +150,31 @@ export const STATUS_BADGE_VARIANT: Record<TaskStatus, 'default' | 'success' | 'w
  *  bulunamadı." — aynı boş managerPerformance listesi için mobil/masaüstü
  *  görünümlerinde İKİ farklı metin, bkz. tasarım denetimi F22). Tek kaynağa
  *  taşındı ki aynı koşul her zaman aynı cümleyle anlatılsın. */
+/** Atıl görev eskalasyonu (bkz. hooks/useStaleTaskEscalation.ts) — kaç ms
+ *  güncellenmeyen bir görev "atıl" sayılır. `functions/scheduledAudit.ts`
+ *  (hiç deploy edilmedi, MAKAM Spark planında kalıcı kalacağından bkz.
+ *  CLAUDE.md asla deploy edilmeyecek) ile AYNI eşik. */
+export const STALE_TASK_ESCALATION_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
+/** Süpürmeler arası minimum bekleme. Bu, useSelfHealing'in 5sn'lik
+ *  debounce'undan FARKLI bir mekanizma gerektirir: oradaki tetikleyici
+ *  görev/blocker DEĞİŞİKLİĞİdir, buradaki ise yalnızca ZAMANIN geçmesidir —
+ *  bu yüzden debounce yerine localStorage tabanlı "günde ~bir kez"
+ *  kısıtlaması kullanılır (bkz. useStaleTaskEscalation). 20 saat (24 değil)
+ *  KASITLI: bir Admin'in her gün biraz farklı saatte oturum açması,
+ *  eşiğin tam 24 saatte olması halinde süpürmenin günler boyu hiç
+ *  tetiklenmemesine yol açabilirdi.*/
+export const STALE_TASK_ESCALATION_SWEEP_INTERVAL_MS = 20 * 60 * 60 * 1000;
+
+/** Tek süpürmede en fazla kaç görev yükseltilir. `functions/scheduledAudit.ts`
+ *  içindeki `MAX_TASKS_PER_RUN` (500) sayfalama korumasıyla AYNI mühendislik
+ *  yaklaşımı, ama çok daha düşük bir tavan: bu bir arka plan tarayıcısı
+ *  değil, bir Admin'in açık sekmesinde çalışır — tek seferde onlarca
+ *  yazma+bildirim UI'ı yavaşlatmasın ve Spark yazma kotasını gereksiz
+ *  tüketmesin diye sınırlanır. Aşan görevler bir sonraki süpürmeye
+ *  (STALE_TASK_ESCALATION_SWEEP_INTERVAL_MS sonra) devreder. */
+export const STALE_TASK_ESCALATION_MAX_PER_SWEEP = 25;
+
 export const EMPTY_STATE_MESSAGES = {
   NO_DATA_IN_RANGE: 'Seçili aralıkta talimat yok',
   NO_MANAGER_RECORDS: 'Yönetici kaydı bulunamadı',

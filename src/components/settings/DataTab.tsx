@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Download, RotateCcw, ShieldCheck, Database, AlertCircle } from 'lucide-react';
+import { Download, RotateCcw, ShieldCheck, Database, AlertCircle, Calculator } from 'lucide-react';
 import type { Task, User, TaskBlocker } from '../../types';
 import { downloadBlob } from '../../lib/utils';
 import { taskService } from '../../services/taskService';
@@ -283,6 +283,37 @@ export function DataTab({ tasks, users, blockers, isOnline, currentUser, isAdmin
               });
             }}
             label={<><RotateCcw className="w-3.5 h-3.5 stroke-[2]" />Optimizasyonu Çalıştır</>}
+          />
+        </SettingsCard>
+
+        {/* Stats Reconciliation — Spark planı kalıcı telafisi (bkz.
+            taskService.reconcileStats): functions/statsReconciliation.ts hiç
+            deploy edilmedi/edilmeyecek, bu yüzden sayaçlar zamanla gerçek
+            veriden sapabilir. Admin bu düğmeyle elle mutabakat yapar. */}
+        <SettingsCard title="Sayaç Mutabakatı" description="İstatistikleri gerçek veriyle senkronize et" icon={Calculator} accentColor="slate" index={4}>
+          <p className="text-caption text-text-muted font-light leading-relaxed">
+            Panodaki toplam/durum sayaçlarını gerçek talimat sayılarıyla yeniden hesaplayıp senkronize eder.
+          </p>
+          <ActionButton
+            variant="secondary"
+            disabled={!isOnline}
+            onClick={async () => {
+              setImportStatus({ type: 'loading', message: 'Sayaçlar Mutabakat Ediliyor...' });
+              try {
+                const { driftDetected } = await taskService.reconcileStats();
+                setImportStatus({
+                  type: 'success',
+                  message: driftDetected
+                    ? 'Sapma tespit edildi — sayaçlar gerçek veriyle senkronize edildi.'
+                    : 'Sapma bulunamadı — sayaçlar zaten doğru.',
+                });
+              } catch (err) {
+                logger.error('Stats reconciliation failed:', err);
+                const { title, body } = humanizeError(err);
+                setImportStatus({ type: 'error', message: `${title}: ${body}` });
+              }
+            }}
+            label={<><Calculator className="w-3.5 h-3.5 stroke-[2]" />Mutabakatı Çalıştır</>}
           />
         </SettingsCard>
 

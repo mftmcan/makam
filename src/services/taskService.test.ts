@@ -201,6 +201,41 @@ describe('taskService', () => {
       const [, updateData] = update.mock.calls[0]!;
       expect(updateData.assigneeId).toBe('new-manager-uid');
     });
+
+    it('isSystemEscalation OLMADAN BLOCKED -> CRISIS reddedilir (normal kullanıcı akışı)', async () => {
+      const { transaction } = makeTransactionMock({
+        status: 'BLOCKED', lockVersion: 0, totalPausedTime: 0, deadline: Date.now() + 100_000,
+      });
+
+      await expect(
+        transitionTaskInTransaction(transaction, 'task-1', 'CRISIS', 'user-1', {})
+      ).rejects.toThrow(/INVALID_TRANSITION/);
+    });
+
+    it('isSystemEscalation: true İLE BLOCKED -> CRISIS izinli olur (useStaleTaskEscalation istisnası)', async () => {
+      const { transaction, update } = makeTransactionMock({
+        status: 'BLOCKED', lockVersion: 1, totalPausedTime: 500, pausedAt: Date.now() - 2000, deadline: Date.now() + 100_000,
+      });
+
+      await transitionTaskInTransaction(transaction, 'task-1', 'CRISIS', 'admin-1', { isSystemEscalation: true });
+
+      const [, updateData] = update.mock.calls[0]!;
+      expect(updateData.status).toBe('CRISIS');
+      // BLOCKED'dan çıkışın genel duraklama-kapatma mantığı (satır 137-144)
+      // eskalasyonda da AYNEN çalışır — özel bir kod yolu gerekmez.
+      expect(updateData.pausedAt).toBeNull();
+      expect(updateData.totalPausedTime).toBeGreaterThan(500);
+    });
+
+    it('isSystemEscalation: true İLE bile ASSIGNED -> CRISIS reddedilir (istisna dar tutulur)', async () => {
+      const { transaction } = makeTransactionMock({
+        status: 'ASSIGNED', lockVersion: 0, totalPausedTime: 0, deadline: Date.now() + 100_000,
+      });
+
+      await expect(
+        transitionTaskInTransaction(transaction, 'task-1', 'CRISIS', 'admin-1', { isSystemEscalation: true })
+      ).rejects.toThrow(/INVALID_TRANSITION/);
+    });
   });
 
   // ─── taskService.transitionTask / updateTaskStatus / delegateTask (public API) ──
@@ -510,6 +545,69 @@ describe('taskService', () => {
       });
       // Accounting batch (audit+stats) + ana silme batch'i ayrı ayrı commit edilir
       expect(batchCommit).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('taskService.escalateStaleTask (useStaleTaskEscalation)', () => {
+    it('CRISIS\'e isSystemEscalation:true ile geçiş yapar (BLOCKED kaynaktan bile)', async () => {
+      vi.mocked(firebase.runTransaction).mockImplementationOnce(async (_db: any, fn: any) => {
+        const { transaction, update } = makeTransactionMock({
+          status: 'BLOCKED', lockVersion: 4, totalPausedTime: 0, deadline: Date.now() + 100_000,
+        });
+        const result = await fn(transaction);
+        expect(update.mock.calls[0]![1]).toMatchObject({ status: 'CRISIS' });
+        return result;
+      });
+
+      await taskService.escalateStaleTask('task-1', 'admin-1', 4);
+
+      expect(firebase.runTransaction).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('taskService.reconcileStats (Spark planı kalıcı mutabakat telafisi)', () => {
+    const countSnap = (count: number) => ({ data: () => ({ count }) }) as any;
+
+    it('sapma yoksa system/stats\'e yazmaz', async () => {
+      // totalTasks=10, status_ASSIGNED=10, geri kalan status_X=0 — toplamla
+      // tutarlı ve mevcut system/stats ile birebir aynı bir senaryo.
+      vi.mocked(firebase.getCountFromServer)
+        .mockResolvedValueOnce(countSnap(10)) // totalTasks
+        .mockResolvedValueOnce(countSnap(10)) // status_ASSIGNED
+        .mockResolvedValue(countSnap(0));      // kalan status_X sorguları
+      vi.mocked(firebase.getDoc).mockResolvedValue({
+        exists: () => true,
+        data: () => ({
+          totalTasks: 10, status_ASSIGNED: 10, status_PENDING_DELEGATION: 0, status_IN_PROGRESS: 0,
+          status_BLOCKED: 0, status_AWAITING_APPROVAL: 0, status_COMPLETED: 0, status_CANCELLED: 0, status_CRISIS: 0,
+        }),
+      } as any);
+
+      const result = await taskService.reconcileStats();
+
+      expect(result.driftDetected).toBe(false);
+      expect(firebase.setDoc).not.toHaveBeenCalled();
+    });
+
+    it('sapma varsa system/stats\'i yeniden hesaplanan değerlerle (set+merge) üzerine yazar', async () => {
+      vi.mocked(firebase.getCountFromServer)
+        .mockResolvedValueOnce(countSnap(5))  // totalTasks (gerçek)
+        .mockResolvedValueOnce(countSnap(5))  // status_ASSIGNED (gerçek)
+        .mockResolvedValue(countSnap(0));
+      vi.mocked(firebase.getDoc).mockResolvedValue({
+        exists: () => true,
+        // Mevcut (sapmış) değer: totalTasks Firestore'daki gerçek sayıdan farklı
+        data: () => ({ totalTasks: 7, status_ASSIGNED: 5 }),
+      } as any);
+
+      const result = await taskService.reconcileStats();
+
+      expect(result.driftDetected).toBe(true);
+      expect(result.reconciled).toMatchObject({ totalTasks: 5, status_ASSIGNED: 5 });
+      expect(firebase.setDoc).toHaveBeenCalledOnce();
+      const [, data, options] = vi.mocked(firebase.setDoc).mock.calls[0]!;
+      expect(data).toMatchObject({ totalTasks: 5, status_ASSIGNED: 5 });
+      expect(options).toMatchObject({ merge: true });
     });
   });
 });

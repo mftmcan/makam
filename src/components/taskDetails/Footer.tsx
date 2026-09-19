@@ -7,7 +7,14 @@ import { Button } from '../ui/Button';
 import { Tooltip } from '../ui/Tooltip';
 import { storage, ref, uploadBytes, getDownloadURL } from '../../firebase';
 import { getPrimaryAction } from './helpers';
-import { EVIDENCE_TYPE_OPTIONS, MAX_EVIDENCE_FILE_BYTES } from './constants';
+import { EVIDENCE_TYPE_OPTIONS, EVIDENCE_FILE_UPLOAD_ENABLED, MAX_EVIDENCE_FILE_BYTES } from './constants';
+
+// EVIDENCE_FILE_UPLOAD_ENABLED=false iken (bkz. constants.ts — Spark planında
+// kalıcı Storage kısıtı) yalnızca Bağlantı (Link) seçeneği sunulur; Görsel/PDF
+// hiç render edilmez.
+const AVAILABLE_EVIDENCE_TYPE_OPTIONS = EVIDENCE_FILE_UPLOAD_ENABLED
+  ? EVIDENCE_TYPE_OPTIONS
+  : EVIDENCE_TYPE_OPTIONS.filter(opt => opt.value === 'Link');
 
 /* ── Modal Footer — Kalıcı Birincil Aksiyon + Kanıt Formu ─────────────────
    Tamamlama ile sonuçlanan geçişlerde (AWAITING_APPROVAL/COMPLETED) opsiyonel
@@ -125,26 +132,31 @@ export const TaskDetailsFooter = ({ task, currentUser, onStatusChange }: {
             </Tooltip>
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center bg-makam-glass border border-surface-border rounded-full p-0.5 shrink-0" role="group" aria-label="Kanıt türü">
-              {EVIDENCE_TYPE_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => switchEvidenceType(opt.value)}
-                  aria-pressed={evidenceType === opt.value}
-                  disabled={isSubmitting}
-                  className={cn(
-                    'px-3 py-1.5 rounded-full text-micro font-medium uppercase tracking-widest transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue disabled:opacity-60',
-                    evidenceType === opt.value
-                      ? 'bg-executive-blue text-[color:var(--executive-blue-text)] shadow-sm'
-                      : 'text-text-muted hover:text-executive-blue'
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            {/* Tek seçenek (yalnızca Bağlantı) kaldığında geçiş grubu anlamsız
+                bir tek-butonlu şeride dönüşür — bu yüzden Storage devre dışı
+                iken hiç render edilmez (bkz. constants.ts EVIDENCE_FILE_UPLOAD_ENABLED). */}
+            {AVAILABLE_EVIDENCE_TYPE_OPTIONS.length > 1 && (
+              <div className="flex items-center bg-makam-glass border border-surface-border rounded-full p-0.5 shrink-0" role="group" aria-label="Kanıt türü">
+                {AVAILABLE_EVIDENCE_TYPE_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => switchEvidenceType(opt.value)}
+                    aria-pressed={evidenceType === opt.value}
+                    disabled={isSubmitting}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-micro font-medium uppercase tracking-widest transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue disabled:opacity-60',
+                      evidenceType === opt.value
+                        ? 'bg-executive-blue text-[color:var(--executive-blue-text)] shadow-sm'
+                        : 'text-text-muted hover:text-executive-blue'
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {evidenceType === 'Link' ? (
               <input
                 type="url"

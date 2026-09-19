@@ -104,9 +104,9 @@ export const GuideModal = ({ isOpen, onClose }: GuideModalProps) => {
         {/* ── Kriz Eskalasyonu (tam genişlik) ── */}
         <SettingsCard title="Kriz Eskalasyonu" description="Otomatik yükseltme kuralı" icon={Flame} accentColor="red" index={4} fullWidth>
           <p className="text-caption text-text-muted font-light leading-relaxed">
-            Dizge her gün <strong className="font-medium text-text-heading">08:00&rsquo;de</strong> otomatik bir denetim çalıştırır:
+            Dizge, bir Müftü (Admin) oturum açıkken düzenli aralıklarla otomatik bir denetim çalıştırır:
             tamamlanmamış veya lağvedilmemiş bir talimat <strong className="font-medium text-text-heading">24 saattir hiç güncellenmemişse</strong> otomatik
-            olarak <strong className="font-medium text-text-heading">Kriz</strong> durumuna yükseltilir ve ilgili yöneticiler bilgilendirilir.
+            olarak <strong className="font-medium text-text-heading">Kriz</strong> durumuna yükseltilir ve sorumlusuna/koordinatörüne bildirim gönderilir.
             Bunu önlemenin yolu basittir: talimat üzerinde düzenli olarak durum/yorum/kanıt güncellemesi yaparak
             &ldquo;aktif&rdquo; tutmak.
           </p>
