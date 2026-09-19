@@ -16,7 +16,7 @@ import { getInterventionQueue, getUserPerformanceProfiles } from '../lib/executi
 import {
   computeDeltas, computeStats, computeLast7DaysData, filterStatTasks,
   computeCompletionRatePercent, computeSlaCompliancePercent, computeHealthScore,
-  computeExecutiveSignals, SIGNAL_MATCHERS,
+  computeExecutiveSignals, SIGNAL_MATCHERS, computeMovingAverage, computeCompletedTrend,
   type QueueSignalKey, type StatCategory
 } from './dashboard/helpers';
 import { StatCard, InterventionRow, PerformanceRow } from './dashboard/subcomponents';
@@ -100,7 +100,14 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
   // retroaktif olarak değişiyordu. createdAt/completedAt asla değişmediği için
   // "Yeni Talimat" ve "İcra Edilen" metrikleri geçmişe dönük tutarlıdır.
   // Gün sınırı tick'ten türetilir ki gece yarısı geçişinde pencere bayatlamasın.
-  const last7DaysData = useMemo(() => computeLast7DaysData(scopeTasks, tick), [scopeTasks, tick]);
+  // trend: İcra Edilen'in 3 günlük hareketli ortalaması (bkz. computeMovingAverage) —
+  // grafikteki çizgi katmanı için, computeLast7DaysData'nın kendisini DEĞİŞTİRMEZ
+  // (o saf/test edilebilir kalır), yalnızca sonucuna bir alan ekler.
+  const last7DaysData = useMemo(() => {
+    const days = computeLast7DaysData(scopeTasks, tick);
+    const trend = computeMovingAverage(days.map(d => d['İcra Edilen']), 3);
+    return days.map((d, i) => ({ ...d, trend: trend[i] }));
+  }, [scopeTasks, tick]);
   // Son 7 günde hiç yeni talimat/icra kaydı yoksa grafik sessizce boş bir
   // dikdörtgen bırakıyordu — kullanıcıya "veri yok" sinyali hiç verilmiyordu
   // (bkz. kod denetimi). Boşken grafik yerine EmptyState gösterilir.
@@ -108,6 +115,10 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
     () => last7DaysData.some(d => d['Yeni Talimat'] > 0 || d['İcra Edilen'] > 0),
     [last7DaysData]
   );
+
+  // Sağlık Skoru banner'ındaki "Bu Hafta" karşılaştırması — completedAt bazlı,
+  // computeLast7DaysData ile AYNI immutable-timestamp ilkesi (bkz. helpers.ts).
+  const completedTrend = useMemo(() => computeCompletedTrend(scopeTasks, tick), [scopeTasks, tick]);
 
   const chartSummary = useMemo(
     () => last7DaysData
@@ -158,6 +169,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
         slaCompliancePercent={slaCompliancePercent}
         isPersonalView={isPersonalView}
         tick={tick}
+        completedTrend={completedTrend}
       />
 
       {/* ── Stat Cards Grid ─────────────────────────────────────────── */}
@@ -168,7 +180,12 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
         <StatCard label="Onayda"     value={stats.inReview}   max={stats.total} icon={CheckCircle2} color="green"  index={2} delta={deltas.inReview} onClick={() => setSelectedStatCategory('inReview')} />
         <StatCard label="Engel"      value={stats.blocked}    max={stats.total} icon={ShieldCheck}  color="orange" index={3} delta={deltas.blocked} onClick={() => setSelectedStatCategory('blocked')} />
         <StatCard label="Kriz"       value={stats.crisis}     max={stats.total} icon={AlertCircle}  color="red"    index={4} delta={deltas.crisis} onClick={() => setSelectedStatCategory('crisis')} />
-        <StatCard label="Tamamlanan" value={stats.completed}  max={stats.total} icon={ListChecks}   color="green"  index={5} onClick={() => setSelectedStatCategory('completed')} />
+        {/* Yalnızca bu kart sparkline alır — completedAt DEĞİŞMEZ olduğundan
+            geçmiş 7 günün "o günkü tamamlanan sayısı" retroaktif olarak
+            güvenle yeniden inşa edilebilir (bkz. StatCardProps.sparklineData
+            yorumu). Diğer kartlar anlık durum sayaçlarıdır, aynı işlem onlar
+            için yanıltıcı olurdu. */}
+        <StatCard label="Tamamlanan" value={stats.completed}  max={stats.total} icon={ListChecks}   color="green"  index={5} onClick={() => setSelectedStatCategory('completed')} sparklineData={last7DaysData.map(d => d['İcra Edilen'])} />
       </div>
 
       {/* ── Chart ───────────────────────────────────────────────────── */}
@@ -241,7 +258,20 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
               <EmptyState
                 size="sm"
                 dimIcon={false}
-                icon={<ShieldCheck className="w-7 h-7 text-status-success stroke-[1.2]" />}
+                icon={
+                  queueFilter ? (
+                    <ShieldCheck className="w-7 h-7 text-status-success stroke-[1.2]" />
+                  ) : (
+                    // Gerçek "tamamen temiz" anı (filtre yokken de kuyruk boş) —
+                    // premium ürünlerin özenle tasarladığı bir nokta; ince bir
+                    // nabız (prefers-reduced-motion'da otomatik durur, bkz.
+                    // index.css) yalnızca burada, filtreli boş sonuçta DEĞİL.
+                    <span className="relative flex items-center justify-center">
+                      <span className="absolute inset-0 rounded-full bg-status-success/20 animate-pulse" aria-hidden="true" />
+                      <ShieldCheck className="relative w-7 h-7 text-status-success stroke-[1.2]" />
+                    </span>
+                  )
+                }
                 message={queueFilter ? 'Bu filtrede müdahale yok' : 'Müdahale Gerektiren Başlık Yok'}
               />
             )}

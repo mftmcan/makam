@@ -1,8 +1,9 @@
-import { Target, Info } from 'lucide-react';
+import { Target, Info, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Tooltip as InfoTooltip } from '../ui/Tooltip';
 import { SPRING_PANEL } from '../../lib/motion';
 import { cn, formatTime } from '../../lib/utils';
+import type { CompletedTrend } from './helpers';
 
 interface HealthIndexBannerProps {
   healthScore: number;
@@ -12,12 +13,21 @@ interface HealthIndexBannerProps {
   /** Canlı SLA sayacının tazelendiği an — yalnızca "Canlı · HH:mm" göstergesi
    *  için, ek bir okuma tetiklemez (bkz. Dashboard.tsx tick state'i). */
   tick: number;
+  /** Bu hafta/geçen hafta tamamlanan görev sayısı (bkz. computeCompletedTrend) —
+   *  completedAt'e (değişmez) dayandığından geriye dönük tutarlıdır. */
+  completedTrend: CompletedTrend;
 }
+
+const TrendIcon = ({ current, previous }: CompletedTrend) => {
+  if (current > previous) return <TrendingUp className="w-3 h-3 text-status-success" aria-hidden="true" />;
+  if (current < previous) return <TrendingDown className="w-3 h-3 text-status-danger" aria-hidden="true" />;
+  return <Minus className="w-3 h-3 text-text-tertiary" aria-hidden="true" />;
+};
 
 /** ── Stratejik Sağlık Endeksi Banner ──────────────────────────────────────
  *  Dashboard.tsx'ten ayrıştırıldı (bkz. kod denetimi — dosya bölme): saf
  *  sunum, kendi state'i yok. */
-export const HealthIndexBanner = ({ healthScore, completionRatePercent, slaCompliancePercent, isPersonalView, tick }: HealthIndexBannerProps) => (
+export const HealthIndexBanner = ({ healthScore, completionRatePercent, slaCompliancePercent, isPersonalView, tick, completedTrend }: HealthIndexBannerProps) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
@@ -83,9 +93,15 @@ export const HealthIndexBanner = ({ healthScore, completionRatePercent, slaCompl
            </span>
         </div>
         {/* Sub-metrics transparency indicators */}
-        <div className="flex gap-2.5 text-micro text-text-tertiary font-bold uppercase mt-1">
+        <div className="flex items-center gap-2.5 text-micro text-text-tertiary font-bold uppercase mt-1">
           <span>İcra: %{completionRatePercent}</span>
           <span>SLA: %{slaCompliancePercent}</span>
+          <InfoTooltip content={`Bu hafta ${completedTrend.current}, geçen hafta ${completedTrend.previous} talimat tamamlandı.`} side="bottom">
+            <span className="flex items-center gap-1 normal-case tracking-normal font-medium cursor-help">
+              <TrendIcon {...completedTrend} />
+              Bu Hafta: {completedTrend.current}
+            </span>
+          </InfoTooltip>
         </div>
       </div>
 

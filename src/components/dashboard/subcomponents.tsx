@@ -8,6 +8,7 @@ import { Badge } from '../ui/Badge';
 import { RollingNumber } from '../ui/RollingNumber';
 import { SPRING_ROW, staggerDelay } from '../../lib/motion';
 import type { InterventionItem, UserPerformanceProfile } from '../../lib/executiveMetrics';
+import { Sparkline } from './Sparkline';
 
 // ─── Compact Stat Card ────────────────────────────────────────────────────────
 export interface StatCardProps {
@@ -19,15 +20,23 @@ export interface StatCardProps {
   onClick?: () => void;
   index?: number;
   delta?: number;
+  /** Son 7 günün değer dizisi (en eski → en yeni) — verilirse kartın sağında
+   *  bir mini trend grafiği (bkz. Sparkline.tsx) gösterilir. Yalnızca
+   *  completedAt gibi DEĞİŞMEZ bir zaman damgasına dayanan kartlarda (ör.
+   *  Tamamlanan) anlamlıdır — anlık durum sayaçları (Bekleyen/İşlemde/Engel/
+   *  Onayda/Kriz) için geçmiş günlerin "o günkü durumu" retroaktif olarak
+   *  yeniden inşa edilemez (bkz. Dashboard.tsx computeLast7DaysData yorumu);
+   *  bu kartlara sparklineData KASITLI OLARAK verilmez. */
+  sparklineData?: number[];
 }
 
-export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index = 0, delta = 0 }: StatCardProps) => {
+export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index = 0, delta = 0, sparklineData }: StatCardProps) => {
   const accentColor = {
-    blue:   { bg: 'bg-executive-blue/5',   text: 'text-executive-blue' },
-    green:  { bg: 'bg-status-success/10',  text: 'text-status-success' },
-    orange: { bg: 'bg-executive-gold/10',  text: 'text-[color:var(--gold-text)]' },
-    red:    { bg: 'bg-status-danger/10',   text: 'text-status-danger' },
-    gray:   { bg: 'bg-surface-glass',      text: 'text-text-muted' },
+    blue:   { bg: 'bg-executive-blue/5',   text: 'text-executive-blue',           bar: 'bg-executive-blue' },
+    green:  { bg: 'bg-status-success/10',  text: 'text-status-success',           bar: 'bg-status-success' },
+    orange: { bg: 'bg-executive-gold/10',  text: 'text-[color:var(--gold-text)]', bar: 'bg-executive-gold' },
+    red:    { bg: 'bg-status-danger/10',   text: 'text-status-danger',            bar: 'bg-status-danger' },
+    gray:   { bg: 'bg-surface-glass',      text: 'text-text-muted',               bar: 'bg-text-tertiary/40' },
   }[color];
 
   return (
@@ -40,7 +49,7 @@ export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index 
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        'group w-full text-left flex items-center gap-2.5 sm:gap-3 p-3 sm:p-3.5 min-h-[74px]',
+        'group relative w-full text-left flex items-center gap-2.5 sm:gap-3 p-3 sm:p-3.5 min-h-[74px]',
         'bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl',
         'shadow-card hover:shadow-card-hover',
         'transition-all duration-300 hover:bg-surface-elevated hover:border-surface-border',
@@ -48,6 +57,10 @@ export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index 
         onClick && 'cursor-pointer'
       )}
     >
+      {/* Aksan şeridi — kartın kategorik kimliğini ikondan ÖNCE, taramada ilk
+          görülen ipucu yapar (bkz. tasarım planı Öncelik 2). */}
+      <div className={cn('absolute inset-x-0 top-0 h-[2px] rounded-t-2xl', accentColor.bar)} aria-hidden="true" />
+
       {/* Icon */}
       <div className={cn(
         'w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center transition-all duration-300',
@@ -84,6 +97,10 @@ export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index 
           )}
         </div>
       </div>
+
+      {sparklineData && (
+        <Sparkline data={sparklineData} className={cn('hidden sm:block', accentColor.text)} />
+      )}
     </motion.button>
   );
 };

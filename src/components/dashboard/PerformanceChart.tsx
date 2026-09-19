@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, BarChart3 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { EmptyState } from '../ui/EmptyState';
@@ -52,7 +52,7 @@ export const PerformanceChart = ({ isAdmin, onNavigateTab, hasChartActivity, las
         />
       ) : (
       <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-        <BarChart data={last7DaysData} barGap={4} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+        <ComposedChart data={last7DaysData} barGap={4} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
           <defs>
             <linearGradient id="chartCreated" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--chart-created)" stopOpacity="0.8" />
@@ -86,7 +86,19 @@ export const PerformanceChart = ({ isAdmin, onNavigateTab, hasChartActivity, las
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(22, 21, 19, 0.01)' }} />
           <Bar dataKey="Yeni Talimat" fill="url(#chartCreated)" radius={[4,4,0,0]} />
           <Bar dataKey="İcra Edilen" fill="url(#chartCompleted)" radius={[4,4,0,0]} />
-        </BarChart>
+          {/* Sentetik (türetilmiş) tek seri — dataviz kuralı gereği YENİ bir
+              kategorik renk almaz, İcra Edilen'in AYNI tonunun opak çizgi
+              hali (tek "kimlik", iki görsel form: bar + trend overlay). */}
+          <Line
+            type="monotone"
+            dataKey="trend"
+            name="İcra Trendi (3g ort.)"
+            stroke="var(--chart-completed)"
+            strokeWidth={2}
+            dot={false}
+            activeDot={{ r: 4 }}
+          />
+        </ComposedChart>
       </ResponsiveContainer>
       )}
     </div>
@@ -94,11 +106,16 @@ export const PerformanceChart = ({ isAdmin, onNavigateTab, hasChartActivity, las
     {/* Legend */}
     <div className="flex flex-wrap items-center gap-3 mt-2 pt-2 border-t border-executive-blue/[0.04]">
       {[
-        { color: 'var(--chart-created)', label: 'Yeni Talimat' },
-        { color: 'var(--chart-completed)', label: 'İcra Edilen' },
-      ].map(({ color, label }) => (
+        { color: 'var(--chart-created)', label: 'Yeni Talimat', shape: 'square' as const },
+        { color: 'var(--chart-completed)', label: 'İcra Edilen', shape: 'square' as const },
+        { color: 'var(--chart-completed)', label: 'İcra Trendi (3g ort.)', shape: 'line' as const },
+      ].map(({ color, label, shape }) => (
         <div key={label} className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
+          {shape === 'square' ? (
+            <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
+          ) : (
+            <span className="w-2.5 h-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} aria-hidden="true" />
+          )}
           <span className="text-micro text-text-tertiary uppercase tracking-caps">{label}</span>
         </div>
       ))}

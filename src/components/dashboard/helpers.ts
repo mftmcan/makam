@@ -145,7 +145,55 @@ export interface DashboardChartDay {
   name: string;
   'Yeni Talimat': number;
   'İcra Edilen': number;
+  /** 3 günlük hareketli ortalama (İcra Edilen) — bkz. computeMovingAverage.
+   *  Grafik çizgisi (PerformanceChart) için; StatDetailModal/filterStatTasks
+   *  bu alanı kullanmaz. */
+  trend?: number;
 }
+
+/**
+ * Basit sağa-hizalı (trailing) hareketli ortalama — pencere, dizinin
+ * BAŞINDA henüz `windowSize` kadar geçmiş yokken mevcut olan kadarıyla
+ * daralır (ör. ilk gün yalnızca kendisinin ortalamasıdır) — `null`/NaN
+ * yerine her zaman bir sayı döner, grafik çizgisi baştan kopuk görünmez.
+ */
+export const computeMovingAverage = (values: number[], windowSize: number): number[] =>
+  values.map((_, i) => {
+    const window = values.slice(Math.max(0, i - windowSize + 1), i + 1);
+    return window.reduce((sum, v) => sum + v, 0) / window.length;
+  });
+
+export interface CompletedTrend {
+  /** Son 7 gün içinde tamamlanan görev sayısı (completedAt bazlı, immutable). */
+  current: number;
+  /** Ondan önceki 7 gün (8-14 gün önce) tamamlanan görev sayısı — AYNI tanım. */
+  previous: number;
+}
+
+// computeLast7DaysData ile AYNI immutable-timestamp ilkesi (bkz. o fonksiyonun
+// yorumu): completedAt asla değişmediğinden iki ayrı 7 günlük pencere
+// birbirinden bağımsız ve geriye dönük tutarlı biçimde sayılabilir. Bu,
+// "geçen haftaya göre" karşılaştırmasını, var olmayan bir geçmiş-anlık-görüntü
+// (snapshot) sistemine ihtiyaç duymadan mümkün kılar.
+export const computeCompletedTrend = (scopeTasks: Task[], tick: number): CompletedTrend => {
+  const todayStart = new Date(tick);
+  todayStart.setHours(0, 0, 0, 0);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const currentWindowStart = todayStart.getTime() - 6 * dayMs;
+  const previousWindowStart = currentWindowStart - 7 * dayMs;
+  const previousWindowEnd = currentWindowStart - 1;
+  const windowEnd = todayStart.getTime() + dayMs - 1;
+
+  let current = 0;
+  let previous = 0;
+  for (const t of scopeTasks) {
+    if (t.status !== 'COMPLETED') continue;
+    const completedAt = t.completedAt ?? t.updatedAt;
+    if (completedAt >= currentWindowStart && completedAt <= windowEnd) current++;
+    else if (completedAt >= previousWindowStart && completedAt <= previousWindowEnd) previous++;
+  }
+  return { current, previous };
+};
 
 // NOT: Bu seri bilinçli olarak değişmez (immutable) zaman damgalarına dayanır.
 // Önceki sürüm görevleri updatedAt penceresine ve CANLI status'e göre kovalıyordu;

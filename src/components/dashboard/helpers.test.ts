@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeStats, computeCompletionRatePercent, computeHealthScore } from './helpers';
+import { computeStats, computeCompletionRatePercent, computeHealthScore, computeMovingAverage, computeCompletedTrend } from './helpers';
 import type { Task } from '../../types';
 import type { GlobalStats } from '../../store/dataStore';
 
@@ -113,5 +113,54 @@ describe('computeCompletionRatePercent / computeHealthScore — sınır durumlar
       { ...baseTask, id: 't2', status: 'CANCELLED' },
     ];
     expect(computeCompletionRatePercent(tasks)).toBe(100);
+  });
+});
+
+describe('computeMovingAverage — PerformanceChart trend çizgisi', () => {
+  it('pencere doluyken basit ortalamayı döner', () => {
+    // [1, 2, 3] -> pencere 3: ilk gün yalnızca kendisi (1), ikinci gün (1+2)/2,
+    // üçüncü gün (1+2+3)/3.
+    expect(computeMovingAverage([1, 2, 3], 3)).toEqual([1, 1.5, 2]);
+  });
+
+  it('dizinin başında pencere henüz dolmadıysa mevcut kadarıyla daralır (null/NaN DEĞİL)', () => {
+    const result = computeMovingAverage([4, 8], 3);
+    expect(result[0]).toBe(4);
+    expect(result[1]).toBe(6);
+  });
+
+  it('pencere boyutu 1 ise girdiyle birebir aynı diziyi döner', () => {
+    expect(computeMovingAverage([5, 1, 9], 1)).toEqual([5, 1, 9]);
+  });
+
+  it('boş dizi için boş dizi döner', () => {
+    expect(computeMovingAverage([], 3)).toEqual([]);
+  });
+});
+
+describe('computeCompletedTrend — Sağlık Skoru "Bu Hafta" karşılaştırması', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  it('son 7 gün ve önceki 7 gün tamamlanan sayılarını AYRI AYRI sayar', () => {
+    const tasks: Task[] = [
+      { ...baseTask, id: 't1', status: 'COMPLETED', completedAt: now - 1 * DAY },       // bu hafta
+      { ...baseTask, id: 't2', status: 'COMPLETED', completedAt: now - 6 * DAY },       // bu hafta
+      { ...baseTask, id: 't3', status: 'COMPLETED', completedAt: now - 8 * DAY },       // geçen hafta
+      { ...baseTask, id: 't4', status: 'COMPLETED', completedAt: now - 13 * DAY },      // geçen hafta
+      { ...baseTask, id: 't5', status: 'COMPLETED', completedAt: now - 20 * DAY },      // iki haftadan eski — sayılmaz
+      { ...baseTask, id: 't6', status: 'IN_PROGRESS' },                                 // tamamlanmamış — sayılmaz
+    ];
+    expect(computeCompletedTrend(tasks, now)).toEqual({ current: 2, previous: 2 });
+  });
+
+  it('completedAt yoksa updatedAt\'e düşer (eski/backfill öncesi kayıtlar)', () => {
+    const tasks: Task[] = [
+      { ...baseTask, id: 't1', status: 'COMPLETED', updatedAt: now - 2 * DAY, completedAt: undefined },
+    ];
+    expect(computeCompletedTrend(tasks, now)).toEqual({ current: 1, previous: 0 });
+  });
+
+  it('hiç tamamlanan görev yoksa ikisi de sıfır döner', () => {
+    expect(computeCompletedTrend([{ ...baseTask, status: 'IN_PROGRESS' }], now)).toEqual({ current: 0, previous: 0 });
   });
 });
