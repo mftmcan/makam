@@ -76,6 +76,7 @@ const BlockerCard = ({ blocker, index, tasksById, usersById, isAdmin, isSystemAd
       }}
       className={cn(
         'flex flex-col gap-3 p-3.5 rounded-2xl border cursor-pointer group transition-all duration-300',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2',
         !blocker.isResolved
           ? cn(
               'bg-status-danger/[0.04] border-status-danger/20 hover:bg-status-danger/10 hover:shadow-sm',
@@ -145,7 +146,7 @@ const BlockerCard = ({ blocker, index, tasksById, usersById, isAdmin, isSystemAd
           {isAdmin && (
             <div className="flex items-center bg-makam-glass rounded-lg p-0.5 border border-executive-blue/[0.05] gap-0.5">
               <button
-                className="w-7 h-7 flex items-center justify-center text-text-tertiary hover:text-executive-blue hover:bg-surface-elevated rounded-md transition-all"
+                className="w-7 h-7 flex items-center justify-center text-text-tertiary hover:text-executive-blue hover:bg-surface-elevated rounded-md transition-all hover:scale-105 active:scale-95"
                 onClick={(e) => { e.stopPropagation(); onRequestEdit(blocker); }}
                 title="Düzenle"
               >
@@ -153,7 +154,7 @@ const BlockerCard = ({ blocker, index, tasksById, usersById, isAdmin, isSystemAd
               </button>
               {isSystemAdmin && (
                 <button
-                  className="w-7 h-7 flex items-center justify-center text-text-tertiary hover:text-status-danger hover:bg-status-danger/10 rounded-md transition-all"
+                  className="w-7 h-7 flex items-center justify-center text-text-tertiary hover:text-status-danger hover:bg-status-danger/10 rounded-md transition-all hover:scale-105 active:scale-95"
                   onClick={(e) => { e.stopPropagation(); onRequestDelete(blocker.id); }}
                   title="Sil"
                 >

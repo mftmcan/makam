@@ -178,9 +178,9 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
 
       {/* ── KPI Cards — 1 col mobile, 3 cols sm+ ─────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <KpiCard label="Ort. Tamamlanma" value={`${avgDays} Gün`}  icon={Zap}           color="blue"  index={0} />
-        <KpiCard label="Aktif Darboğaz"  value={`${filteredBlockers.filter(b => !b.isResolved).length}`} icon={AlertTriangle} color="red" index={1} />
-        <KpiCard label="Hedef Gerçekleşme" value={`%${completionRate}`} icon={Target}    color="green" index={2} />
+        <KpiCard label="Ort. Tamamlanma" value={avgDays} suffix=" Gün" icon={Zap}           color="blue"  index={0} />
+        <KpiCard label="Aktif Darboğaz"  value={filteredBlockers.filter(b => !b.isResolved).length} icon={AlertTriangle} color="red" index={1} />
+        <KpiCard label="Hedef Gerçekleşme" value={completionRate} prefix="%" icon={Target}    color="green" index={2} />
       </div>
 
       {/* ── Görsel Analiz — özet sayılardan sonra, detay tablosundan önce ── */}

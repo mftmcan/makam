@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { AlertCircle, Settings as SettingsIcon } from 'lucide-react';
 import { Task, User, TaskBlocker } from '../types';
 import { useIsAdmin } from '../hooks/useIsAdmin';
+import { SPRING_PANEL } from '../lib/motion';
 import { PageHeader } from './ui/PageHeader';
 import { PageShell } from './ui/PageShell';
 import { StatusBanner } from './ui/StatusBanner';
@@ -148,23 +150,43 @@ export const Settings = ({
           ]}
         />
 
-        {/* Right Tab Content Panel */}
+        {/* Right Tab Content Panel — sekmeler arası geçiş eskiden anlık/kesin
+            değişiyordu (bkz. tasarım denetimi: SettingsCard/ActionButton zaten
+            tam cilalı, tek eksik buydu). `key={activeSubTab}` her sekme
+            değişiminde yeni bir motion kimliği yaratıp fade+kaydırma
+            tetikler. */}
         <div className="flex-1 min-w-0">
-          {activeSubTab === 'general' && (
-            <GeneralTab triggerToast={triggerToast} setImportStatus={setImportStatus} />
-          )}
+          {/* mode="wait" yeni panelin mount'unu eskisinin exit animasyonu
+              bitene dek erteler — jsdom'da bu geçiş asla "bitmediğinden"
+              DataTab gibi alt sekmeler hiç mount olmuyordu (bkz. Settings.test.tsx
+              geri yükleme testleri). "popLayout" yeni içeriği ANINDA mount
+              eder, çıkan paneli ise layout akışından hemen çıkarır (position:
+              absolute) — ne test hem de üst üste binme/sıçrama olmuyor. */}
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              key={activeSubTab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={SPRING_PANEL}
+            >
+              {activeSubTab === 'general' && (
+                <GeneralTab triggerToast={triggerToast} setImportStatus={setImportStatus} />
+              )}
 
-          {activeSubTab === 'sla' && isAdmin && (
-            <SlaTab isOnline={isOnline} currentUser={currentUser} isAdmin={isAdmin} triggerToast={triggerToast} setImportStatus={setImportStatus} />
-          )}
+              {activeSubTab === 'sla' && isAdmin && (
+                <SlaTab isOnline={isOnline} currentUser={currentUser} isAdmin={isAdmin} triggerToast={triggerToast} setImportStatus={setImportStatus} />
+              )}
 
-          {activeSubTab === 'security' && isAdmin && (
-            <SecurityTab isOnline={isOnline} currentUser={currentUser} isAdmin={isAdmin} triggerToast={triggerToast} setImportStatus={setImportStatus} sessionTimeoutMs={sessionTimeoutMs} />
-          )}
+              {activeSubTab === 'security' && isAdmin && (
+                <SecurityTab isOnline={isOnline} currentUser={currentUser} isAdmin={isAdmin} triggerToast={triggerToast} setImportStatus={setImportStatus} sessionTimeoutMs={sessionTimeoutMs} />
+              )}
 
-          {activeSubTab === 'data' && isAdmin && (
-            <DataTab tasks={tasks} users={users} blockers={blockers} isOnline={isOnline} currentUser={currentUser} isAdmin={isAdmin} triggerToast={triggerToast} setImportStatus={setImportStatus} />
-          )}
+              {activeSubTab === 'data' && isAdmin && (
+                <DataTab tasks={tasks} users={users} blockers={blockers} isOnline={isOnline} currentUser={currentUser} isAdmin={isAdmin} triggerToast={triggerToast} setImportStatus={setImportStatus} />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </PageShell>

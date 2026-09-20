@@ -1,4 +1,6 @@
+import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { RollingNumber } from '../ui/RollingNumber';
 import type { DepartmentCapacityRow } from './helpers';
 
 interface CapacityBandProps {
@@ -22,17 +24,19 @@ export function CapacityBand({
           {hasCapacityData ? (
             <>
               <div className="w-24 h-1.5 bg-executive-blue/5 rounded-full overflow-hidden">
-                <div
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${capacityPercent}%` }}
+                  transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
                   className={cn(
-                    'h-full rounded-full transition-all duration-300',
+                    'h-full rounded-full',
                     capacityPercent >= 85 ? 'bg-status-danger' :
                     capacityPercent >= 55 ? 'bg-status-warning' :
                     'bg-status-success'
                   )}
-                  style={{ width: `${capacityPercent}%` }}
                 />
               </div>
-              <span className="text-caption font-bold text-text-heading">%{capacityPercent}</span>
+              <span className="text-caption font-bold text-text-heading">%<RollingNumber value={capacityPercent} /></span>
             </>
           ) : (
             <span className="text-micro text-text-tertiary">Kapasite verisi için en az 1 aktif talimat gerekli</span>
@@ -53,17 +57,19 @@ export function CapacityBand({
             <div key={row.department} className="flex items-center gap-2 px-2.5 py-1.5 bg-surface-glass border border-surface-border rounded-xl">
               <span className="text-micro text-text-muted uppercase tracking-wider font-bold truncate max-w-[110px]">{row.department}</span>
               <div className="w-14 h-1 bg-executive-blue/5 rounded-full overflow-hidden flex-shrink-0">
-                <div
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${row.percent}%` }}
+                  transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
                   className={cn(
-                    'h-full rounded-full transition-all duration-300',
+                    'h-full rounded-full',
                     row.percent >= 85 ? 'bg-status-danger' :
                     row.percent >= 55 ? 'bg-status-warning' :
                     'bg-status-success'
                   )}
-                  style={{ width: `${row.percent}%` }}
                 />
               </div>
-              <span className="text-micro font-bold text-text-heading tabular-nums">%{row.percent}</span>
+              <span className="text-micro font-bold text-text-heading tabular-nums">%<RollingNumber value={row.percent} /></span>
             </div>
           ))}
         </div>

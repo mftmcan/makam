@@ -51,6 +51,7 @@ export function VirtualizedUserRow({
         }}
         className={cn(
           'group flex items-center gap-3 h-full px-3.5 box-border cursor-pointer border-b border-l-2 border-l-transparent border-b-surface-border/60 hover:bg-makam-glass transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-inset',
           userTaskCount >= 5 && 'border-l-status-danger'
         )}
       >
@@ -84,7 +85,7 @@ export function VirtualizedUserRow({
         {userTaskCount > 0 && (
           <span className={cn(
             'hidden lg:inline-flex items-center gap-1 text-micro font-medium uppercase tracking-caps px-2 py-0.5 rounded-full border flex-shrink-0',
-            userTaskCount >= 5 ? 'bg-status-danger/[0.08] text-status-danger border-status-danger/25' :
+            userTaskCount >= 5 ? 'bg-status-danger/[0.08] text-status-danger border-status-danger/25 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.15)]' :
             userTaskCount >= 3 ? 'bg-status-warning/[0.08] text-status-warning border-status-warning/25' :
             'bg-status-success/[0.08] text-status-success border-status-success/25'
           )}>

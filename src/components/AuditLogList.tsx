@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'motion/react';
 import { ShieldCheck, ArrowRight, Loader2, Info } from 'lucide-react';
 import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { AuditLog, Task, User, TaskStatus } from '../types';
 import type { AuditLogType } from '../types';
+import { SPRING_ROW, staggerDelay } from '../lib/motion';
 import { Button } from './ui/Button';
 import { Avatar } from './ui/Avatar';
 import { Badge } from './ui/Badge';
@@ -210,7 +212,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
 
       <div className="flex flex-col gap-5">
         {logsState.length > 0 ? (
-          logsState.map((log) => {
+          logsState.map((log, i) => {
             // Öncelik sırası: (1) kaydın kendi donmuş `taskTitle`'ı — yeni
             // kayıtların tamamında vardır ve `tasks` dizisinin taskLimit
             // penceresinden BAĞIMSIZDIR, (2) bu alandan önce yazılmış eski
@@ -229,7 +231,13 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
               : false;
 
             return (
-              <div key={log.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-xl group hover:bg-surface-elevated hover:shadow-sm transition-all relative overflow-hidden">
+              <motion.div
+                key={log.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...SPRING_ROW, delay: staggerDelay(i, 0.03) }}
+                className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-xl group hover:bg-surface-elevated hover:shadow-sm transition-all relative overflow-hidden"
+              >
                 <div className={cn(
                   'absolute top-0 left-0 h-full transition-all rounded-l-xl',
                   hasSensitiveChange ? 'w-[3px] bg-status-danger' : 'w-1 bg-executive-blue/10 group-hover:bg-executive-blue'
@@ -306,7 +314,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
                     </div>
                   )}
                 </div>
-              </div>
+              </motion.div>
             );
           })
         ) : (
