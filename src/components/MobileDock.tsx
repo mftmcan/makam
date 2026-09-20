@@ -30,8 +30,8 @@ const ALL_ITEMS: DockItem[] = [
   { id: 'dashboard', label: 'Harekat',   icon: ShieldCheck,   roles: TAB_ROLES.dashboard },
   { id: 'tasks',     label: 'Talimatlar', icon: CheckSquare,  roles: TAB_ROLES.tasks },
   { id: 'blockers',  label: 'Engeller',  icon: AlertTriangle, roles: TAB_ROLES.blockers },
-  { id: 'team',      label: 'Kadro',     icon: Users,         roles: TAB_ROLES.team },
   { id: 'reports',   label: 'Raporlar',  icon: BarChart3,     roles: TAB_ROLES.reports },
+  { id: 'team',      label: 'Kadro',     icon: Users,         roles: TAB_ROLES.team },
   { id: 'audit',     label: 'Denetim',   icon: Database,      roles: TAB_ROLES.audit },
   { id: 'settings',  label: 'Ayarlar',   icon: Settings,      roles: TAB_ROLES.settings },
 ];

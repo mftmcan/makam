@@ -72,6 +72,15 @@ test.describe('Görsel Regresyon Ağı', () => {
       // navigasyonun oturuma bağlı olup olmadığı belirsizliğini ortadan kaldırır.
       await page.goto(`${tab.path}?e2e_token=${e2eToken}`);
       await expect(page.getByRole('main')).toBeVisible({ timeout: 15000 });
+      // <main>, AuthenticatedApp mount olur olmaz DOM'a girer — içindeki asıl
+      // sekme (AppRoutes.tsx'te lazy()) henüz kendi JS chunk'ını indirmemiş
+      // olabilir, bu sırada "MODÜL YÜKLENİYOR..." route-Suspense fallback'i
+      // (bkz. AuthenticatedApp.tsx) görünür. getByRole('main') bunu AYIRT
+      // ETMEZ (main zaten var) — sabit 600ms de her zaman yetmiyordu ve
+      // ekran görüntüsü ara sıra bu küçük spinner'ı yakalıyordu (bkz. flaky
+      // harekat-merkezi-mobile-light baseline kod denetimi). Asıl sekme
+      // mount olana kadar açıkça beklenir.
+      await expect(page.getByText('MODÜL YÜKLENİYOR...')).toHaveCount(0, { timeout: 15000 });
       // Route değişimi + veri yeniden render'ı için kısa bir yerleşme payı
       // (reducedMotion animasyonu ortadan kaldırsa da veri bağlı grafik/liste
       // render'ları hâlâ bir tık sürebilir).
