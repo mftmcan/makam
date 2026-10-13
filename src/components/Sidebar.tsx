@@ -6,7 +6,8 @@ import type { LucideIcon } from 'lucide-react';
 import { triggerHaptic } from '../lib/haptics';
 import { cn } from '../lib/utils';
 import { User } from '../types';
-import { ROLE_LABELS, TAB_ROLES, tabPath, type AppTabId } from '../constants';
+import { ROLE_LABELS, TAB_ROLES, tabPath, DEFAULT_TAB, type AppTabId } from '../constants';
+import { useNavigate } from 'react-router-dom';
 import { Logo } from './Logo';
 import { useResolvedTheme } from '../hooks/useResolvedTheme';
 import { PremiumIcon } from './ui/PremiumIcon';
@@ -28,6 +29,7 @@ interface MenuItem {
 export const Sidebar = ({ user, onLogout }: SidebarProps) => {
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const resolvedTheme = useResolvedTheme();
+  const navigate = useNavigate();
 
   const primaryItems: MenuItem[] = [
     { id: 'dashboard', label: 'Harekat Merkezi', icon: ShieldCheck, roles: TAB_ROLES.dashboard },
@@ -102,10 +104,10 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
         <button
           onClick={() => {
             triggerHaptic('medium');
-            setIsAboutModalOpen(true);
+            navigate(tabPath(DEFAULT_TAB));
           }}
           className="relative z-10 w-full flex items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2 transition-transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-          aria-label="Dizge Hakkında"
+          aria-label="Ana sayfa"
         >
           {/* variant sabit 'dark' idi — light temada bg-surface-glass açık bir
               zemine döndüğünde logo metni (beyaz) neredeyse görünmez oluyordu

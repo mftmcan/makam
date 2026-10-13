@@ -8,10 +8,11 @@ import { Badge } from './ui/Badge';
 import { Tooltip } from './ui/Tooltip';
 import { GuideModal } from './GuideModal';
 import { useModalBehavior } from './ui/Modal';
-import { ROLE_LABELS, TAB_TITLES } from '../constants';
+import { ROLE_LABELS, TAB_TITLES, tabPath, DEFAULT_TAB } from '../constants';
 import { useActiveTab } from '../hooks/useActiveTab';
 import { useUIStore } from '../store/uiStore';
 import { cn } from '../lib/utils';
+import { useNavigate } from 'react-router-dom';
 import type { User, Notification } from '../types';
 
 interface Props {
@@ -44,15 +45,12 @@ export function AppHeader({
   // Ekran başlığı artık `activeTab` prop'undan değil URL'den türetilir
   // (bkz. hooks/useActiveTab.ts).
   const activeTab = useActiveTab();
-  // Selector bazlı okuma — bu bileşen sticky/her zaman görünür olduğundan
-  // whole-store `useUIStore()` toasts/filter gibi ilgisiz her alan değişiminde
-  // (ör. her toast eklenip 6sn sonra otomatik kaldırıldığında) gereksiz
-  // yeniden render'a yol açıyordu.
   const theme = useUIStore(s => s.theme);
   const setTheme = useUIStore(s => s.setTheme);
   const resolvedTheme = useResolvedTheme();
   const isOnline = !isOffline;
   const queueCount = queueLength;
+  const navigate = useNavigate();
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // Masaüstünde "Birim Odak Filtresi" sabit bir <select> olarak görünür
@@ -215,7 +213,13 @@ export function AppHeader({
             koyu olduğundan) koyu-üstüne-koyu render olup görünürlüğü ciddi
             şekilde düşürebiliyordu (bkz. kod denetimi, Sidebar.tsx'teki aynı
             hatanın burada tekrarı). */}
-        <Logo size="sm" variant={resolvedTheme} />
+        <button
+          onClick={() => navigate(tabPath(DEFAULT_TAB))}
+          className="flex items-center justify-center p-2 rounded-lg hover:bg-surface-glass transition-colors"
+          aria-label="Ana sayfa"
+        >
+          <Logo size="sm" variant={resolvedTheme} />
+        </button>
         
         <div className="flex items-center gap-2">
           {/* Mobile Network Indicator */}
