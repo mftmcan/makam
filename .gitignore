@@ -17,3 +17,10 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 emulator-data/
+
+# Debug output files
+eslint_output.txt
+tsc_output.txt
+
+# Local IDE config
+.claude/settings.local.json
