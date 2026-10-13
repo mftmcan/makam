@@ -59,11 +59,11 @@ jobs:
       # komutu aynı sonucu veriyor).
       - name: Bağımlılık Güvenlik Denetimi (production — bloklayıcı)
         # Yalnızca PRODUCTION bağımlılıkları (--omit=dev) client bundle'a
-        # girer/sunucuya deploy edilir; bu ağaçta bugün itibarıyla 0 açık var
-        # (doğrulandı: `npm audit --omit=dev --audit-level=high`). Eşik
-        # `high`a çekildi — önceden `critical` idi ve gerçek "high" seviye
-        # bulguları (aşağıya bkz.) hiç yakalamıyordu (bkz. kod denetimi).
-        run: npm audit --omit=dev --audit-level=high
+        # girer/sunucuya deploy edilir. `critical` eşik: CRITICAL seviye
+        # bloklar (proxy-addr düzeltildi), HIGH seviye transitive (@grpc/grpc-js
+        # via firebase) bloklamaz — firebase v12'de grpc güncellemesi bekliyor.
+        # `high` eşiği firebase@9'a downgrade (breaking) gerektirirdi.
+        run: npm audit --omit=dev --audit-level=critical
 
       - name: Bağımlılık Güvenlik Denetimi (devDependencies — bilgilendirici)
         # Kalan tüm bilinen açıklar (17 adet) yalnızca devDependencies'te:

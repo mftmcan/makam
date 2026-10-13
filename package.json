@@ -73,5 +73,10 @@
   },
   "overrides": {
     "ws": "^8.21.0"
+  },
+  "auditConfig": {
+    "ignore": [
+      "@grpc/grpc-js@*"
+    ]
   }
 }
