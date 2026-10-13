@@ -1,4 +1,0 @@
-
-> makam-app@2.3.0 eslint
-> eslint . --max-warnings=0
-
