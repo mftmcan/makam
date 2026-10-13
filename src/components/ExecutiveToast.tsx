@@ -124,8 +124,8 @@ export const ExecutiveToast: React.FC<ExecutiveToastProps> = ({ toast, onClose, 
       tabIndex={0}
       className={cn(
         "pointer-events-auto w-full max-w-md overflow-hidden rounded-2xl shadow-2xl",
-        "bg-makam-glass backdrop-blur-[40px] border border-surface-border",
-        "transform transition-all duration-700 ease-in-out",
+        "bg-makam-glass border border-surface-border",
+        "transform transition-all duration-slow ease-in-out",
         "animate-in slide-in-from-right-8 fade-in-0",
         "hover:bg-makam-glass cursor-pointer group",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"

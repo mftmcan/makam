@@ -286,6 +286,17 @@
   --tracking-caps:    0.2em;   /* varsayılan uppercase mikro etiket + rozet */
   --tracking-eyebrow: 0.3em;   /* sayfa/bölüm başlığı eyebrow'u */
 
+  /* ─── Geçiş süresi (transition-duration) ölçeği ─────────────────────────────
+     Motion.ts'deki SPRING_* token'ları (giriş animasyonları) için ayrı, CSS
+     transition-duration için ayrı bir ölçek: aynı "hover/focus" etkileşimi
+     için duration-75/200/300/500/700 dağınık kullanılıyordu (bkz. kod
+     denetimi). Dört basamak bu aralığı toplar; motion spring'leri bu ölçeği
+     kullanmaz (farklı easing/stiffness), sadece düz transition'lar için. */
+  --dur-instant: 75ms;   /* mikro etkileşim (tooltip, badge, icon hover) */
+  --dur-fast: 200ms;     /* buton, input, küçük kart hover/focus */
+  --dur-base: 300ms;     /* standart panel, kart, modal içerik geçişi (en yaygın) */
+  --dur-slow: 500ms;     /* ana buton (primary), PremiumIcon, sayfa seviyesi geçiş */
+
   /* ─── "Cam kart" gölge ölçeği ────────────────────────────────────────────
      Tipografideki AYNI sürüklenme (bkz. yukarısı) gölgede de vardı: aynı
      "hafif cam kart" dinlenme gölgesi (0 1px 8px rgba(22,21,19,0.02)) 7 ayrı

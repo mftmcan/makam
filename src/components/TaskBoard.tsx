@@ -331,7 +331,7 @@ export const TaskBoard = ({
         subtitle={`${filteredTasks.length} Talimat`}
         actions={<>
           {/* Subtask toggle — compact pill */}
-          <div className="flex items-center gap-2 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-full px-3 h-9 shadow-sm">
+          <div className="flex items-center gap-2 bg-makam-glass border border-surface-border rounded-full px-3 h-9 shadow-sm">
             <Layers className={cn('w-3.5 h-3.5 stroke-[1.5] transition-colors', showSubtasks ? 'text-executive-blue' : 'text-text-tertiary')} />
             <span className="text-micro font-medium text-text-tertiary uppercase tracking-caps hidden sm:block">Alt Talimatlar</span>
             <button
@@ -340,12 +340,12 @@ export const TaskBoard = ({
               aria-checked={showSubtasks}
               aria-label="Alt talimatları göster"
               className={cn(
-                'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2',
+                'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2',
                 showSubtasks ? 'bg-executive-blue' : 'bg-surface-border'
               )}
             >
               <span className={cn(
-                'pointer-events-none inline-block h-3 w-3 rounded-full bg-surface-elevated shadow-sm ring-0 transition duration-300',
+                'pointer-events-none inline-block h-3 w-3 rounded-full bg-surface-elevated shadow-sm ring-0 transition duration-base',
                 showSubtasks ? 'translate-x-3' : 'translate-x-0'
               )} />
             </button>
@@ -434,7 +434,7 @@ export const TaskBoard = ({
           <button
             onClick={handleLoadMore}
             disabled={isLoadingMore}
-            className="flex items-center gap-2 px-6 py-2 bg-makam-glass backdrop-blur-xl border border-executive-blue/10 rounded-full text-micro font-medium text-executive-blue uppercase tracking-widest hover:bg-executive-blue hover:text-[color:var(--executive-blue-text)] transition-all shadow-sm disabled:opacity-60 disabled:pointer-events-none"
+            className="flex items-center gap-2 px-6 py-2 bg-makam-glass border border-executive-blue/10 rounded-full text-micro font-medium text-executive-blue uppercase tracking-widest hover:bg-executive-blue hover:text-[color:var(--executive-blue-text)] transition-all shadow-sm disabled:opacity-60 disabled:pointer-events-none"
           >
             {isLoadingMore && <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
             Daha Fazla Talimat Yükle

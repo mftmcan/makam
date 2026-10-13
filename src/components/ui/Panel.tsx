@@ -15,7 +15,7 @@ import { cn } from '../../lib/utils';
  * `motion.div`'e onun kendi animasyon prop'larını bozmadan uygulanabilsin
  * diye `cn(PANEL_CLASSNAME, ...)` olarak kullanılır.
  */
-export const PANEL_CLASSNAME = 'bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl p-4 shadow-card';
+export const PANEL_CLASSNAME = 'bg-makam-glass border border-surface-border rounded-2xl p-4 shadow-card';
 
 /**
  * PANEL_CLASSNAME'in tablo/liste çerçevesi varyantı — `p-0 overflow-hidden`
@@ -23,7 +23,7 @@ export const PANEL_CLASSNAME = 'bg-makam-glass backdrop-blur-xl border border-su
  * tekrarlanmıştı, Reports ise zaten `cn(PANEL_CLASSNAME, 'overflow-hidden p-0')`
  * ile doğru şeyi yapıyordu (bkz. tasarım denetimi). Üçü artık tek kaynak.
  */
-export const PANEL_FRAME_CLASSNAME = 'bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden shadow-card';
+export const PANEL_FRAME_CLASSNAME = 'bg-makam-glass border border-surface-border rounded-2xl overflow-hidden shadow-card';
 
 interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;

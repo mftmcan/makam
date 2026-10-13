@@ -93,7 +93,7 @@ export function AppHeader({
   return (
     <>
       {/* Desktop Header Refined */}
-      <header className="hidden lg:flex min-h-20 bg-makam-glass border-b border-makam-border/5 items-center justify-between px-8 sticky top-0 z-40 backdrop-blur-[40px] lg:ml-64">
+      <header className="hidden lg:flex min-h-20 bg-makam-glass border-b border-makam-border/5 items-center justify-between px-8 sticky top-0 z-40 lg:ml-64">
         <div className="flex items-center gap-8">
            <div className="flex flex-col gap-1.5 border-l-2 border-executive-gold/20 pl-6">
              <h1 className="text-body font-medium text-text-heading uppercase tracking-caps font-display">

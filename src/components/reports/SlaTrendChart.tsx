@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { PANEL_CLASSNAME } from '../ui/Panel';
 import { SPRING_PANEL } from '../../lib/motion';
 import type { SlaTrendPoint } from './helpers';
+import { CHART_TOOLTIP_CONTENT_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK_STYLE } from './chartTheme';
 
 interface SlaTrendChartProps {
   data: SlaTrendPoint[];
@@ -35,20 +36,12 @@ export const SlaTrendChart = ({ data }: SlaTrendChartProps) => {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
             <CartesianGrid stroke="var(--color-surface-border)" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="name" fontSize={8} tickLine={false} axisLine={false} tick={{ fill: 'var(--text-light)' }} />
-            <YAxis domain={[0, 100]} fontSize={8} tickLine={false} axisLine={false} tick={{ fill: 'var(--text-light)' }}
+            <XAxis dataKey="name" fontSize={8} tickLine={false} axisLine={false} tick={CHART_AXIS_TICK_STYLE} />
+            <YAxis domain={[0, 100]} fontSize={8} tickLine={false} axisLine={false} tick={CHART_AXIS_TICK_STYLE}
               tickFormatter={(v) => `%${v}`} />
             <Tooltip
-              contentStyle={{
-                backgroundColor: 'var(--color-surface-base)',
-                borderColor: 'var(--color-surface-border)',
-                borderRadius: '14px',
-                fontSize: '11px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                backdropFilter: 'blur(20px)',
-                color: 'var(--color-text-heading)'
-              }}
-              itemStyle={{ color: 'var(--color-text-body)' }}
+              contentStyle={CHART_TOOLTIP_CONTENT_STYLE}
+              itemStyle={CHART_TOOLTIP_ITEM_STYLE}
               formatter={(v) => v !== null ? [`%${v}`, 'SLA Uyum'] : ['Veri yok', '']}
             />
             <Line dataKey="oran" stroke="var(--chart-created)" strokeWidth={2} dot={{ r: 3, fill: 'var(--chart-created)' }}

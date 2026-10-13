@@ -4,6 +4,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } fro
 import { PANEL_CLASSNAME } from '../ui/Panel';
 import { SPRING_PANEL } from '../../lib/motion';
 import type { StaffWorkloadRow } from './helpers';
+import { CHART_TOOLTIP_CONTENT_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK_STYLE, CHART_LEGEND_FORMATTER_STYLE } from './chartTheme';
 
 interface StaffWorkloadChartProps {
   data: StaffWorkloadRow[];
@@ -39,25 +40,17 @@ export const StaffWorkloadChart = ({ data }: StaffWorkloadChartProps) => (
               <stop offset="100%" stopColor="var(--chart-completed)" stopOpacity="0.35" />
             </linearGradient>
           </defs>
-          <XAxis dataKey="name" fontSize={9} tickLine={false} axisLine={false} tick={{ fill: 'var(--text-light)' }} />
-          <YAxis fontSize={8} tickLine={false} axisLine={false} tick={{ fill: 'var(--text-light)' }} />
+          <XAxis dataKey="name" fontSize={9} tickLine={false} axisLine={false} tick={CHART_AXIS_TICK_STYLE} />
+          <YAxis fontSize={8} tickLine={false} axisLine={false} tick={CHART_AXIS_TICK_STYLE} />
           <Tooltip
-            contentStyle={{
-              backgroundColor: 'var(--color-surface-base)',
-              borderColor: 'var(--color-surface-border)',
-              borderRadius: '14px',
-              fontSize: '11px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-              backdropFilter: 'blur(20px)',
-              color: 'var(--color-text-heading)'
-            }}
-            itemStyle={{ color: 'var(--color-text-body)' }}
-            cursor={{ fill: 'rgba(22, 21, 19, 0.02)' }}
+            contentStyle={CHART_TOOLTIP_CONTENT_STYLE}
+            itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+            cursor={{ fill: 'var(--shadow-card)' }}
           />
           <Bar dataKey="assigned" name="Aktif" fill="url(#barActive)" radius={[4, 4, 0, 0]} />
           <Bar dataKey="completed" name="Tamamlanan" fill="url(#barCompleted)" radius={[4, 4, 0, 0]} />
           <Legend iconSize={8} iconType="circle"
-            formatter={(v) => <span style={{ fontSize: 9, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>{v}</span>}
+            formatter={(v) => <span style={CHART_LEGEND_FORMATTER_STYLE}>{v}</span>}
           />
         </BarChart>
       </ResponsiveContainer>

@@ -75,7 +75,7 @@ const BlockerCard = ({ blocker, index, tasksById, usersById, isAdmin, isSystemAd
         }
       }}
       className={cn(
-        'flex flex-col gap-3 p-3.5 rounded-2xl border cursor-pointer group transition-all duration-300',
+        'flex flex-col gap-3 p-3.5 rounded-2xl border cursor-pointer group transition-all duration-base',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2',
         !blocker.isResolved
           ? cn(

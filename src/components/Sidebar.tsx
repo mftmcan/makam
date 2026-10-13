@@ -57,7 +57,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
       onClick={() => triggerHaptic('light')}
       aria-label={item.label}
       className={({ isActive }) => cn(
-        'flex items-center gap-4 px-3.5 py-2.5 rounded-xl transition-all duration-500 group relative border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base',
+        'flex items-center gap-4 px-3.5 py-2.5 rounded-xl transition-all duration-slow group relative border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base',
         isActive
           ? 'bg-executive-gold/[0.08] border-executive-gold/15 shadow-[0_8px_32px_rgba(197,160,89,0.05)] translate-x-1'
           : 'hover:bg-surface-glass hover:translate-x-0.5'
@@ -73,7 +73,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
             aria-hidden
           />
           <span className={cn(
-            'font-normal text-body tracking-wide transition-colors duration-300',
+            'font-normal text-body tracking-wide transition-colors duration-base',
             // text-executive-gold (#C5A059) düz metin olarak açık zeminlerde
             // ~2.2:1 kontrast veriyor (axe-core authenticated e2e testi bulgusu)
             // — tema-duyarlı --gold-text token'ı kullanılıyor (bkz. index.css).
@@ -112,7 +112,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
               (~1.14:1 kontrast, axe-core authenticated e2e testi bulgusu).
               Login/AboutModal/App.tsx'teki gibi çözümlenmiş temayı izliyor. */}
           <Logo variant={resolvedTheme} size="md" className="drop-shadow-[0_4px_12px_rgba(197,160,89,0.12)]" />
-          <div className="absolute -right-2 -top-2 bg-executive-gold text-brand-obsidian text-micro font-bold px-1.5 py-0.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">v2.3.0</div>
+          <div className="absolute -right-2 -top-2 bg-executive-gold text-brand-obsidian text-micro font-bold px-1.5 py-0.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-base">v2.3.0</div>
         </button>
       </div>
 
@@ -145,7 +145,7 @@ export const Sidebar = ({ user, onLogout }: SidebarProps) => {
             className="border-surface-border flex-shrink-0 group-hover:scale-105 transition-all"
           />
           <div className="flex flex-col overflow-hidden gap-1">
-            <span className="text-[14px] font-normal text-text-heading truncate tracking-tight leading-none font-display">{user?.fullName}</span>
+            <span className="text-body-lg font-normal text-text-heading truncate tracking-tight leading-none font-display">{user?.fullName}</span>
             <div className="flex items-center gap-1.5 mt-1">
               <span className="w-1 h-1 rounded-full bg-status-success" />
               <span className="text-micro text-[color:var(--gold-text)] font-medium uppercase tracking-caps">{user ? ROLE_LABELS[user.role] : ''}</span>

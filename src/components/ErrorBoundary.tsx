@@ -123,7 +123,7 @@ export class ErrorBoundary extends Component<Props, State> {
     const { message, isFirebaseError } = this.getErrorMessage();
     return (
       <div className="min-h-screen bg-surface-base flex items-center justify-center p-8 font-sans">
-        <div className="max-w-lg w-full makam-card !p-12 flex flex-col items-center text-center gap-10 bg-makam-glass border-surface-border shadow-2xl backdrop-blur-[40px]">
+        <div className="max-w-lg w-full makam-card !p-12 flex flex-col items-center text-center gap-10 shadow-2xl">
           <Logo size="lg" withText={false} />
 
           <div className="w-20 h-20 bg-status-danger/10 text-status-danger rounded-2xl flex items-center justify-center border border-status-danger/20 shadow-inner">
@@ -132,7 +132,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
           <div className="flex flex-col gap-4">
             <h2 className="text-3xl font-light text-text-heading tracking-tight font-display uppercase">Dizge Kesintisi</h2>
-            <p className="text-text-muted text-[15px] font-light leading-relaxed">
+            <p className="text-text-muted text-field font-light leading-relaxed">
               {message}
             </p>
             {isFirebaseError && (

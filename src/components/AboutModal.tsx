@@ -81,7 +81,7 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
                   whileHover={{ x: 4 }}
                   className="group flex items-center gap-3.5 text-left py-2"
                 >
-                  <div className="w-9 h-9 shrink-0 rounded-full bg-surface-base/60 border border-makam-border/10 flex items-center justify-center text-[color:var(--gold-text)] shadow-inner transition-all duration-500 group-hover:bg-executive-gold group-hover:text-[color:var(--btn-primary-text)]">
+                  <div className="w-9 h-9 shrink-0 rounded-full bg-surface-base/60 border border-makam-border/10 flex items-center justify-center text-[color:var(--gold-text)] shadow-inner transition-all duration-slow group-hover:bg-executive-gold group-hover:text-[color:var(--btn-primary-text)]">
                     <Icon className="w-4 h-4 stroke-[1.4]" aria-hidden="true" />
                   </div>
                   <span className="text-body-sm leading-tight text-text-heading">

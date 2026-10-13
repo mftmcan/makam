@@ -136,7 +136,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
                     onClick={handleSelect}
                     aria-label={badgeCount ? `${item.label}, ${badgeCount} bekleyen bildirim` : item.label}
                     className={({ isActive }) => cn(
-                      'flex items-center gap-3 w-full px-4 py-3.5 touch-manipulation transition-all duration-200 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-inset',
+                      'flex items-center gap-3 w-full px-4 py-3.5 touch-manipulation transition-all duration-fast text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-inset',
                       isActive
                         ? 'bg-executive-blue/5 text-executive-blue'
                         : 'text-text-muted hover:bg-executive-blue/[0.03] hover:text-text-heading'
@@ -176,7 +176,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
               <div className="border-t border-executive-blue/[0.04]">
                 <button
                   onClick={onLogout}
-                  className="flex items-center gap-3 w-full px-4 py-3.5 touch-manipulation transition-all duration-200
+                  className="flex items-center gap-3 w-full px-4 py-3.5 touch-manipulation transition-all duration-fast
                              text-status-danger/70 hover:text-status-danger hover:bg-status-danger/10"
                 >
                   <LogOut className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
@@ -226,7 +226,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
                   // görsel fark yaratmaz). active:duration-75: büzülme geri
                   // bildirimi renk/zemin geçişinin 300ms'inden bağımsız
                   // hızlansın diye — aksi halde dokunuş "gecikmeli" hissediyor.
-                  'gap-1 py-2.5 min-h-12 rounded-xl transition-all duration-300 active:duration-75',
+                  'gap-1 py-2.5 min-h-12 rounded-xl transition-all duration-base active:duration-75',
                   'relative min-w-0 group touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-1',
                   isCompact ? 'w-20 sm:w-24 shrink-0' : 'flex-1 px-0.5 sm:px-1'
                 )}
@@ -251,7 +251,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
                       >
                         <Icon
                           className={cn(
-                            'w-5 h-5 transition-colors duration-300',
+                            'w-5 h-5 transition-colors duration-fast',
                             isActive ? 'text-executive-blue' : 'text-text-muted/70 group-hover:text-text-muted'
                           )}
                           strokeWidth={isActive ? 2 : 1.5}
@@ -316,7 +316,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
               aria-haspopup="true"
               className={cn(
                 'flex flex-col items-center justify-center',
-                'gap-1 py-2.5 min-h-12 rounded-xl transition-all duration-300 active:duration-75',
+                'gap-1 py-2.5 min-h-12 rounded-xl transition-all duration-base active:duration-75',
                 'relative min-w-0 group touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-1',
                 isCompact ? 'w-20 sm:w-24 shrink-0' : 'flex-1 px-0.5 sm:px-1'
               )}
@@ -333,7 +333,7 @@ export const MobileDock = ({ user, onLogout, notificationCount = 0 }: MobileDock
               <motion.div animate={{ rotate: showMore ? 90 : 0 }} transition={{ duration: 0.2 }} aria-hidden="true">
                 <MoreHorizontal
                   className={cn(
-                    'w-5 h-5 transition-colors duration-300',
+                    'w-5 h-5 transition-colors duration-fast',
                     showMore ? 'text-executive-blue' : 'text-text-muted/70 group-hover:text-text-muted'
                   )}
                   strokeWidth={1.5}

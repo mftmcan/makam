@@ -256,7 +256,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
             aria-invalid={errors.description ? true : undefined}
             aria-describedby={errors.description ? "task-description-error" : undefined}
             className={cn(
-              "w-full min-h-[140px] resize-none bg-field-surface border border-executive-blue/[0.05] text-text-heading placeholder:text-text-muted/30 rounded-xl px-5 py-4 text-[14px] font-light leading-relaxed transition-all outline-none focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
+              "w-full min-h-[140px] resize-none bg-field-surface border border-executive-blue/[0.05] text-text-heading placeholder:text-text-muted/30 rounded-xl px-5 py-4 text-body-lg font-light leading-relaxed transition-all outline-none focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
               errors.description && "border-status-danger/50"
             )}
             placeholder="İşin detaylarını ve başarı kriterlerini tanımlayın..."

@@ -224,7 +224,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
                   onClick={() => setQueueFilter(prev => prev === signal.key ? null : signal.key)}
                   aria-pressed={queueFilter === signal.key}
                   className={cn(
-                    'min-w-0 rounded-xl border px-2 py-1.5 text-center transition-all duration-200',
+                    'min-w-0 rounded-xl border px-2 py-1.5 text-center transition-all duration-fast',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base',
                     // NOT: Tailwind'in varsayılan red/amber/emerald paleti (oklch
                     // tabanlı) axe-core taramasında bu bileşende beklenmedik
@@ -236,7 +236,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
                     queueFilter === signal.key && 'ring-2 ring-offset-2 ring-offset-surface-base ring-executive-blue/40 scale-[0.97]'
                   )}
                 >
-                  <div className="text-[14px] font-semibold tabular-nums leading-none">{signal.value}</div>
+                  <div className="text-body-lg font-semibold tabular-nums leading-none">{signal.value}</div>
                   <div className="text-micro uppercase tracking-label mt-1 truncate">{signal.label}</div>
                 </button>
               ))}

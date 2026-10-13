@@ -127,7 +127,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
         subtitle={`${logsState.length} Kayıt`}
         actions={<>
           {/* User Filter select */}
-          <div className="flex items-center gap-2 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl px-3 py-2 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-executive-blue has-[:focus-visible]:ring-offset-1">
+          <div className="flex items-center gap-2 bg-makam-glass border border-surface-border rounded-2xl px-3 py-2 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-executive-blue has-[:focus-visible]:ring-offset-1">
             <Avatar size="xs" name="Filter" />
             <select
               value={selectedUser}
@@ -145,7 +145,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
           </div>
 
           {/* Action Type filter select */}
-          <div className="flex items-center gap-2 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl px-3 py-2 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-executive-blue has-[:focus-visible]:ring-offset-1">
+          <div className="flex items-center gap-2 bg-makam-glass border border-surface-border rounded-2xl px-3 py-2 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-executive-blue has-[:focus-visible]:ring-offset-1">
             <ShieldCheck className="w-3.5 h-3.5 text-executive-blue stroke-[1.5] flex-shrink-0" />
             <select
               value={selectedType}
@@ -160,7 +160,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
           </div>
 
           {/* Date range filter */}
-          <div className="flex items-center gap-1.5 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-2xl px-3 py-2 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-executive-blue has-[:focus-visible]:ring-offset-1">
+          <div className="flex items-center gap-1.5 bg-makam-glass border border-surface-border rounded-2xl px-3 py-2 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-executive-blue has-[:focus-visible]:ring-offset-1">
             <label htmlFor="audit-date-from" className="sr-only">Başlangıç Tarihi</label>
             <input
               id="audit-date-from"
@@ -236,7 +236,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...SPRING_ROW, delay: staggerDelay(i, 0.03) }}
-                className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-makam-glass backdrop-blur-xl border border-surface-border rounded-xl group hover:bg-surface-elevated hover:shadow-sm transition-all relative overflow-hidden"
+                className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-makam-glass border border-surface-border rounded-xl group hover:bg-surface-elevated hover:shadow-sm transition-all relative overflow-hidden"
               >
                 <div className={cn(
                   'absolute top-0 left-0 h-full transition-all rounded-l-xl',

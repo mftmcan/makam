@@ -212,7 +212,7 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({ userId }
                       <ShieldCheck className="w-8 h-8 text-[color:var(--status-success-text)] stroke-[1.5]" />
                     </motion.div>
                     <div className="flex flex-col gap-1">
-                      <h3 className="text-[16px] font-medium text-executive-blue font-display">Etkinleştirildi!</h3>
+                      <h3 className="text-title font-medium text-executive-blue font-display">Etkinleştirildi!</h3>
                       <p className="text-caption text-text-muted">
                         Kurumsal bildirimler başarıyla etkinleştirildi.
                       </p>

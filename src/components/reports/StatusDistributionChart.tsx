@@ -6,6 +6,7 @@ import { PANEL_CLASSNAME } from '../ui/Panel';
 import { SPRING_PANEL } from '../../lib/motion';
 import { EMPTY_STATE_MESSAGES } from '../../constants';
 import type { StatusDistributionRow } from './helpers';
+import { CHART_TOOLTIP_CONTENT_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_LEGEND_FORMATTER_STYLE } from './chartTheme';
 
 interface StatusDistributionChartProps {
   data: StatusDistributionRow[];
@@ -40,20 +41,12 @@ export const StatusDistributionChart = ({ data }: StatusDistributionChartProps) 
               ))}
             </Pie>
             <Tooltip
-              contentStyle={{
-                backgroundColor: 'var(--color-surface-base)',
-                borderColor: 'var(--color-surface-border)',
-                borderRadius: '14px',
-                fontSize: '11px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                backdropFilter: 'blur(20px)',
-                color: 'var(--color-text-heading)'
-              }}
-              itemStyle={{ color: 'var(--color-text-body)' }}
+              contentStyle={CHART_TOOLTIP_CONTENT_STYLE}
+              itemStyle={CHART_TOOLTIP_ITEM_STYLE}
               formatter={(v, name) => [v, name]}
             />
             <Legend iconSize={8} iconType="circle"
-              formatter={(v) => <span style={{ fontSize: 9, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>{v}</span>}
+              formatter={(v) => <span style={CHART_LEGEND_FORMATTER_STYLE}>{v}</span>}
             />
           </PieChart>
         </ResponsiveContainer>

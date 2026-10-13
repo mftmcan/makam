@@ -270,7 +270,7 @@ export const TaskDetails = ({
 
           <div className="ml-auto flex items-center gap-3">
             {(isAdmin || isManager) && (
-              <div className="flex items-center bg-makam-glass backdrop-blur-2xl rounded-full p-1 border border-surface-border shadow-sm">
+              <div className="flex items-center bg-makam-glass border border-surface-border rounded-full p-1 shadow-sm">
                 <button onClick={onEdit} className="px-4 py-2 rounded-full text-micro font-medium text-text-muted hover:text-executive-blue transition-colors uppercase tracking-caps focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2">
                   <Edit2 className="w-3.5 h-3.5 inline mr-2" />
                   Düzenle
@@ -285,7 +285,7 @@ export const TaskDetails = ({
           </div>
         </div>
 
-        <h2 className="text-[18px] font-medium text-executive-blue tracking-tight leading-tight font-display border-l-2 border-executive-gold/40 pl-4 py-1">
+        <h2 className="text-title-lg font-medium text-executive-blue tracking-tight leading-tight font-display border-l-2 border-executive-gold/40 pl-4 py-1">
           {task.title}
         </h2>
       </div>
@@ -302,7 +302,7 @@ export const TaskDetails = ({
               <React.Fragment key={status}>
                 <div className="flex flex-col items-center gap-1">
                   <div className={cn(
-                    'w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all duration-500',
+                    'w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all duration-slow',
                     isCompleted ? 'bg-status-success border-status-success text-[color:var(--status-success-text)]' :
                     isActive && isInterruption ? 'bg-status-danger border-status-danger text-[color:var(--status-danger-text)] animate-pulse shadow-lg shadow-status-danger/15' :
                     isActive && isDelegation ? 'bg-executive-gold border-executive-gold text-[color:var(--btn-primary-text)] shadow-lg shadow-executive-gold/20' :
@@ -325,7 +325,7 @@ export const TaskDetails = ({
                 </div>
                 {idx < STATUS_PIPELINE.length - 1 && (
                   <div className={cn(
-                    'flex-1 h-[2px] mx-1 mt-[-10px] rounded-full transition-all duration-500',
+                    'flex-1 h-[2px] mx-1 mt-[-10px] rounded-full transition-all duration-slow',
                     isCompleted ? 'bg-status-success' : 'bg-text-muted/15'
                   )} />
                 )}

@@ -63,7 +63,7 @@ export function ReloadPrompt() {
                       <RefreshCw className="w-5 h-5 text-status-info animate-spin-slow" />
                    </div>
                    <div className="flex flex-col">
-                      <h4 className="text-[15px] font-semibold text-text-heading tracking-tight">
+                      <h4 className="text-field font-semibold text-text-heading tracking-tight">
                         {offlineReady ? 'Çevrimdışı Hazır' : 'Dizge Güncellemesi'}
                       </h4>
                       <p className="text-body text-text-muted font-medium">
