@@ -1,65 +1,15 @@
-import { initializeApp, FirebaseError } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCustomToken, signOut, onAuthStateChanged, connectAuthEmulator } from 'firebase/auth';
+import { app, databaseId, isUsingFirebaseEmulator, projectId } from './firebaseCore';
+export { auth, googleProvider, signInWithPopup, signInWithCustomToken, signOut, onAuthStateChanged, FirebaseError, databaseId, projectId, isUsingFirebaseEmulator } from './firebaseCore';
+import { logger } from './lib/logger';
+import { useUIStore } from './store/uiStore';
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, getCountFromServer, updateDoc, deleteDoc, onSnapshot, query, where, or, orderBy, limit, startAfter, documentId, addDoc, getDocFromServer, runTransaction, writeBatch, increment, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getMessaging, isSupported, type Messaging } from 'firebase/messaging';
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
-import firebaseConfigJson from '../firebase-applet-config.json';
-import { logger } from './lib/logger';
-import { useUIStore } from './store/uiStore';
 
-// Detect if environment variables are "suspicious" (e.g., databaseId is a URL)
-const envDatabaseId = import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID;
-const isSuspiciousEnv = envDatabaseId && envDatabaseId.startsWith('http');
-
-if (isSuspiciousEnv) {
-  logger.warn('CRITICAL NOTICE: Detected invalid Firebase environment variables (Database ID is a URL).');
-  logger.warn('Ignoring VITE_FIREBASE_* environment variables and using firebase-applet-config.json instead.');
-}
-
-// Using firebase-applet-config.json as primary source, allowing env overrides ONLY if not suspicious
-const firebaseConfig = {
-  ...firebaseConfigJson,
-  apiKey: (!isSuspiciousEnv && import.meta.env.VITE_FIREBASE_API_KEY) || firebaseConfigJson.apiKey,
-  authDomain: (!isSuspiciousEnv && import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || firebaseConfigJson.authDomain,
-  projectId: (!isSuspiciousEnv && import.meta.env.VITE_FIREBASE_PROJECT_ID) || firebaseConfigJson.projectId,
-  storageBucket: (!isSuspiciousEnv && import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) || firebaseConfigJson.storageBucket,
-  messagingSenderId: (!isSuspiciousEnv && import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || firebaseConfigJson.messagingSenderId,
-  appId: (!isSuspiciousEnv && import.meta.env.VITE_FIREBASE_APP_ID) || firebaseConfigJson.appId,
-  measurementId: (!isSuspiciousEnv && import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) || firebaseConfigJson.measurementId
-};
-
-const rawDatabaseId = (!isSuspiciousEnv && import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID) || (firebaseConfigJson as Record<string, unknown>).firestoreDatabaseId as string | undefined || '(default)';
-const rawProjectId = firebaseConfig.projectId;
-
-export const databaseId = rawDatabaseId;
-export const projectId = rawProjectId;
-
-const app = initializeApp(firebaseConfig);
-
-// App Check Initialization (reCAPTCHA Enterprise)
-if (typeof window !== 'undefined' && import.meta.env.VITE_RECAPTCHA_SITE_KEY) {
-  initializeAppCheck(app, {
-    provider: new ReCaptchaEnterpriseProvider(import.meta.env.VITE_RECAPTCHA_SITE_KEY),
-    isTokenAutoRefreshEnabled: true
-  });
-}
-
-export const auth = getAuth(app);
 export const db = getFirestore(app, databaseId);
 export const storage = getStorage(app);
-export const googleProvider = new GoogleAuthProvider();
-
-// E2E/yerel geliştirme için Firebase Emulator Suite'e bağlanma.
-// Yalnızca `vite dev` (import.meta.env.DEV) ile ve VITE_USE_FIREBASE_EMULATOR
-// açıkça 'true' verildiğinde aktif olur — `vite build` çıktısında DEV her
-// zaman false'a sabitlendiği için bu kod prod bundle'ında hiçbir zaman
-// çalışamaz, ortam değişkeni yanlışlıkla kalsa bile.
-export const isUsingFirebaseEmulator =
-  import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true';
 
 if (isUsingFirebaseEmulator) {
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
   connectFirestoreEmulator(db, '127.0.0.1', 8080);
   logger.debug('[Firebase] Emulator Suite\'e bağlanıldı (Auth :9099, Firestore :8080).');
 }
@@ -88,7 +38,7 @@ async function testConnection() {
       logger.error("Firebase configuration error: Client is offline. Check your project settings.");
       logger.error("This usually means the databaseId or projectId is incorrect.");
       logger.error("Current Database ID:", databaseId);
-      logger.error("Current Project ID:", firebaseConfig.projectId);
+      logger.error("Current Project ID:", projectId);
       logger.error("Please verify that your firestoreDatabaseId matches the one in Firebase Console.");
       // Bu hata daha önce yalnızca konsola yazılıyordu — yanlış databaseId/projectId
       // durumunda kullanıcı sebepsiz boş bir ekranla baş başa kalıyordu (Firestore
@@ -114,4 +64,4 @@ async function testConnection() {
 const CONNECTION_TEST_INITIAL_DELAY_MS = 2000;
 setTimeout(testConnection, CONNECTION_TEST_INITIAL_DELAY_MS);
 
-export { signInWithPopup, signInWithCustomToken, signOut, onAuthStateChanged, collection, doc, setDoc, getDoc, getDocs, getCountFromServer, updateDoc, deleteDoc, onSnapshot, query, where, or, orderBy, limit, startAfter, documentId, addDoc, ref, uploadBytes, getDownloadURL, runTransaction, writeBatch, increment, FirebaseError };
+export { collection, doc, setDoc, getDoc, getDocs, getCountFromServer, updateDoc, deleteDoc, onSnapshot, query, where, or, orderBy, limit, startAfter, documentId, addDoc, ref, uploadBytes, getDownloadURL, runTransaction, writeBatch, increment };

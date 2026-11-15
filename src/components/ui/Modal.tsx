@@ -12,6 +12,10 @@ import { cn } from '../../lib/utils';
    - body scroll kilidi yalnızca stack tamamen boşalınca kaldırılır
      (ref-count mantığı). */
 let modalStack: symbol[] = [];
+let scrollLockCount = 0;
+let previousOverflow = '';
+let inertLockCount = 0;
+let rootWasInert = false;
 
 /** Takvim gibi `useModalBehavior` kullanmayan hafif açılır panellerin de aynı
  *  "yalnızca en üstteki Escape'i işler" kuralına katılabilmesi için dışa
@@ -56,7 +60,9 @@ export const useModalBehavior = ({ isOpen, onClose, containerRef, initialFocusRe
   useEffect(() => {
     if (!isOpen) return;
     const id = idRef.current!;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     modalStack.push(id);
+    if (scrollLockCount++ === 0) previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     // Arka plandaki uygulama içeriği (#root) ekran okuyucular için erişilebilir
     // kalıyordu — aria-modal="true" bunu VoiceOver gibi bazı tarayıcı/AT
@@ -65,13 +71,17 @@ export const useModalBehavior = ({ isOpen, onClose, containerRef, initialFocusRe
     // eklenir, yalnızca SON modal kapandığında kaldırılır. applyInert=false
     // olan çağıranlar (#root İÇİNDE render olanlar) bu adımı atlar.
     const rootEl = applyInert ? document.getElementById('root') : null;
-    if (rootEl && modalStack.length === 1) rootEl.setAttribute('inert', '');
+    if (rootEl && inertLockCount++ === 0) {
+      rootWasInert = rootEl.hasAttribute('inert');
+      rootEl.setAttribute('inert', '');
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Yalnızca en üstteki modal klavye olaylarını yönetir
       if (modalStack[modalStack.length - 1] !== id) return;
 
       if (e.key === 'Escape') {
+        e.preventDefault();
         onCloseRef.current();
         return;
       }
@@ -79,7 +89,7 @@ export const useModalBehavior = ({ isOpen, onClose, containerRef, initialFocusRe
       // Focus Trap: Tab tuşu modal içinde dolaşır, dışına çıkmaz
       if (e.key === 'Tab' && containerRef.current) {
         const candidates = containerRef.current.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+          'a[href], button, textarea, input, select, [tabindex]'
         );
         // Sekmeli modallarda (ör. TaskDetails) pasif sekmenin içeriği DOM'da
         // kalıp yalnızca CSS ile gizlenebiliyor — offsetParent null kontrolü
@@ -87,11 +97,21 @@ export const useModalBehavior = ({ isOpen, onClose, containerRef, initialFocusRe
         // ekranda hiç görünmeyen bir alana kilitleyebiliyordu (bkz. kod
         // denetimi). aria-hidden olan (dekoratif ikon vb.) elemanlar zaten
         // doğal olarak tabindex taşımadığından burada ayrıca elenmesi gerekmez.
-        const focusable = Array.from(candidates).filter(el => el.offsetParent !== null);
+        const focusable = Array.from(candidates).filter(el =>
+          el.offsetParent !== null && el.tabIndex >= 0 &&
+          !el.matches(':disabled, [hidden], input[type="hidden"]') &&
+          !el.closest('[inert], [aria-hidden="true"]')
+        );
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
 
-        if (e.shiftKey) {
+        if (!first) {
+          e.preventDefault();
+          containerRef.current.focus();
+        } else if (!containerRef.current.contains(document.activeElement) || document.activeElement === containerRef.current) {
+          e.preventDefault();
+          (e.shiftKey ? last : first)?.focus();
+        } else if (e.shiftKey) {
           if (document.activeElement === first) {
             e.preventDefault();
             last?.focus();
@@ -106,17 +126,21 @@ export const useModalBehavior = ({ isOpen, onClose, containerRef, initialFocusRe
     };
     document.addEventListener('keydown', handleKeyDown);
 
-    const focusTimer = window.setTimeout(() => initialFocusRef?.current?.focus(), 50);
+    const focusTimer = window.setTimeout(() => {
+      if (isTopOfModalStack(id)) (initialFocusRef?.current ?? containerRef.current)?.focus();
+    }, 50);
 
     return () => {
       window.clearTimeout(focusTimer);
       document.removeEventListener('keydown', handleKeyDown);
+      const wasTop = isTopOfModalStack(id);
       modalStack = modalStack.filter(entry => entry !== id);
       // Scroll kilidi ve inert yalnızca son modal kapanınca kalkar
-      if (modalStack.length === 0) {
-        document.body.style.overflow = '';
-        rootEl?.removeAttribute('inert');
+      if (--scrollLockCount === 0) {
+        document.body.style.overflow = previousOverflow;
       }
+      if (rootEl && --inertLockCount === 0 && !rootWasInert) rootEl.removeAttribute('inert');
+      if (wasTop && previouslyFocused?.isConnected && !previouslyFocused.closest('[inert]')) previouslyFocused.focus();
     };
     // containerRef ve initialFocusRef sabit ref nesneleridir
   }, [isOpen]);
@@ -185,6 +209,7 @@ export const Modal = ({ isOpen, onClose, title, ariaLabel, children, footer, siz
             <motion.div
               layoutId={layoutId}
               ref={modalRef}
+              tabIndex={-1}
               initial={{ opacity: 0, scale: 0.98, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98, y: 15 }}

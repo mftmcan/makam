@@ -14,8 +14,6 @@
  * Optimizasyonu) — bu koleksiyonu da kapsar (30 günden eski kayıtlar), Admin
  * elle tetikler.
  */
-import { db, collection, addDoc } from '../firebase';
-import { auth } from '../firebase';
 
 export interface ErrorLogEntry {
   /** Hata mesajı */
@@ -62,6 +60,8 @@ export async function logError(
   } = {}
 ): Promise<string | null> {
   try {
+    // Error reporting must not pull the entire data SDK into the login path.
+    const { db, collection, addDoc, auth } = await import('../firebase');
     const entry: ErrorLogEntry = {
       message: error instanceof Error ? error.message : String(error),
       stack:   error instanceof Error ? error.stack?.slice(0, 2000) : undefined,

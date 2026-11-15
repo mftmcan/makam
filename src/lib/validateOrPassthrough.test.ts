@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { validateOrPassthrough } from './validateOrPassthrough';
-import { addDoc } from '../firebase';
+import { logError } from '../services/errorLoggingService';
+
+vi.mock('../services/errorLoggingService', () => ({ logError: vi.fn().mockResolvedValue('log-ref') }));
 
 const okSchema = {
   safeParse: (data: unknown) => ({ success: true as const, data: { ...(data as object), normalized: true } }),
@@ -16,17 +18,18 @@ describe('validateOrPassthrough', () => {
   beforeEach(() => {
     now = 1_700_000_000_000;
     vi.spyOn(Date, 'now').mockImplementation(() => now);
-    vi.mocked(addDoc).mockClear();
+    vi.mocked(logError).mockClear();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await vi.dynamicImportSettled();
     vi.restoreAllMocks();
   });
 
   it('doğrulama başarılıysa şemanın döndürdüğü (normalize edilmiş) veriyi verir', () => {
     const result = validateOrPassthrough(okSchema, { id: '1' }, 'doc-1', 'tasks');
     expect(result).toEqual({ id: '1', normalized: true });
-    expect(addDoc).not.toHaveBeenCalled();
+    expect(logError).not.toHaveBeenCalled();
   });
 
   it('doğrulama başarısızsa ham veriyi olduğu gibi döndürür (listeyi karartmaz)', () => {
@@ -35,14 +38,12 @@ describe('validateOrPassthrough', () => {
     expect(result).toBe(raw);
   });
 
-  it("şema hatasını errorLoggingService üzerinden Firestore'a (error_logs) bildirir (P1-10)", () => {
-    // logError içindeki addDoc çağrısı, `await` noktasından ÖNCE senkron olarak
-    // tetiklenir — bu yüzden fire-and-forget `void logError(...)` içeren
-    // validateOrPassthrough'un dönüşünü beklemeden hemen doğrulanabilir.
+  it("şema hatasını errorLoggingService üzerinden Firestore'a (error_logs) bildirir (P1-10)", async () => {
     validateOrPassthrough(failSchema, { id: 'broken' }, 'doc-3', 'users');
+    await vi.dynamicImportSettled();
 
-    expect(addDoc).toHaveBeenCalledTimes(1);
-    const [, payload] = vi.mocked(addDoc).mock.calls[0];
+    expect(logError).toHaveBeenCalledTimes(1);
+    const [, , payload] = vi.mocked(logError).mock.calls[0]!;
     expect(payload).toMatchObject({
       operationType: 'schema-validation',
       path: 'users/doc-3',
@@ -50,31 +51,36 @@ describe('validateOrPassthrough', () => {
     });
   });
 
-  it('aynı koleksiyon için art arda gelen hataları soğuma süresi dolmadan tekrar bildirmez', () => {
+  it('aynı koleksiyon için art arda gelen hataları soğuma süresi dolmadan tekrar bildirmez', async () => {
     validateOrPassthrough(failSchema, { id: 'a' }, 'doc-a', 'blockers');
-    expect(addDoc).toHaveBeenCalledTimes(1);
+    await vi.dynamicImportSettled();
+    expect(logError).toHaveBeenCalledTimes(1);
 
     now += 60 * 1000; // 1 dakika sonra — 5 dakikalık soğuma dolmadı
     validateOrPassthrough(failSchema, { id: 'b' }, 'doc-b', 'blockers');
     validateOrPassthrough(failSchema, { id: 'c' }, 'doc-c', 'blockers');
+    await vi.dynamicImportSettled();
 
-    expect(addDoc).toHaveBeenCalledTimes(1);
+    expect(logError).toHaveBeenCalledTimes(1);
   });
 
-  it('soğuma süresi dolduktan sonra aynı koleksiyon için tekrar bildirir', () => {
+  it('soğuma süresi dolduktan sonra aynı koleksiyon için tekrar bildirir', async () => {
     validateOrPassthrough(failSchema, { id: 'a' }, 'doc-a', 'notifications');
-    expect(addDoc).toHaveBeenCalledTimes(1);
+    await vi.dynamicImportSettled();
+    expect(logError).toHaveBeenCalledTimes(1);
 
     now += 5 * 60 * 1000 + 1;
     validateOrPassthrough(failSchema, { id: 'b' }, 'doc-b', 'notifications');
+    await vi.dynamicImportSettled();
 
-    expect(addDoc).toHaveBeenCalledTimes(2);
+    expect(logError).toHaveBeenCalledTimes(2);
   });
 
-  it('farklı koleksiyonlar birbirinin soğuma süresini etkilemez', () => {
+  it('farklı koleksiyonlar birbirinin soğuma süresini etkilemez', async () => {
     validateOrPassthrough(failSchema, { id: 'a' }, 'doc-a', 'audit_logs');
     validateOrPassthrough(failSchema, { id: 'b' }, 'doc-b', 'system-stats-test');
+    await vi.dynamicImportSettled();
 
-    expect(addDoc).toHaveBeenCalledTimes(2);
+    expect(logError).toHaveBeenCalledTimes(2);
   });
 });

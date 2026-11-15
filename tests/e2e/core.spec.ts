@@ -2,30 +2,37 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 test.describe('MAKAM E2E Core Workflow', () => {
-  test('should load the application and show Stratejik Veri Baglantisi loader', async ({ page }) => {
+  test('login defers data, animation services and unused font ranges', async ({ page }) => {
+    const unnecessaryRequests: string[] = [];
+    page.on('request', request => {
+      const url = new URL(request.url());
+      if (url.pathname.endsWith('/src/firebase.ts') || url.pathname.includes('vendor-data-') || url.pathname.includes('/__/auth/iframe')
+        || url.pathname.includes('vendor-motion-') || url.pathname.includes('motion_react')
+        || /\/fonts\/(inter|outfit)-latin-ext\.woff2$/.test(url.pathname)) {
+        unnecessaryRequests.push(url.pathname);
+      }
+    });
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: /KURUMSAL GİRİŞ YAP/i })).toBeVisible({ timeout: 30000 });
+    await page.evaluate(() => document.fonts.ready.then(() => true));
+    await page.waitForLoadState('networkidle');
+    expect(unnecessaryRequests).toEqual([]);
+  });
+
+  test('should finish loading and offer institutional sign in', async ({ page }) => {
     await page.goto('/');
     
     // Uygulamanın title'ını kontrol et
     await expect(page).toHaveTitle(/MAKAM \| Stratejik Yönetim/);
 
-    // Uygulama yüklenirken çıkan yazının göründüğünden emin ol
-    // Eğer anında geçiyorsa timeout olabilir, o yüzden toleranslı bir check.
-    const loadingText = page.locator('text=STRATEJİK VERİ BAĞLANTISI');
-    
-    // Login butonunun veya yükleme ekranının geldiğini kontrol edelim.
-    // İlk olarak body içinde MAKAM yazısını veya Login butonunu bekleyelim.
-    await page.waitForLoadState('networkidle');
-
-    // Uygulama login ekranına düştüğünde "Sisteme Giriş Yap" butonu görünür olmalı.
-    const loginBtn = page.locator('button', { hasText: 'Giriş Yap' }).first();
-    if (await loginBtn.isVisible()) {
-      await expect(loginBtn).toBeVisible();
-    }
+    const loginBtn = page.getByRole('button', { name: /KURUMSAL GİRİŞ YAP/i });
+    await expect(loginBtn).toBeVisible({ timeout: 30000 });
+    await expect(loginBtn).toBeEnabled();
   });
 
   test('should have no critical accessibility violations (axe-core, WCAG 2 AA dahil kontrast)', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('button', { name: /KURUMSAL GİRİŞ YAP/i })).toBeVisible({ timeout: 30000 });
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

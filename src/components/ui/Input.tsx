@@ -17,14 +17,16 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, id, variant = 'default', icon, ...props }, ref) => {
+  ({ className, label, error, id, variant = 'default', icon, 'aria-describedby': describedBy, ...props }, ref) => {
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
     const errorId = `${inputId}-error`;
+    const description = [describedBy, error ? errorId : undefined].filter(Boolean).join(' ') || undefined;
 
     if (variant === 'sm') {
       return (
         <div className={cn('relative group', !icon && 'w-full')}>
+          {label && <label htmlFor={inputId} className="sr-only">{label}</label>}
           {icon && (
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary group-focus-within:text-executive-blue transition-colors pointer-events-none">
               {icon}
@@ -34,7 +36,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             aria-invalid={error ? true : undefined}
-            aria-describedby={error ? errorId : undefined}
+            aria-describedby={description}
             className={cn(
               'h-8 bg-makam-glass border border-executive-blue/[0.05] rounded-xl focus:ring-4 focus:ring-executive-blue/[0.04] focus:border-executive-blue/20 transition-all text-body-sm font-light text-executive-blue placeholder:text-text-tertiary outline-none',
               icon ? 'pl-9 pr-3 w-full' : 'px-3',
@@ -42,6 +44,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             )}
             {...props}
           />
+          {error && <span id={errorId} role="alert" className="text-micro text-status-danger">{error}</span>}
         </div>
       );
     }
@@ -57,7 +60,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={description}
           className={cn(
             'w-full h-14 px-6 bg-makam-glass border border-makam-border/5 rounded-full text-[15px] font-light text-text-heading placeholder:text-text-muted/30 transition-all outline-none focus:border-executive-blue/20 focus:ring-8 focus:ring-executive-blue/5 shadow-inner',
             error && 'border-status-danger/40 focus:border-status-danger focus:ring-status-danger/10',

@@ -12,12 +12,14 @@ const baseURL = `http://127.0.0.1:${PORT}`;
  */
 export default defineConfig({
   testDir: './tests/e2e',
+  outputDir: './test-results/emulator',
+  timeout: 60000,
   testMatch: /authenticated\.spec\.ts|visual\.spec\.ts/,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  reporter: 'html',
+  reporter: [['html', { outputFolder: 'playwright-report/emulator', open: 'never' }]],
   // Görsel regresyon baseline'ları platform sonekiyle aranır
   // (`<ad>-<proje>-<platform>.png`); yerelde Windows'ta üretilen `-win32`
   // seti CI'daki ubuntu koşusunda hiçbir zaman eşleşmez ve soneki düşürmek

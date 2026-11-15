@@ -250,6 +250,9 @@ function propagateVersionBump(
       } else if (item.expectedVersion !== undefined) {
         item.expectedVersion = newVersion;
       }
+      if (item.oldTaskSnapshot) {
+        item.oldTaskSnapshot = { ...item.oldTaskSnapshot, lockVersion: newVersion };
+      }
     }
     if (item.collectionName === 'blockers' && item.linkedTaskTransition?.taskId === taskId) {
       item.linkedTaskTransition.expectedVersion = newVersion;
@@ -295,6 +298,10 @@ function remapTempId(workingQueue: OfflineMutation[], fromIndex: number, tempIdV
   for (let j = fromIndex + 1; j < workingQueue.length; j++) {
     const item = workingQueue[j]!;
     if (item.docId === tempIdValue) item.docId = realId;
+    if (item.linkedTaskTransition?.taskId === tempIdValue) item.linkedTaskTransition.taskId = realId;
+    if (item.statusTransition?.assigneeId === tempIdValue) item.statusTransition.assigneeId = realId;
+    if (item.withAuditLog?.taskId === tempIdValue) item.withAuditLog.taskId = realId;
+    if (item.oldTaskSnapshot?.id === tempIdValue) item.oldTaskSnapshot = { ...item.oldTaskSnapshot, id: realId };
     if (item.data && typeof item.data === 'object') {
       for (const key of Object.keys(item.data)) {
         if (item.data[key] === tempIdValue) item.data[key] = realId;
@@ -321,6 +328,7 @@ export const offlineQueue = {
       window.dispatchEvent(new CustomEvent('makam_queue_changed'));
     } catch (e) {
       logger.error('Failed to save offline mutations queue:', e);
+      throw new Error('Çevrimdışı değişiklik cihazınıza kaydedilemedi. Tarayıcı depolama alanını kontrol edip tekrar deneyin.');
     }
   },
 
@@ -347,15 +355,17 @@ export const offlineQueue = {
     // mutasyonlar (durum geçişleri) ve withAuditLog taşıyan mutasyonlar (her biri
     // KENDİ oldValue/newValue audit mesajını taşır — iki farklı düzenlemeyi
     // birleştirmek yanıltıcı/eksik bir tek audit kaydı üretir) birleştirilmez.
-    if (action === 'update' && docId && !linkedTaskTransition && !statusTransition && !withAuditLog) {
-      const existing = queue.find(m =>
-        m.action === 'update' &&
-        m.collectionName === collectionName &&
-        m.docId === docId &&
-        !m.linkedTaskTransition &&
-        !m.statusTransition &&
-        !m.withAuditLog
-      );
+    if (!isSyncing && action === 'update' && docId && !linkedTaskTransition && !statusTransition && !withAuditLog) {
+      // Yalnızca son işlemle birleştir: aradaki silme/durum geçişini aşmak
+      // kullanıcının işlem sırasını ve denetim kaydını değiştirir.
+      const candidate = queue[queue.length - 1];
+      const existing = candidate &&
+        candidate.action === 'update' &&
+        candidate.collectionName === collectionName &&
+        candidate.docId === docId &&
+        !candidate.linkedTaskTransition &&
+        !candidate.statusTransition &&
+        !candidate.withAuditLog ? candidate : undefined;
       if (existing) {
         existing.data = { ...existing.data, ...data };
         existing.timestamp = Date.now();
@@ -664,6 +674,10 @@ export const offlineQueue = {
           } else {
             logger.error(`[Offline Queue] Failed to sync mutation ${mutation.id}:`, err);
             remaining.push(mutation);
+            // Sonraki işlem bu yazımın oluşturduğu ID'ye veya duruma bağlı
+            // olabilir. Geçici hatada sırayı koruyarak tüm kalanları beklet.
+            persistProgress(i);
+            return false;
           }
         }
         persistProgress(i);

@@ -1,15 +1,28 @@
 [
   {
+    "name": "İlk yüklenen Latin ve Türkçe fontlar",
+    "path": ["public/fonts/inter-latin.woff2", "public/fonts/inter-tr.woff2", "public/fonts/outfit-latin.woff2", "public/fonts/outfit-tr.woff2"],
+    "gzip": false,
+    "brotli": false,
+    "limit": "90 KB"
+  },
+  {
     "name": "Ana giriş paketi (index)",
     "path": "dist/assets/index-*.js",
     "gzip": true,
-    "limit": "150 KB"
+    "limit": "120 KB"
   },
   {
-    "name": "Firebase vendor paketi",
+    "name": "Firebase kimlik doğrulama (açılış)",
     "path": "dist/assets/vendor-firebase-*.js",
     "gzip": true,
-    "limit": "200 KB"
+    "limit": "45 KB"
+  },
+  {
+    "name": "Firebase veri servisleri (giriş sonrası)",
+    "path": "dist/assets/vendor-data-*.js",
+    "gzip": true,
+    "limit": "160 KB"
   },
   {
     "name": "Giriş-sonrası paket (AuthenticatedApp, lazy)",

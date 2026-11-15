@@ -39,14 +39,12 @@
     <meta name="msapplication-TileColor" content="#0A0A09" />
     <meta name="description" content="MAKAM: Stratejik Hedef Takip ve Yönetim Makamı" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <!-- Fontlar artık self-hosted (bkz. src/index.css @font-face — tasarım
-         denetimi F29): eskiden fonts.googleapis.com'a senkron bir <link>
-         ilk boyamayı bloke eden ayrı bir üçüncü taraf zinciri (preconnect +
-         stylesheet + font dosyaları) oluşturuyordu. Yalnızca Inter (gövde
-         fontu, site genelinde en hemen görünen metin) preload edilir —
-         Outfit/JetBrains Mono normal @font-face keşfiyle, bloklamadan yüklenir. -->
+    <!-- Critical body/display fonts and small Turkish supplements. Full Latin
+         Extended fonts remain available for other names without eager loading. -->
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/inter-tr.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/outfit-tr.woff2" as="font" type="font/woff2" crossorigin />
     <title>MAKAM | Stratejik Yönetim</title>
   </head>
   <body>

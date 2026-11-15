@@ -22,7 +22,7 @@
  */
 import { useState, useEffect, useCallback, useRef, lazy, Suspense, useMemo } from 'react';
 import type { RefObject } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { User, Task } from '../types';
 import { useUIStore } from '../store/uiStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -59,7 +59,9 @@ import { useFirestoreData, fetchTaskById } from '../hooks/useFirestoreData';
 import { useDepartments } from '../hooks/useDepartments';
 import { departmentService } from '../services/departmentService';
 import { useNotifications } from '../hooks/useNotifications';
-import { applyOfflineMutations, type OfflineMutation } from '../lib/offlineQueue';
+import { applyOfflineMutations } from '../lib/offlineQueue';
+import { useOfflineQueue } from '../hooks/useOfflineQueue';
+import { OfflineBanner } from './OfflineBanner';
 import { useSLASync } from '../hooks/useSLASync';
 import { useIdleTimer } from '../hooks/useIdleTimer';
 import { useSessionTimeout } from '../hooks/useSessionTimeout';
@@ -72,13 +74,16 @@ interface AuthenticatedAppProps {
   user: User;
   onLogout: () => Promise<void>;
   onError: (error: unknown, operationType: string, path: string | null) => void;
-  isOffline: boolean;
-  offlineQueueLength: number;
-  offlineMutations: OfflineMutation[];
   tasksRef: RefObject<Task[]>;
 }
 
-export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQueueLength, offlineMutations, tasksRef }: AuthenticatedAppProps) {
+export function AuthenticatedApp({ user, onLogout, onError, tasksRef }: AuthenticatedAppProps) {
+  // İşlem kuyruğu ve görev servisleri ancak kimliği doğrulanmış oturumda
+  // yüklenir; giriş ekranında önceki oturumun işlem ayrıntıları gösterilmez.
+  const {
+    isOffline, queueLength: offlineQueueLength, pendingMutations: offlineMutations,
+    syncNow, failedMutations, dismissFailedMutation, clearFailedMutations,
+  } = useOfflineQueue();
   const isAdmin = useIsAdmin(user);
   const [fetchedTask, setFetchedTask] = useState<Task | null>(null);
   const [activeCertificateTask, setActiveCertificateTask] = useState<Task | null>(null);
@@ -355,7 +360,16 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
   });
 
   return (
-    <>
+    <MotionConfig reducedMotion="user">
+      <OfflineBanner
+        isOffline={isOffline}
+        queueLength={offlineQueueLength}
+        pendingMutations={offlineMutations}
+        onSyncNow={() => { void syncNow(); }}
+        failedMutations={failedMutations}
+        onDismissFailed={dismissFailedMutation}
+        onClearFailed={clearFailedMutations}
+      />
       <WelcomeModal user={user} />
       <NotificationPrompt userId={user.uid} />
 
@@ -379,10 +393,12 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
 
       <main
         id="main-content"
+        aria-label={TAB_TITLES[activeTab]}
         ref={mainRef}
         tabIndex={-1}
         className="lg:ml-64 min-h-screen relative z-10 scroll-smooth pb-24 lg:pb-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-executive-blue/30"
       >
+        <h1 className="sr-only lg:hidden">{TAB_TITLES[activeTab]}</h1>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -509,6 +525,6 @@ export function AuthenticatedApp({ user, onLogout, onError, isOffline, offlineQu
       />
 
       <MobileDock user={user} onLogout={onLogout} notificationCount={notifications.length} />
-    </>
+    </MotionConfig>
   );
 }

@@ -26,6 +26,12 @@ const baseState = {
 };
 
 describe('mergeDataState — IDB rehydration yarışı koruması', () => {
+  it('oturum kapandıktan sonra tamamlanan IDB okuması eski verileri geri getirmez', () => {
+    const currentState = { ...baseState, cacheInvalidated: true };
+    const result = mergeDataState({ tasks: [{ id: 'previous-user-task' }] }, currentState);
+    expect(result.tasks).toEqual([]);
+    expect(result).toBe(currentState);
+  });
   it('canlı veri henüz gelmediyse (normal akış) IDB\'den gelen önbellek uygulanır', () => {
     const persisted = { tasks: [{ id: 'cached-task' }] as Task[] };
     const result = mergeDataState(persisted, { ...baseState, hasLiveTasks: false });

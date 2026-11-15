@@ -8,7 +8,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', isLoading, children, ...props }, ref) => {
+  ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
     const variants = {
       primary: 'makam-button-primary',
       secondary: 'makam-button-secondary',
@@ -49,12 +49,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2',
           variants[variant],
           sizes[size],
-          (isLoading || props.disabled) && 'opacity-60 cursor-not-allowed',
+          (isLoading || disabled) && 'opacity-60 cursor-not-allowed',
           className
         )}
-        disabled={isLoading || props.disabled}
+        disabled={isLoading || disabled}
         aria-busy={isLoading ? true : undefined}
-        aria-disabled={isLoading || props.disabled ? true : undefined}
+        aria-disabled={isLoading || disabled ? true : undefined}
         {...props}
       >
         {isLoading && (

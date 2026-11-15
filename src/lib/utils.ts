@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { extendTailwindMerge } from 'tailwind-merge';
-import { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from 'firebase/firestore';
 import type { User } from '../types';
 
 /**
@@ -31,7 +31,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatTimeAgo(timestamp: number | Timestamp, status?: string) {
-  const ms = timestamp instanceof Timestamp ? timestamp.toMillis() : timestamp;
+  const ms = typeof timestamp === 'number' ? timestamp : timestamp.toMillis();
   const diff = Date.now() - ms;
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -62,7 +62,7 @@ export function formatTimeAgo(timestamp: number | Timestamp, status?: string) {
 // tutarlı, ayrı bir formatlama kütüphanesi kullanıyorlar.
 
 function toMillis(timestamp: number | Timestamp): number {
-  return timestamp instanceof Timestamp ? timestamp.toMillis() : timestamp;
+  return typeof timestamp === 'number' ? timestamp : timestamp.toMillis();
 }
 
 /** "24.08.2026" — kısa tarih. */

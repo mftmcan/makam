@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { X, Info, CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { createAudioContext } from '../lib/audio';
-import { motion, useAnimationControls } from 'motion/react';
+import { motion, useAnimationControls, MotionConfig } from 'motion/react';
 import { useUIStore } from '../store/uiStore';
 
 const TOAST_DURATION_MS = 6000;
@@ -117,6 +117,7 @@ export const ExecutiveToast: React.FC<ExecutiveToastProps> = ({ toast, onClose, 
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <div
       role="alert"
       aria-live={toast.type === 'danger' ? 'assertive' : 'polite'}
@@ -194,5 +195,6 @@ export const ExecutiveToast: React.FC<ExecutiveToastProps> = ({ toast, onClose, 
         />
       </div>
     </div>
+    </MotionConfig>
   );
 };

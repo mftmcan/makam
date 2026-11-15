@@ -4,11 +4,7 @@ import {BrowserRouter} from 'react-router-dom';
 import App from './App.tsx';
 import './index.css';
 
-// Fontlar (Inter, Outfit, JetBrains Mono) index.html'de TEK bir statik
-// <link> ile senkron yükleniyor — burada eskiden ikinci, JS ile geç enjekte
-// edilen bir <link> daha vardı (Inter'i tekrar indiriyordu, tarayıcı
-// preloader'ının göremediği bir yükleme deseni oluşturuyordu; bkz. kod
-// denetimi). JetBrains Mono artık index.html'deki tek link'e dahil.
+// Fontlar src/index.css içindeki @font-face tanımlarıyla yerelden yüklenir.
 
 // BrowserRouter (HashRouter DEĞİL) — hem `server.js`'in prod dalı hem de
 // firebase.json'daki `"source": "**" → /index.html` rewrite'ı SPA fallback

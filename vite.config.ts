@@ -10,8 +10,29 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(), 
       tailwindcss(),
+      {
+        name: 'login-entry-boundary',
+        generateBundle(_options, bundle) {
+          const pending = Object.values(bundle)
+            .filter(chunk => chunk.type === 'chunk' && chunk.isEntry)
+            .map(chunk => chunk.fileName);
+          const visited = new Set<string>();
+          while (pending.length) {
+            const fileName = pending.pop()!;
+            if (visited.has(fileName)) continue;
+            visited.add(fileName);
+            const chunk = bundle[fileName];
+            if (chunk?.type !== 'chunk') continue;
+            const eagerHeavyModule = Object.keys(chunk.modules).find(id =>
+              /\/node_modules\/(?:@firebase\/(?:firestore|storage|messaging)|framer-motion|motion|motion-dom)\//.test(id.replace(/\\/g, '/'))
+            );
+            if (eagerHeavyModule) this.error(`Login must not eagerly load a heavy runtime: ${eagerHeavyModule}`);
+            pending.push(...chunk.imports);
+          }
+        },
+      },
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         includeAssets: ['makam-logo.svg', 'makam-logo-192.png', 'makam-logo-512.png', 'favicon.ico', 'robots.txt'],
         manifest: {
           name: 'MAKAM Stratejik Yönetim',
@@ -38,27 +59,11 @@ export default defineConfig(({ mode }) => {
         },
         // #8 — Workbox offline cache stratejileri
         workbox: {
+          cleanupOutdatedCaches: true,
           globPatterns: mode === 'production' ? ['**/*.{js,css,html,svg}'] : [],
           runtimeCaching: [
-            {
-              // Firestore/Firebase API → NetworkFirst: canlı veri öncelikli
-              urlPattern: /^https:\/\/firestore\.googleapis\.com/,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'firestore-cache',
-                expiration: { maxEntries: 50, maxAgeSeconds: 300 },
-                networkTimeoutSeconds: 10,
-              },
-            },
-            {
-              // Firebase Auth → NetworkFirst
-              urlPattern: /^https:\/\/identitytoolkit\.googleapis\.com/,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'firebase-auth-cache',
-                expiration: { maxEntries: 10, maxAgeSeconds: 3600 },
-              },
-            },
+            // Hesaba bağlı API yanıtları HTTP önbelleğine alınmaz.
+            // Çevrimdışı veri yaşam döngüsünü Firebase SDK ve dataStore yönetir.
             {
               // Google Fonts → CacheFirst: hızlı yükleme
               urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com/,
@@ -80,24 +85,13 @@ export default defineConfig(({ mode }) => {
           ],
         },
         devOptions: {
-          enabled: true
+          enabled: false
         }
       })
     ],
     build: {
-      // vendor-firebase (app+auth+firestore+messaging, AÇILIŞTA gerekli — bkz.
-      // manualChunks yorumu) minify sonrası ~740 kB HAM boyutta, Vite'ın
-      // varsayılan 600 kB uyarı eşiğini aşıyor. Bu YANLIŞ pozitif bir uyarı:
-      // gerçek performans bütçesi (ağdan indirilen, GZIP boyutu) zaten
-      // .size-limit.json'da "Firebase vendor paketi" için 200 KB olarak
-      // ayrıca takip ediliyor ve ~179 KB ile rahatça içinde. Firebase SDK'yı
-      // daha küçük parçalara bölmek (ör. auth/firestore'u ayırmak) gerçek bir
-      // fayda sağlamaz — dördü de aynı anda, aynı entry noktasında gerekiyor,
-      // yalnızca aynı toplam byte'ı daha fazla HTTP isteğine böler. Eşik,
-      // gerçek boyutun (740 kB) biraz üzerine (800 kB) çekilerek bu BİLİNEN/
-      // izlenen paket için uyarı susturuldu; gelecekte GERÇEKTEN beklenmedik
-      // bir şişme olursa (ör. yeni bir ağır bağımlılık) eşik yine tetiklenir.
-      chunkSizeWarningLimit: 800,
+      // The lazy data SDK is ~629 kB raw; its gzip budget is enforced separately.
+      chunkSizeWarningLimit: 650,
       rollupOptions: {
         // zod v4'ün kendi kaynağındaki (v4/core/util.js, regexes.js) iki açıklama
         // yorumu `@__PURE__` ifadesini Rollup'ın annotation olarak
@@ -125,12 +119,9 @@ export default defineConfig(({ mode }) => {
           // Rollup'ın otomatik chunk bölme mantığı dynamic import sınırına saygı
           // gösteriyor; bu ikisi artık yalnızca Dashboard/Reports chunk'ı içine
           // veya ona özel otomatik bir chunk'a gömülüyor.
-          // Buradaki dört paketin ORTAK özelliği: dördü de AÇILIŞTA (entry'den
-          // statik olarak) gerekiyor, dolayısıyla adlandırılmış bir chunk'a
-          // almak erişim grafiğini değiştirmez — yalnızca maliyeti görünür
-          // kılar ve .size-limit.json'da ayrı bir bütçeye bağlar. recharts/
-          // jspdf'in bu listede OLMAMA gerekçesi (yukarıdaki uzun not) tam da
-          // bunun tersidir: onlar yalnızca lazy() sınırının ardından gerekli.
+          // Only app/auth belong in the initial Firebase chunk. Data services
+          // are dynamically imported after a valid session; the entry-boundary
+          // plugin rejects accidental eager Firestore/Storage/Messaging imports.
           //
           // vendor-router: react-router BrowserRouter'ı main.tsx'te, yani
           // Login ekranı dahil ilk yüklemede kuruluyor (bkz. main.tsx'teki
@@ -138,7 +129,7 @@ export default defineConfig(({ mode }) => {
           // olmasaydı ~14 kB gzip sessizce `index` paketine eklenecek ve
           // "uygulama kodumuz ne kadar büyüdü" ölçümünü bulanıklaştıracaktı.
           manualChunks: {
-            'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/messaging'],
+            'vendor-firebase': ['firebase/app', 'firebase/auth'],
             'vendor-motion':   ['motion'],
             'vendor-date':     ['date-fns'],
             'vendor-router':   ['react-router-dom'],
@@ -152,6 +143,9 @@ export default defineConfig(({ mode }) => {
           // grafiğini etkilemediği için static-import regresyonunu geri getirmez.
           chunkFileNames: (chunkInfo) => {
             const ids = chunkInfo.moduleIds ?? [];
+            if (ids.some(id => /[\\/]node_modules[\\/]@firebase[\\/]firestore[\\/]/.test(id))) {
+              return 'assets/vendor-data-[hash].js';
+            }
             // Yalnızca Reports/Dashboard'un KENDİ route chunk'ları (lazy()'nin
             // dynamic-import facade'i) hariç tutulur — bunlar recharts'ı doğrudan
             // import ettiği için modül listesinde recharts geçebilir ama kendi

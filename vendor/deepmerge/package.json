@@ -1,0 +1,8 @@
+{
+  "name": "@makam/deepmerge",
+  "version": "4.3.1-makam.1",
+  "private": true,
+  "description": "deepmerge 4.3.1 with a local prototype-poisoning fix",
+  "main": "index.cjs",
+  "license": "MIT"
+}

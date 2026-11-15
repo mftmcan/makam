@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   # firebase-tools'un `latest`i her deploy'da yeniden kurmak yerine pinlenmiş
   # bir sürüm kullanılıyor — hem tekrarlanabilirlik (bozuk bir upstream
   # sürümü production deploy'unu habersiz kırmasın) hem de npm cache'in bu
@@ -57,25 +57,9 @@ jobs:
       # node_modules gerektirmez — `npm ci` burada gereksiz bir 12 sn'lik
       # beklemeydi (doğrulandı: node_modules'suz bir dizinde aynı audit
       # komutu aynı sonucu veriyor).
-      - name: Bağımlılık Güvenlik Denetimi (production — bloklayıcı)
-        # Yalnızca PRODUCTION bağımlılıkları (--omit=dev) client bundle'a
-        # girer/sunucuya deploy edilir. `critical` eşik: CRITICAL seviye
-        # bloklar (proxy-addr düzeltildi), HIGH seviye transitive (@grpc/grpc-js
-        # via firebase) bloklamaz — firebase v12'de grpc güncellemesi bekliyor.
-        # `high` eşiği firebase@9'a downgrade (breaking) gerektirirdi.
-        run: npm audit --omit=dev --audit-level=critical
-
-      - name: Bağımlılık Güvenlik Denetimi (devDependencies — bilgilendirici)
-        # Kalan tüm bilinen açıklar (17 adet) yalnızca devDependencies'te:
-        # firebase-admin→google-gax→uuid (scripts/seedE2E.ts, emulator seed)
-        # ve @lhci/cli→lighthouse→puppeteer→{tmp,extract-zip} (yalnızca CI'da
-        # çalışan Lighthouse aracı). Hiçbiri build çıktısına veya sunucuya
-        # taşınmıyor. Düzeltmeleri şu an yalnızca `npm audit fix --force` ile
-        # (büyük breaking-change, @lhci/cli@0.1.0'a düşürüyor) mümkün, bu
-        # yüzden bloklayıcı yapılmadı — ama `continue-on-error` ile CI
-        # loglarında görünür kalır ki yeni bir açık sessizce birikmesin.
-        run: npm audit --audit-level=high
-        continue-on-error: true
+      - name: Tüm Bağımlılıkların Güvenlik Denetimi
+        # Yerel deepmerge yaması ayrıca regresyon testleriyle doğrulanır.
+        run: npm audit --audit-level=low
 
   # ─── 1. Kod Kalitesi ve Test ────────────────────────────────────────────────
   quality:
@@ -214,10 +198,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Lighthouse CI (a11y, best-practices, SEO, perf)
-        # NOT: accessibility/best-practices/seo "error" seviyesinde gerçek bir
-        # kapı — build'i kırar. performance şimdilik "warn" (bkz. lighthouserc.json):
-        # mevcut skor (~0.57) büyük ölçüde firebase/pdf/chart vendor paketlerinden
-        # kaynaklanıyor ve ayrı bir bundle-optimizasyon çalışması gerektiriyor.
+        # Üç mobil koşunun medyan performansı >=90 olmalı.
+        # Erişilebilirlik, iyi uygulamalar ve SEO eşikleri >=95.
         run: npm run lighthouse
 
   # ─── 3. Firebase Hosting Deploy (sadece main branch) ───────────────────────

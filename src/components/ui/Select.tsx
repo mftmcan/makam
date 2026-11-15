@@ -18,20 +18,25 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, options, error, id, variant = 'default', ...props }, ref) => {
+  ({ className, label, options, error, id, variant = 'default', 'aria-describedby': describedBy, ...props }, ref) => {
     const generatedId = React.useId();
     const selectId = id ?? generatedId;
     const errorId = `${selectId}-error`;
+    const description = [describedBy, error ? errorId : undefined].filter(Boolean).join(' ') || undefined;
 
     if (variant === 'ghost') {
       return (
-        <select ref={ref} id={selectId} className={className} {...props}>
+        <>
+        {label && <label htmlFor={selectId} className="sr-only">{label}</label>}
+        <select ref={ref} id={selectId} className={className} aria-invalid={error ? true : undefined} aria-describedby={description} {...props}>
           {options.map((opt) => (
             <option key={opt.value} value={opt.value} className="bg-surface-base text-text-heading">
               {opt.label}
             </option>
           ))}
         </select>
+        {error && <span id={errorId} role="alert" className="text-micro text-status-danger">{error}</span>}
+        </>
       );
     }
 
@@ -47,7 +52,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={selectId}
             aria-invalid={error ? true : undefined}
-            aria-describedby={error ? errorId : undefined}
+            aria-describedby={description}
             className={cn(
               'w-full h-14 pl-6 pr-12 bg-makam-glass border border-makam-border/5 rounded-full text-[15px] font-light text-text-heading appearance-none cursor-pointer transition-all outline-none focus:border-executive-blue/20 focus:ring-8 focus:ring-executive-blue/5 shadow-inner',
               error && 'border-status-danger/40 focus:border-status-danger focus:ring-status-danger/10',

@@ -17,7 +17,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  outputDir: './test-results/core',
+  reporter: [['html', { outputFolder: 'playwright-report/core', open: 'never' }]],
   use: {
     baseURL,
     trace: 'on-first-retry',
@@ -26,6 +27,18 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'chromium-dark',
+      use: { ...devices['Desktop Chrome'], colorScheme: 'dark' },
+    },
+    {
+      name: 'mobile',
+      use: { ...devices['Pixel 7'] },
+    },
+    {
+      name: 'mobile-dark',
+      use: { ...devices['Pixel 7'], colorScheme: 'dark' },
     },
   ],
   webServer: {

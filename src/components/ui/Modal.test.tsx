@@ -24,6 +24,26 @@ afterAll(() => {
 });
 
 describe('Modal — focus-trap görünürlük filtresi', () => {
+  it('kapanınca odağı açan düğmeye ve önceki scroll stiline döndürür', async () => {
+    document.body.style.overflow = 'auto';
+    const { rerender } = render(<><button>Aç</button><Modal isOpen={false} onClose={() => {}} title="Pencere">İçerik</Modal></>);
+    screen.getByRole('button', { name: 'Aç' }).focus();
+    rerender(<><button>Aç</button><Modal isOpen onClose={() => {}} title="Pencere">İçerik</Modal></>);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Pencere penceresini kapat' })).toHaveFocus());
+    rerender(<><button>Aç</button><Modal isOpen={false} onClose={() => {}} title="Pencere">İçerik</Modal></>);
+    expect(screen.getByRole('button', { name: 'Aç' })).toHaveFocus();
+    expect(document.body.style.overflow).toBe('auto');
+    document.body.style.overflow = '';
+  });
+
+  it('odak dışarı kaçtığında Tab ile geri alır ve devre dışı alanları atlar', async () => {
+    render(<><button>Dışarı</button><Modal isOpen onClose={() => {}} title="Pencere"><input disabled aria-label="Pasif" /><button>Son eylem</button></Modal></>);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Pencere penceresini kapat' })).toHaveFocus());
+    screen.getByRole('button', { name: 'Dışarı' }).focus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(screen.getByRole('button', { name: 'Son eylem' })).toHaveFocus();
+  });
+
   it('Tab döngüsü, DOM içinde bulunan ama CSS ile gizlenmiş (offsetParent=null) bir elemana odaklanmaz', async () => {
     render(
       <Modal isOpen={true} onClose={() => {}} title="Talimat Detayı">

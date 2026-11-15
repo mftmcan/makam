@@ -32,14 +32,14 @@ test.beforeAll(() => {
   seededUid = data.uid;
 });
 
-const TABS: { path: string; snapshotName: string }[] = [
-  { path: '/dashboard', snapshotName: 'harekat-merkezi' },
-  { path: '/tasks', snapshotName: 'talimatlar' },
-  { path: '/blockers', snapshotName: 'engeller' },
-  { path: '/team', snapshotName: 'kadro' },
-  { path: '/reports', snapshotName: 'raporlar' },
-  { path: '/audit', snapshotName: 'denetim-izleri' },
-  { path: '/settings', snapshotName: 'dizge-ayarlari' },
+const TABS: { path: string; snapshotName: string; title: string }[] = [
+  { path: '/dashboard', snapshotName: 'harekat-merkezi', title: 'Stratejik Harekat Merkezi' },
+  { path: '/tasks', snapshotName: 'talimatlar', title: 'Talimatlar' },
+  { path: '/blockers', snapshotName: 'engeller', title: 'Engeller' },
+  { path: '/team', snapshotName: 'kadro', title: 'Kadro' },
+  { path: '/reports', snapshotName: 'raporlar', title: 'Raporlar' },
+  { path: '/audit', snapshotName: 'denetim-izleri', title: 'Denetim İzleri' },
+  { path: '/settings', snapshotName: 'dizge-ayarlari', title: 'Dizge Ayarları' },
 ];
 
 test.describe('Görsel Regresyon Ağı', () => {
@@ -71,6 +71,8 @@ test.describe('Görsel Regresyon Ağı', () => {
       // (bkz. App.tsx) — Firebase Auth oturumu zaten kalıcı, ama bu tam
       // navigasyonun oturuma bağlı olup olmadığı belirsizliğini ortadan kaldırır.
       await page.goto(`${tab.path}?e2e_token=${e2eToken}`);
+      // Login ekranında da <main> var; yalnızca bu kontrol auth başarısını kanıtlamaz.
+      await expect(page.getByRole('main', { name: tab.title, exact: true })).toBeVisible({ timeout: 30000 });
       await expect(page.getByRole('main')).toBeVisible({ timeout: 15000 });
       // <main>, AuthenticatedApp mount olur olmaz DOM'a girer — içindeki asıl
       // sekme (AppRoutes.tsx'te lazy()) henüz kendi JS chunk'ını indirmemiş

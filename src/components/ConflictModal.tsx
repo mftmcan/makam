@@ -1,4 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
+import { MotionConfig } from 'motion/react';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { STATUS_LABELS } from '../constants';
@@ -21,6 +22,7 @@ interface ConflictModalProps {
  */
 export function ConflictModal({ info, onClose, currentTask }: ConflictModalProps) {
   return (
+    <MotionConfig reducedMotion="user">
     <Modal isOpen={!!info} onClose={onClose} title="Düzenleme Çakışması">
       <div className="flex flex-col gap-4">
         <div className="flex items-start gap-2.5">
@@ -60,5 +62,6 @@ export function ConflictModal({ info, onClose, currentTask }: ConflictModalProps
         </div>
       </div>
     </Modal>
+    </MotionConfig>
   );
 }

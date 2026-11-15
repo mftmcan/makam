@@ -5,22 +5,19 @@
 
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import {
-  auth, db, googleProvider, signInWithPopup, signInWithCustomToken, signOut, onAuthStateChanged,
-  doc, getDoc, updateDoc, onSnapshot, writeBatch, isUsingFirebaseEmulator
-} from './firebase';
-import { User, Task, UserSchema } from './types';
+  auth, googleProvider, signInWithPopup, signInWithCustomToken, signOut, onAuthStateChanged,
+  isUsingFirebaseEmulator
+} from './firebaseCore';
+import type { User, Task } from './types';
 import { validateOrPassthrough } from './lib/validateOrPassthrough';
 import { humanizeError } from './lib/errorMessages';
-import { motion, MotionConfig } from 'motion/react';
 
 // UI Components
 import { Login } from './components/Login';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { ExecutiveToast } from './components/ExecutiveToast';
 import { ReloadPrompt } from './components/ReloadPrompt';
 import { Logo } from './components/Logo';
 import { useResolvedTheme } from './hooks/useResolvedTheme';
-import { OfflineBanner } from './components/OfflineBanner';
 
 // AuthenticatedApp, giriş SONRASI tüm veri katmanını (Firestore listener'ları,
 // useAppHandlers'ın taskService/blockerService/userService bağımlılıkları) ve
@@ -28,13 +25,14 @@ import { OfflineBanner } from './components/OfflineBanner';
 // yüklenir, böylece Login ekranının ilk yüklemesi bu ağırlığı taşımaz (bkz.
 // AuthenticatedApp.tsx başındaki yorum — bundle bölünmesi analizi).
 const AuthenticatedApp = lazy(() => import('./components/AuthenticatedApp').then(m => ({ default: m.AuthenticatedApp })));
+const ExecutiveToast = lazy(() => import('./components/ExecutiveToast').then(m => ({ default: m.ExecutiveToast })));
+const ConflictModal = lazy(() => import('./components/ConflictModal').then(m => ({ default: m.ConflictModal })));
 
 // Services & Hooks
 import { conflictDetectionService, type ConflictContext, type ConflictInfo } from './services/conflictDetectionService';
-import { ConflictModal } from './components/ConflictModal';
 import { logError } from './services/errorLoggingService';
-import { useOfflineQueue } from './hooks/useOfflineQueue';
 import { useUIStore } from './store/uiStore';
+import { useDataStore } from './store/dataStore';
 import { useTaskNavigation } from './hooks/useTaskRoute';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -135,19 +133,6 @@ export default function App() {
     addToast(humanizeError(error, supportReference));
   }, [addToast]);
 
-  // ─── Offline kuyruk ───────────────────────────────────────────────────────
-  // Login ekranında da görünmesi gereken (OfflineBanner) tek veri-katmanı
-  // hook'u olduğundan giriş-öncesi shell'de kalır.
-  const {
-    isOffline,
-    queueLength: offlineQueueLength,
-    pendingMutations: offlineMutations,
-    syncNow,
-    failedMutations,
-    dismissFailedMutation,
-    clearFailedMutations,
-  } = useOfflineQueue();
-
   // ─── Çakışma Tespiti ─────────────────────────────────────────────────────
   // Eskiden yalnızca "sayfayı yenileyin" diyen bir toast gösteriliyordu —
   // kullanıcının denediği değişiklik sessizce kayboluyordu ve uygulama zaten
@@ -179,71 +164,99 @@ export default function App() {
   // Auth Listener
   useEffect(() => {
     let unsubscribeUserDoc: (() => void) | null = null;
+    let disposed = false;
+    let authGeneration = 0;
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      const generation = ++authGeneration;
       if (unsubscribeUserDoc) { unsubscribeUserDoc(); unsubscribeUserDoc = null; }
 
       if (firebaseUser) {
+        setUser(null);
+        setLoading(true);
         const userEmail = firebaseUser.email?.toLowerCase().trim();
 
-        unsubscribeUserDoc = onSnapshot(doc(db, 'users', firebaseUser.uid), async (userDoc) => {
-          if (userDoc.exists()) {
-            // useFirestoreData.ts'teki diğer TÜM users okumalarıyla AYNI zod
-            // doğrulaması — bu doküman RBAC'in (TAB_ROLES) doğrudan dayandığı
-            // `role` alanını taşıyor; eskiden burada ham `as User` cast'i
-            // yapılıyordu, bozuk/eksik bir role alanı hiçbir uyarı vermeden
-            // sessizce davranışı bozabiliyordu (bkz. kod denetimi).
-            const raw = { ...userDoc.data(), uid: userDoc.data().uid || userDoc.id } as User;
-            const userData = validateOrPassthrough(UserSchema, raw, userDoc.id, 'users');
-            if (firebaseUser.photoURL && firebaseUser.photoURL !== userData.photoURL) {
-              try {
-                await updateDoc(doc(db, 'users', firebaseUser.uid), { photoURL: firebaseUser.photoURL });
-              } catch { /* sessizce geç */ }
-            }
-            setUser({ ...userData, photoURL: firebaseUser.photoURL ?? userData.photoURL });
-            setLoading(false);
-          } else {
-            if (userEmail && migrationFailedUidRef.current !== firebaseUser.uid) {
-              try {
-                const tempDocRef = doc(db, 'users', userEmail);
-                const tempDocSnap = await getDoc(tempDocRef);
-                if (tempDocSnap.exists()) {
-                  const tempData = tempDocSnap.data();
-                  // create + delete TEK batch'te: firestore.rules'taki users
-                  // delete kuralı (isOwnInviteMigration) bu ikisinin aynı
-                  // batch'te olmasına dayanır (getAfter ile uid dokümanını
-                  // doğrular) — ayrı yazımlara bölmeyin.
-                  const batch = writeBatch(db);
-                  batch.set(doc(db, 'users', firebaseUser.uid), {
-                    ...tempData,
-                    uid: firebaseUser.uid,
-                    photoURL: firebaseUser.photoURL || tempData.photoURL || null,
-                  });
-                  batch.delete(tempDocRef);
-                  await batch.commit();
-                  return;
-                }
-              } catch (migrationErr) {
-                migrationFailedUidRef.current = firebaseUser.uid;
-                console.error('[Migration] Kullanıcı dökümanı taşıma hatası:', migrationErr);
-                // Eskiden yalnızca konsola düşüyordu; kullanıcı Login ekranına
-                // sebepsiz geri atılıyor, Destek Referansı da üretilmiyordu.
-                void handleFirestoreError(migrationErr, 'create', `users/${firebaseUser.uid}`);
+        try {
+          const { db, doc, getDoc, updateDoc, onSnapshot, writeBatch } = await import('./firebase');
+          if (disposed || generation !== authGeneration) return;
+          unsubscribeUserDoc = onSnapshot(doc(db, 'users', firebaseUser.uid), async (userDoc) => {
+            if (disposed || generation !== authGeneration) return;
+            if (userDoc.exists()) {
+              const schemas = await import('./types').catch((error: unknown) => {
+                setLoading(false);
+                void handleFirestoreError(error, 'auth', 'users');
+                return null;
+              });
+              if (!schemas) return;
+              const { UserSchema } = schemas;
+              if (disposed || generation !== authGeneration || auth.currentUser?.uid !== firebaseUser.uid) return;
+              // useFirestoreData.ts'teki diğer TÜM users okumalarıyla AYNI zod
+              // doğrulaması — bu doküman RBAC'in (TAB_ROLES) doğrudan dayandığı
+              // `role` alanını taşıyor; eskiden burada ham `as User` cast'i
+              // yapılıyordu, bozuk/eksik bir role alanı hiçbir uyarı vermeden
+              // sessizce davranışı bozabiliyordu (bkz. kod denetimi).
+              const raw = { ...userDoc.data(), uid: userDoc.data().uid || userDoc.id } as User;
+              const userData = validateOrPassthrough(UserSchema, raw, userDoc.id, 'users');
+              if (firebaseUser.photoURL && firebaseUser.photoURL !== userData.photoURL) {
+                try {
+                  await updateDoc(doc(db, 'users', firebaseUser.uid), { photoURL: firebaseUser.photoURL });
+                } catch { /* sessizce geç */ }
               }
+              if (disposed || generation !== authGeneration) return;
+              setUser({ ...userData, photoURL: firebaseUser.photoURL ?? userData.photoURL });
+              setLoading(false);
+            } else {
+              if (userEmail && migrationFailedUidRef.current !== firebaseUser.uid) {
+                try {
+                  const tempDocRef = doc(db, 'users', userEmail);
+                  const tempDocSnap = await getDoc(tempDocRef);
+                  if (disposed || generation !== authGeneration) return;
+                  if (tempDocSnap.exists()) {
+                    const tempData = tempDocSnap.data();
+                    // create + delete TEK batch'te: firestore.rules'taki users
+                    // delete kuralı (isOwnInviteMigration) bu ikisinin aynı
+                    // batch'te olmasına dayanır (getAfter ile uid dokümanını
+                    // doğrular) — ayrı yazımlara bölmeyin.
+                    const batch = writeBatch(db);
+                    batch.set(doc(db, 'users', firebaseUser.uid), {
+                      ...tempData,
+                      uid: firebaseUser.uid,
+                      photoURL: firebaseUser.photoURL || tempData.photoURL || null,
+                    });
+                    batch.delete(tempDocRef);
+                    await batch.commit();
+                    return;
+                  }
+                } catch (migrationErr) {
+                  migrationFailedUidRef.current = firebaseUser.uid;
+                  console.error('[Migration] Kullanıcı dökümanı taşıma hatası:', migrationErr);
+                  // Eskiden yalnızca konsola düşüyordu; kullanıcı Login ekranına
+                  // sebepsiz geri atılıyor, Destek Referansı da üretilmiyordu.
+                  void handleFirestoreError(migrationErr, 'create', `users/${firebaseUser.uid}`);
+                }
+              }
+              setLoading(false);
+              // Kullanıcı Firestore'da bulunamadı — Login ekranı göster
+              setUser(null);
+            }
+          }, (err) => {
+            if (disposed || generation !== authGeneration) return;
+            setUser(null);
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            const isPermissionError = errorMsg.toLowerCase().includes('permission') || errorMsg.toLowerCase().includes('yetki');
+            if (!(isPermissionError && (isLoggingOutRef.current || !auth.currentUser))) {
+              handleFirestoreError(err, 'auth', 'users');
             }
             setLoading(false);
-            // Kullanıcı Firestore'da bulunamadı — Login ekranı göster
-            setUser(null);
+          });
+        } catch (error) {
+          if (!disposed && generation === authGeneration) {
+            setLoading(false);
+            void handleFirestoreError(error, 'auth', 'users');
           }
-        }, (err) => {
-          const errorMsg = err instanceof Error ? err.message : String(err);
-          const isPermissionError = errorMsg.toLowerCase().includes('permission') || errorMsg.toLowerCase().includes('yetki');
-          if (!(isPermissionError && (isLoggingOutRef.current || !auth.currentUser))) {
-            handleFirestoreError(err, 'auth', 'users');
-          }
-          setLoading(false);
-        });
+        }
       } else {
+        useDataStore.getState().reset();
         isLoggingOutRef.current = false;
         migrationFailedUidRef.current = null;
         setUser(null);
@@ -251,7 +264,7 @@ export default function App() {
       }
     });
 
-    return () => { unsubscribe(); if (unsubscribeUserDoc) unsubscribeUserDoc(); };
+    return () => { disposed = true; authGeneration++; unsubscribe(); if (unsubscribeUserDoc) unsubscribeUserDoc(); };
   }, [handleFirestoreError]);
 
   // NOT: Atıl görev denetimi artık yalnızca sunucu tarafında çalışıyor
@@ -286,10 +299,8 @@ export default function App() {
           <div className="flex flex-col items-center gap-4">
             <span className="text-text-muted font-normal uppercase tracking-[0.6em] text-caption animate-pulse">STRATEJİK VERİ BAĞLANTISI</span>
             <div className="w-48 h-[1px] bg-text-muted/15 overflow-hidden relative">
-              <motion.div
-                className="absolute inset-y-0 w-24 bg-executive-blue"
-                animate={{ x: [-100, 200] }}
-                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              <div
+                className="absolute inset-y-0 w-24 bg-executive-blue animate-app-loading"
                 aria-hidden="true"
               />
             </div>
@@ -300,32 +311,17 @@ export default function App() {
   }
 
   return (
-    // reducedMotion="user" — OS/tarayıcı seviyesinde "Reduce Motion" açık
-    // kullanıcılar için motion/react'in tüm spring/layout animasyonlarını
-    // (dock aktif göstergesi, modal geçişleri, sayfa geçişi) otomatik olarak
-    // sadeleştirir; CSS tabanlı animate-pulse/ping/flash için ayrıca
-    // index.css'teki prefers-reduced-motion bloğuna bakın (bkz. mobil tasarım
-    // denetimi — bu ayar öncesinde reduced-motion tercihi hiç ele alınmıyordu).
-    <MotionConfig reducedMotion="user">
     <ErrorBoundary>
       <a href="#main-content" className="skip-to-content">Ana içeriğe geç</a>
 
       <div className="min-h-screen bg-surface-base text-text-body selection:bg-executive-blue/10 font-sans">
-        <OfflineBanner
-          isOffline={isOffline}
-          queueLength={offlineQueueLength}
-          pendingMutations={offlineMutations}
-          onSyncNow={() => { void syncNow(); }}
-          failedMutations={failedMutations}
-          onDismissFailed={dismissFailedMutation}
-          onClearFailed={clearFailedMutations}
-        />
-
-        <ConflictModal
+        <Suspense fallback={null}>
+        {activeConflict && <ConflictModal
           info={activeConflict}
           onClose={() => setActiveConflict(null)}
           currentTask={activeConflict ? tasksRef.current.find(t => t.id === activeConflict.taskId) : undefined}
-        />
+        />}
+        </Suspense>
 
         {/* Toast Bölgesi */}
         <div
@@ -333,6 +329,7 @@ export default function App() {
           aria-label="Bildirimler"
           className="fixed top-12 left-1/2 -translate-x-1/2 z-[150] flex flex-col gap-4 pointer-events-none w-full max-w-md px-6"
         >
+          <Suspense fallback={null}>
           {toasts.map(toast => (
             <ExecutiveToast
               key={toast.id}
@@ -341,6 +338,7 @@ export default function App() {
               onClick={(taskId) => { if (taskId) openTask(taskId); }}
             />
           ))}
+          </Suspense>
         </div>
 
         {!user ? (
@@ -357,16 +355,12 @@ export default function App() {
               user={user}
               onLogout={handleLogout}
               onError={handleFirestoreError}
-              isOffline={isOffline}
-              offlineQueueLength={offlineQueueLength}
-              offlineMutations={offlineMutations}
               tasksRef={tasksRef}
             />
           </Suspense>
         )}
       </div>
-      <ReloadPrompt />
+      <ReloadPrompt showOfflineReady={!!user} />
     </ErrorBoundary>
-    </MotionConfig>
   );
 }

@@ -27,10 +27,10 @@ Proje şu an **Firebase Spark (ücretsiz) planında** çalışacak şekilde tasa
 
 ## Kurulum
 
-**Gereksinimler:** Node.js 20+
+**Gereksinimler:** Node.js 22.19+ (Lighthouse CI dahil geliştirme araçları için)
 
 ```bash
-npm install
+npm ci
 ```
 
 `.env.example` dosyasını `.env` olarak kopyalayıp Firebase proje bilgilerinizle doldurun:
@@ -53,6 +53,29 @@ npm run eslint       # ESLint (kod kalitesi + a11y + Firestore rules kuralları)
 npm test             # Vitest birim testleri
 npm run test:coverage # Kapsam raporu
 ```
+
+PWA geliştirme sunucusunda kapalıdır; servis çalışanı ve çevrimdışı uygulama
+kabuğu üretim derlemesinde etkinleşir. Yeni sürüm kullanıcıya bildirilir ve
+"Güncelle ve Yeniden Başlat" eylemiyle uygulanır.
+
+Tüm bağımlılıklar `npm audit --audit-level=low` ile denetlenir; geliştirme
+araçları dahil her seviyedeki kayıtlı uyarı CI yayınını engeller. Güvenlik
+yamaları kilit dosyası ve `package.json` içindeki `overrides` alanında tutulur.
+Upstream düzeltmesi bulunmayan deepmerge için kullanılan yerel yama ve
+yenileme politikası [vendor/deepmerge/README.md](vendor/deepmerge/README.md)
+içinde açıklanır; saldırı regresyonları birim testlerinde çalışır.
+
+İlk yüklemede `src/firebaseCore.ts` yalnızca uygulama ve kimlik doğrulamayı
+başlatır. Firestore, Storage ve Messaging `src/firebase.ts` üzerinden oturum
+açıldıktan sonra yüklenir. Google popup çözümleyicisi giriş düğmesine
+basıldığında kullanılır. Derleme, giriş paketine veri SDK'larının yanlışlıkla
+statik import edilmesini engeller; paket boyutları ayrıca `npm run size` ile
+denetlenir.
+
+Lighthouse CI üç mobil koşunun medyan performansı için en az 90 puan,
+erişilebilirlik/iyi uygulamalar/SEO için en az 95 puan ister. Bu kontroller
+yayın öncesinde zorunludur. Yerel ölçümü raporu dışarı yüklemeden çalıştırmak
+için `npx lhci collect` ve ardından `npx lhci assert` kullanılabilir.
 
 E2E testleri (Playwright) için:
 

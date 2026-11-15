@@ -44,6 +44,23 @@ describe('OfflineQueue', () => {
   // ─── enqueue ──────────────────────────────────────────────────────────────
 
   describe('enqueue', () => {
+    it('depolama dolduğunda kaydedilmemiş işlemi başarılı saymaz', () => {
+      const spy = vi.spyOn(localStorage, 'setItem').mockImplementationOnce(() => {
+        throw new DOMException('Quota exceeded', 'QuotaExceededError');
+      });
+      try {
+        expect(() => offlineQueue.enqueue('tasks', 'update', { title: 'Yeni' }, 'task-1')).toThrow('cihazınıza kaydedilemedi');
+        expect(offlineQueue.getQueue()).toEqual([]);
+      } finally { spy.mockRestore(); }
+    });
+
+    it('aradaki silme işlemini aşarak güncellemeleri birleştirmez', () => {
+      offlineQueue.enqueue('tasks', 'update', { title: 'Önce' }, 'task-1');
+      offlineQueue.enqueue('tasks', 'delete', undefined, 'task-1');
+      offlineQueue.enqueue('tasks', 'update', { title: 'Sonra' }, 'task-1');
+      expect(offlineQueue.getQueue().map(m => m.action)).toEqual(['update', 'delete', 'update']);
+    });
+
     it('kuyrukta bulunmayan bir öğe ekler', () => {
       offlineQueue.enqueue('tasks', 'create', { id: 'task-temp-1', title: 'Test' });
       const queue = offlineQueue.getQueue();
@@ -165,6 +182,27 @@ describe('OfflineQueue', () => {
 
       expect(result).toBe(false);
       expect(offlineQueue.getQueue()).toHaveLength(1);
+    });
+
+    it('geçici hatada bağımlı sonraki işlemleri çalıştırmadan sırayı korur', async () => {
+      vi.mocked(firebase.addDoc).mockRejectedValueOnce(new Error('Network error'));
+      offlineQueue.enqueue('tasks', 'create', { id: 'temporary', title: 'Görev' });
+      offlineQueue.enqueue('tasks', 'update', { title: 'Yeni' }, 'temporary');
+      expect(await offlineQueue.sync()).toBe(false);
+      expect(firebase.updateDoc).not.toHaveBeenCalled();
+      expect(offlineQueue.getQueue().map(m => m.action)).toEqual(['create', 'update']);
+    });
+
+    it('senkron sırasında eklenen güncellemeyi çalışan yazımla birleştirip kaybetmez', async () => {
+      let finish!: () => void;
+      vi.mocked(firebase.updateDoc).mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
+      offlineQueue.enqueue('users', 'update', { fullName: 'Önce' }, 'user-1');
+      const syncing = offlineQueue.sync();
+      offlineQueue.enqueue('users', 'update', { fullName: 'Sonra' }, 'user-1');
+      finish();
+      await syncing;
+      expect(offlineQueue.getQueue()).toHaveLength(1);
+      expect(offlineQueue.getQueue()[0]!.data).toEqual({ fullName: 'Sonra' });
     });
 
     it('permission-denied ile reddedilen mutasyon sonsuza dek denenmez, kuyruktan düşürülür, toast gösterilir ve kalıcı günlüğe yazılır', async () => {
@@ -822,6 +860,23 @@ describe('OfflineQueue', () => {
       const auditCall = transactionSet.mock.calls.find(([, data]: any) => data?.changes?.title);
       expect(auditCall?.[1]).toMatchObject({ taskId: 'task-1', changedBy: 'user-1' });
       expect(auditCall?.[1].changes.title).toEqual({ old: 'Eski Başlık', new: 'Yeni Başlık' });
+    });
+
+    it('önceki başarılı yazımdan sonra audit snapshot versiyonunu da ilerletir', async () => {
+      let version = 3;
+      const transactionUpdate = vi.fn((_ref, data) => { if (data.lockVersion) version = data.lockVersion; });
+      vi.mocked(firebase.runTransaction).mockImplementation(async (_db: any, fn: any) => fn({
+        get: vi.fn().mockImplementation(async () => ({ exists: () => true, data: () => ({ status: 'IN_PROGRESS', lockVersion: version, title: 'Eski' }) })),
+        update: transactionUpdate,
+        set: vi.fn(),
+      }));
+      offlineQueue.enqueue('tasks', 'update', { description: 'Açıklama' }, 'task-1', 3);
+      offlineQueue.enqueue('tasks', 'update', { title: 'Yeni' }, 'task-1', 3, undefined, undefined, 'user-1', { id: 'task-1', title: 'Eski', lockVersion: 3 } as any,
+        { taskId: 'task-1', changedBy: 'user-1', oldValue: 'Eski', newValue: 'Yeni' });
+      await offlineQueue.sync();
+      expect(transactionUpdate).toHaveBeenCalledTimes(2);
+      expect(version).toBe(5);
+      expect(offlineQueue.getQueue()).toEqual([]);
     });
 
     it('actorId ile update: versiyon uyuşmazsa UYGULANMAZ, çakışma bildirilir', async () => {

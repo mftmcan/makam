@@ -43,7 +43,7 @@
         ]
       },
       {
-        "source": "**/*.@(js|css|svg|webp|png|jpg)",
+        "source": "/assets/**",
         "headers": [
           {
             "key": "Cache-Control",
@@ -52,7 +52,7 @@
         ]
       },
       {
-        "source": "service-worker.js",
+        "source": "/@(sw.js|service-worker.js|index.html|manifest.webmanifest|registerSW.js)",
         "headers": [
           {
             "key": "Cache-Control",

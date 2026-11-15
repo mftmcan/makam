@@ -43,6 +43,8 @@ interface DataState {
   resolvedBlockers: TaskBlocker[];
   stats: GlobalStats | null;
   isHydrated: boolean;
+  /** Çıkıştan önce başlamış IDB okuması silinen veriyi geri getirmesin. */
+  cacheInvalidated?: boolean;
   /** Bu oturumda Firestore'dan en az bir kez canlı veri geldi mi? IDB'den
    *  rehydration asenkron olduğundan, canlı onSnapshot verisi IDB okumasından
    *  ÖNCE gelebilir — bu durumda rehydration'ın bayat önbellek verisiyle taze
@@ -85,6 +87,7 @@ interface DataState {
 // normal şekilde geri yüklenmeye devam eder. Ayrı export edilmiştir — böylece
 // asenkron persist/rehydrate akışını tetiklemeden doğrudan test edilebilir.
 export function mergeDataState(persistedState: unknown, currentState: DataState): DataState {
+  if (currentState.cacheInvalidated) return currentState;
   const persisted = (persistedState as Partial<DataState>) ?? {};
   return {
     ...currentState,
@@ -119,6 +122,7 @@ export const useDataStore = create<DataState>()(
       setHydrated: () => set({ isHydrated: true }),
       loadMoreTasks: () => set((state) => ({ taskLimit: state.taskLimit + 200 })),
       reset: () => set({
+        cacheInvalidated: true,
         tasks: [],
         users: [],
         blockers: [],

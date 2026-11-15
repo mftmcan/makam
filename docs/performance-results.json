@@ -1,0 +1,63 @@
+{
+  "date": "2026-11-15",
+  "environment": {
+    "platform": "win32",
+    "lighthouse": "13.6.0",
+    "formFactor": "mobile",
+    "throttling": {
+      "rttMs": 150,
+      "throughputKbps": 1638.4,
+      "requestLatencyMs": 562.5,
+      "downloadThroughputKbps": 1474.56,
+      "uploadThroughputKbps": 675,
+      "cpuSlowdownMultiplier": 4
+    }
+  },
+  "runs": [
+    {
+      "scores": {
+        "performance": 95,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100
+      },
+      "firstContentfulPaintMs": 960,
+      "largestContentfulPaintMs": 2940,
+      "totalBlockingTimeMs": 6
+    },
+    {
+      "scores": {
+        "performance": 94,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100
+      },
+      "firstContentfulPaintMs": 960,
+      "largestContentfulPaintMs": 2993,
+      "totalBlockingTimeMs": 103
+    },
+    {
+      "scores": {
+        "performance": 86,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100
+      },
+      "firstContentfulPaintMs": 960,
+      "largestContentfulPaintMs": 2940,
+      "totalBlockingTimeMs": 362
+    }
+  ],
+  "median": {
+    "scores": {
+      "performance": 94,
+      "accessibility": 100,
+      "best-practices": 100,
+      "seo": 100
+    },
+    "firstContentfulPaintMs": 960,
+    "largestContentfulPaintMs": 2940,
+    "totalBlockingTimeMs": 103
+  },
+  "assertionsPassed": true
+}
