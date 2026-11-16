@@ -128,7 +128,7 @@
   --bg-base: #FAF8F5; /* Warm pearl slightly adjusted for better card contrast */
   --bg-surface: rgba(252, 251, 249, 0.65);
   --bg-elevated: #FFFFFF;
-  --border-subtle: rgba(22, 21, 19, 0.04);
+  --border-subtle: rgba(22, 21, 19, 0.10);
   --text-heading: #161513;
   --text-main: #2C2B29;
   /* NOT: text-muted (#7A7770, WCAG kontrastı 4.47/4.21 — 4.5 eşiğinin az altında)
@@ -233,7 +233,7 @@
   --bg-base: #0A0A09;
   --bg-surface: rgba(20, 20, 18, 0.65);
   --bg-elevated: #141412;
-  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-subtle: rgba(255, 255, 255, 0.10);
   --text-heading: rgba(245, 243, 239, 0.95);
   --text-main: rgba(245, 243, 239, 0.85);
   --text-muted: #96938A;
@@ -331,9 +331,9 @@
      "sayfa başlığı eyebrow" bileşeni altı ekranda 0.4em iken TaskBoard'da
      0.22em'di (bkz. tasarım denetimi, mobil dokunma/tracking bulgusu). Üç
      basamak bu aralığı toplar. */
-  --tracking-label:   0.15em;  /* form label, tablo hücresi, dar mikro etiket */
-  --tracking-caps:    0.2em;   /* varsayılan uppercase mikro etiket + rozet */
-  --tracking-eyebrow: 0.3em;   /* sayfa/bölüm başlığı eyebrow'u */
+  --tracking-label:   0.08em;
+  --tracking-caps:    0.12em;
+  --tracking-eyebrow: 0.16em;
 
   /* ─── Geçiş süresi (transition-duration) ölçeği ─────────────────────────────
      Motion.ts'deki SPRING_* token'ları (giriş animasyonları) için ayrı, CSS
@@ -456,7 +456,7 @@
     @apply bg-surface-base text-text-body font-sans antialiased selection:bg-executive-gold/20 selection:text-executive-gold min-h-screen relative overflow-x-hidden;
     font-weight: 400;
     letter-spacing: var(--base-tracking);
-    line-height: 1.4;
+    line-height: 1.5;
     font-size: 13px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

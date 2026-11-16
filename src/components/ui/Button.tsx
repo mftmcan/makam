@@ -32,20 +32,18 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       warning: 'bg-executive-gold/10 text-[color:var(--gold-text)] border border-executive-gold/20 hover:bg-executive-gold/20',
     };
 
-    // Üçü de tracking-caps'e sabit: eskiden sm=0.2em/md=0.3em/lg=0.18em idi —
-    // lg, md'den DAHA DAR harf aralığına sahipti (ters sıralama, sürüklenme
-    // — bkz. tracking ölçeği denetimi).
+    // Sentence case and compact radii keep actions readable at every size.
     const sizes = {
-      sm: 'px-5 py-2.5 text-micro tracking-caps',
-      md: 'px-8 py-4 text-caption tracking-caps',
-      lg: 'px-12 py-5 text-body tracking-caps',
+      sm: 'min-h-11 sm:min-h-10 px-4 py-2 text-body-sm tracking-normal normal-case',
+      md: 'min-h-11 px-5 py-2.5 text-body-lg tracking-normal normal-case',
+      lg: 'min-h-12 px-6 py-3 text-field tracking-normal normal-case',
     };
 
     return (
       <button
         ref={ref}
         className={cn(
-          'makam-button inline-flex items-center justify-center gap-3 transition-all duration-500 rounded-full',
+          'makam-button inline-flex items-center justify-center gap-2 transition-colors duration-200 rounded-xl font-semibold',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2',
           variants[variant],
           sizes[size],

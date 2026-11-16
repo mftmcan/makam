@@ -12,14 +12,14 @@ export const LocalTime = () => {
   }, []);
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2 bg-makam-glass border border-makam-border/5 rounded-full shadow-sm">
+    <div className="flex items-center gap-3 px-3 py-1.5 bg-makam-glass border border-surface-border rounded-full whitespace-nowrap">
       <Clock className="w-3.5 h-3.5 text-executive-blue animate-pulse" />
       <div className="flex items-center gap-2">
         <span className="text-caption font-medium text-text-heading tracking-widest tabular-nums">
           {format(time, 'HH:mm:ss')}
         </span>
-        <span className="w-[1px] h-3 bg-makam-border/10" />
-        <span className="text-micro font-medium text-text-muted uppercase tracking-caps">
+        <span className="hidden xl:block w-px h-3 bg-surface-border" />
+        <span className="hidden xl:inline text-micro font-medium text-text-muted uppercase tracking-caps">
           {format(time, 'd MMMM yyyy', { locale: tr })}
         </span>
       </div>

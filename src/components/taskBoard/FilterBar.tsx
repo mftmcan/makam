@@ -26,15 +26,12 @@ interface FilterBarProps {
   clearSelection: () => void;
 }
 
-const GHOST_SELECT_CLASSNAME = 'bg-transparent border-none text-micro font-medium text-text-muted uppercase tracking-label sm:tracking-caps focus:ring-0 cursor-pointer outline-none min-w-0 w-full';
+const GHOST_SELECT_CLASSNAME = 'bg-transparent border-none text-title sm:text-body-sm font-normal text-text-body tracking-normal focus-visible:ring-2 focus-visible:ring-executive-blue rounded cursor-pointer min-w-0 w-full h-full';
 
 /**
  * TaskBoard'un arama + öncelik/durum/sorumlu filtreleri + toplu seçim
- * kısayolları. `flex-[1_1_46%]`: min-w-0 + flex-1 üçünü de tek satıra
- * sıkıştırıp native `<select>` metnini (ör. "TÜM ÖNCELİKLER") elipsissiz
- * ortadan kesiyordu (bkz. mobil tasarım denetimi) — bu oran iki filtreyi bir
- * satırda tutacak kadar yer bırakır, sığmayan üçüncüsü/dördüncüsü elipsis
- * yerine okunaklı biçimde bir sonraki satıra sarar.
+ * kısayolları. Dar mobilde tek sütun, tablette iki sütun kullanılır;
+ * seçenekler küçük ekranlarda kesilmeden okunabilmelidir.
  *
  * Arama/filtreler artık `ui/Input` (variant="sm") ve `ui/Select`
  * (variant="ghost") üzerinden — eskiden native `<input>`/`<select>` elle
@@ -60,7 +57,7 @@ export function FilterBar({
       </div>
 
       {/* Priority filter */}
-      <div className="flex items-center gap-2 bg-makam-glass px-2.5 sm:px-3 rounded-xl border border-executive-blue/[0.05] h-8 min-w-0 flex-[1_1_46%] sm:flex-none">
+      <div className="flex items-center gap-2 bg-makam-glass px-2.5 sm:px-3 rounded-xl border border-surface-border h-11 sm:h-10 min-w-0 flex-[1_1_100%] sm:flex-[1_1_46%] lg:flex-none">
         <Filter className="w-3 h-3 text-text-tertiary stroke-[1.5]" />
         <Select
           variant="ghost"
@@ -69,14 +66,14 @@ export function FilterBar({
           aria-label="Öncelik filtresi"
           className={GHOST_SELECT_CLASSNAME}
           options={[
-            { value: 'All', label: 'TÜM ÖNCELİKLER' },
-            ...Object.entries(PRIORITY_LABELS).map(([val, label]) => ({ value: val, label: label.toUpperCase() })),
+            { value: 'All', label: 'Tüm öncelikler' },
+            ...Object.entries(PRIORITY_LABELS).map(([val, label]) => ({ value: val, label })),
           ]}
         />
       </div>
 
       {/* Durum filtresi */}
-      <div className="flex items-center gap-2 bg-makam-glass px-2.5 sm:px-3 rounded-xl border border-executive-blue/[0.05] h-8 min-w-0 flex-[1_1_46%] sm:flex-none">
+      <div className="flex items-center gap-2 bg-makam-glass px-2.5 sm:px-3 rounded-xl border border-surface-border h-11 sm:h-10 min-w-0 flex-[1_1_100%] sm:flex-[1_1_46%] lg:flex-none">
         <Select
           variant="ghost"
           value={statusFilter}
@@ -84,14 +81,14 @@ export function FilterBar({
           aria-label="Durum filtresi"
           className={GHOST_SELECT_CLASSNAME}
           options={[
-            { value: 'All', label: 'TÜM DURUMLAR' },
-            ...Object.entries(STATUS_LABELS).map(([val, label]) => ({ value: val, label: label.toUpperCase() })),
+            { value: 'All', label: 'Tüm durumlar' },
+            ...Object.entries(STATUS_LABELS).map(([val, label]) => ({ value: val, label })),
           ]}
         />
       </div>
 
       {/* Assignee filter */}
-      <div className="flex items-center gap-2 bg-makam-glass px-2.5 sm:px-3 rounded-xl border border-executive-blue/[0.05] h-8 min-w-0 flex-[1_1_46%] sm:flex-none">
+      <div className="flex items-center gap-2 bg-makam-glass px-2.5 sm:px-3 rounded-xl border border-surface-border h-11 sm:h-10 min-w-0 flex-[1_1_100%] sm:flex-[1_1_46%] lg:flex-none">
         <Select
           variant="ghost"
           value={assigneeFilter}
@@ -99,8 +96,8 @@ export function FilterBar({
           aria-label="Sorumlu filtresi"
           className={GHOST_SELECT_CLASSNAME}
           options={[
-            { value: 'All', label: 'TÜM SORUMLULAR' },
-            ...users.map(u => ({ value: u.uid, label: u.fullName.toUpperCase() })),
+            { value: 'All', label: 'Tüm sorumlular' },
+            ...users.map(u => ({ value: u.uid, label: u.fullName })),
           ]}
         />
       </div>
@@ -108,7 +105,7 @@ export function FilterBar({
       {hasActiveFilter && (
         <button
           onClick={resetFilters}
-          className="text-micro font-medium text-status-danger/70 hover:text-status-danger px-3 uppercase tracking-label sm:tracking-caps transition-colors h-8 flex items-center justify-center gap-1.5 flex-1 sm:flex-none"
+          className="text-micro font-medium text-status-danger hover:text-status-danger px-3 uppercase tracking-label sm:tracking-caps transition-colors h-11 sm:h-10 flex items-center justify-center gap-1.5 flex-1 lg:flex-none"
         >
           {/* Kaç filtrenin aktif olduğu — eskiden yalnızca metin butonu vardı,
               hem öncelik HEM durum filtrelenmişse bunu ayrıca fark etmek
@@ -124,18 +121,18 @@ export function FilterBar({
           FİLTRELENMİŞ görünür listeyi seçer, filtre dışındaki görevleri DEĞİL
           (bkz. görev tanımı). */}
       {filteredCount > 0 && (
-        <div className="flex items-center gap-1 flex-1 sm:flex-none justify-end sm:justify-start">
+        <div className="flex items-center gap-1 flex-1 lg:flex-none justify-end sm:justify-start">
           <button
             onClick={selectAllFiltered}
             disabled={allFilteredSelected}
-            className="text-micro font-medium text-executive-blue/70 hover:text-executive-blue px-2.5 h-8 rounded-lg hover:bg-executive-blue/5 uppercase tracking-label sm:tracking-caps transition-colors disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
+            className="text-micro font-medium text-executive-blue hover:text-executive-blue px-2.5 h-11 sm:h-10 rounded-lg hover:bg-executive-blue/5 uppercase tracking-label sm:tracking-caps transition-colors disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
           >
             Tümünü Seç
           </button>
           <button
             onClick={clearSelection}
             disabled={selectedCount === 0}
-            className="text-micro font-medium text-text-tertiary hover:text-status-danger px-2.5 h-8 rounded-lg hover:bg-status-danger/5 uppercase tracking-label sm:tracking-caps transition-colors disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
+            className="text-micro font-medium text-text-tertiary hover:text-status-danger px-2.5 h-11 sm:h-10 rounded-lg hover:bg-status-danger/5 uppercase tracking-label sm:tracking-caps transition-colors disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
           >
             Seçimi Temizle
           </button>

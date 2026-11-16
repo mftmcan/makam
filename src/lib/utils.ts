@@ -5,14 +5,14 @@ import type { User } from '../types';
 
 /**
  * tailwind-merge kendi tema uzantılarımızı (bkz. index.css @theme:
- * --text-micro/caption/body-sm/body) tanımıyor; varsayılan config bunları
+ * tüm --text-* boyut token'larını) tanımıyor; varsayılan config bunları
  * boyut değil RENK sınıfı sanıp gerçek bir arbitrary renk sınıfını (CSS
  * değişkenli `color:` değeri — burada sınıf sözdizimiyle yazılmadı, Tailwind
  * yorumları da tarayıp sözde-sınıfı derliyordu) ya da
  * `text-status-*` sınıfını SESSİZCE eliyordu (bkz. tasarım denetimi 3.1
  * sonrası bulunan gerçek regresyon: TaskDetails'teki "SÜRECİ BAŞLAT" butonu
  * altın zemin üzerinde mirasla gelen düşük kontrastlı bir renge düşüyordu).
- * Bu dört ismi açıkça `font-size` grubuna eklemek, boyut/renk çakışma
+ * Tüm boyut isimlerini açıkça `font-size` grubuna eklemek, boyut/renk çakışma
  * tespitinin doğru grupta kalmasını sağlar. Aynı önlem `shadow-card`/
  * `shadow-card-hover` (bkz. tasarım denetimi 3.5) için de baştan uygulanır —
  * kayıt edilmezse aynı sessiz-eleme hatası gölge sınıflarında da tekrarlanabilirdi.
@@ -20,7 +20,10 @@ import type { User } from '../types';
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      'font-size': ['text-micro', 'text-caption', 'text-body-sm', 'text-body'],
+      'font-size': [
+        'text-micro', 'text-caption', 'text-body-sm', 'text-body', 'text-body-lg',
+        'text-field', 'text-title', 'text-title-lg', 'text-metric',
+      ],
       shadow: ['shadow-card', 'shadow-card-hover'],
     },
   },

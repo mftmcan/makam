@@ -97,4 +97,23 @@ test.describe('Görsel Regresyon Ağı', () => {
       });
     });
   }
+
+  for (const width of [320, 768, 1024]) {
+    test(`${width}px genişlikte başlıklar görünür ve sayfa taşmasız olmalı`, async ({ page }, testInfo) => {
+      test.skip(!testInfo.project.name.startsWith('visual-desktop-'), 'Her tema için bir kez çalışır.');
+      await page.setViewportSize({ width, height: 900 });
+      for (const tab of TABS) {
+        await page.goto(`${tab.path}?e2e_token=${e2eToken}`);
+        const main = page.getByRole('main', { name: tab.title, exact: true });
+        await expect(main).toBeVisible({ timeout: 30000 });
+        const heading = main.getByRole('heading', { level: 2 }).first();
+        await expect(heading).toBeVisible();
+        await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+        const headerBounds = await page.locator('header:visible').boundingBox();
+        const headingBounds = await heading.boundingBox();
+        expect(headingBounds!.y, tab.path).toBeGreaterThanOrEqual(headerBounds!.y + headerBounds!.height);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), tab.path).toBe(true);
+      }
+    });
+  }
 });

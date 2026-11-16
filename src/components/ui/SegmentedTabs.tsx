@@ -80,7 +80,7 @@ export const SegmentedTabs = ({ tabs, activeId, onChange, ariaLabel, variant, id
 
   const containerBase = {
     underline: 'flex overflow-x-auto custom-scrollbar border-b border-makam-border/5 scroll-smooth',
-    sidebar: 'flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible',
+    sidebar: 'flex flex-row lg:flex-col gap-1.5 overflow-x-auto lg:overflow-x-visible',
     pill: 'flex bg-surface-glass p-0.5 rounded-full border border-executive-blue/[0.04] items-center gap-0.5',
   }[variant];
 
@@ -113,7 +113,7 @@ export const SegmentedTabs = ({ tabs, activeId, onChange, ariaLabel, variant, id
                   : 'border-transparent text-text-muted hover:text-text-heading hover:bg-makam-glass',
               ],
               variant === 'sidebar' && [
-                'px-4 py-3 rounded-xl text-micro font-bold uppercase tracking-caps text-left transition-all shrink-0 w-auto whitespace-nowrap md:w-full md:whitespace-normal',
+                'px-4 py-3 min-h-11 rounded-xl text-body-sm font-medium text-left transition-all shrink-0 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue',
                 isActive
                   ? 'bg-executive-blue text-[color:var(--executive-blue-text)] shadow-[0_4px_12px_rgba(30,41,59,0.15)]'

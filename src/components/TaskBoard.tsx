@@ -327,27 +327,26 @@ export const TaskBoard = ({
       {/* ── Header ─────────────────────────────────────────────────── */}
       <PageHeader
         icon={Layers}
-        title="OPERASYONEL DENETİM"
+        title="Operasyonel denetim"
         subtitle={`${filteredTasks.length} Talimat`}
         actions={<>
           {/* Subtask toggle — compact pill */}
-          <div className="flex items-center gap-2 bg-makam-glass border border-surface-border rounded-full px-3 h-9 shadow-sm">
+          <div className="flex items-center gap-2 bg-makam-glass border border-surface-border rounded-xl pl-3 pr-1 h-11 shadow-sm">
             <Layers className={cn('w-3.5 h-3.5 stroke-[1.5] transition-colors', showSubtasks ? 'text-executive-blue' : 'text-text-tertiary')} />
-            <span className="text-micro font-medium text-text-tertiary uppercase tracking-caps hidden sm:block">Alt Talimatlar</span>
+            <span className="text-caption font-medium text-text-muted">Alt talimatlar</span>
             <button
               onClick={() => setShowSubtasks(!showSubtasks)}
               role="switch"
               aria-checked={showSubtasks}
               aria-label="Alt talimatları göster"
-              className={cn(
-                'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2',
-                showSubtasks ? 'bg-executive-blue' : 'bg-surface-border'
-              )}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue"
             >
+              <span className={cn('inline-flex h-4 w-7 rounded-full border-2 border-transparent transition-colors duration-base', showSubtasks ? 'bg-executive-blue' : 'bg-text-tertiary')}>
               <span className={cn(
                 'pointer-events-none inline-block h-3 w-3 rounded-full bg-surface-elevated shadow-sm ring-0 transition duration-base',
                 showSubtasks ? 'translate-x-3' : 'translate-x-0'
               )} />
+              </span>
             </button>
           </div>
 

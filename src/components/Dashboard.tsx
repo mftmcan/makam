@@ -148,7 +148,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
   return (
     // pb-24: sağ altta beliren PWA "Çevrimdışı Hazır"/güncelleme toast'ı (ReloadPrompt,
     // fixed bottom-6 right-6) alt satırların üzerine binmesin diye ekstra boşluk.
-    <PageShell withMobileDockPadding>
+    <PageShell>
 
       {/* ── Page header ──────────────────────────────────────────────
           Diğer altı sekmenin (Talimatlar/Engeller/Kadro/Raporlar/Denetim/
@@ -158,7 +158,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
           tutarlı seçildi. */}
       <PageHeader
         icon={ShieldCheck}
-        title="HAREKAT MERKEZİ"
+        title="Harekat merkezi"
         subtitle="Stratejik Genel Bakış"
       />
 
@@ -174,7 +174,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
 
       {/* ── Stat Cards Grid ─────────────────────────────────────────── */}
       {/* Mobile: 2 cols | Tablet: 3 cols | Desktop: 6 cols */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         <StatCard label="Bekleyen"   value={stats.waiting}    max={stats.total} icon={Clock}        color="gray"   index={0} onClick={() => setSelectedStatCategory('waiting')} />
         <StatCard label="İşlemde"    value={stats.inProgress} max={stats.total} icon={Activity}     color="blue"   index={1} delta={deltas.inProgress} onClick={() => setSelectedStatCategory('inProgress')} />
         <StatCard label="Onayda"     value={stats.inReview}   max={stats.total} icon={CheckCircle2} color="green"  index={2} delta={deltas.inReview} onClick={() => setSelectedStatCategory('inReview')} />
@@ -207,16 +207,16 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
           transition={{ ...SPRING_PANEL, delay: 0.38 }}
           className={PANEL_CLASSNAME}
         >
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+          <div className="flex flex-col gap-3 mb-3">
             <div>
-              <h3 className="text-body font-medium text-executive-blue tracking-tight font-display">{isPersonalView ? 'Önceliklerim' : 'Yönetici Müdahale Kuyruğu'}</h3>
+              <h3 className="text-title font-medium text-executive-blue tracking-tight font-display">{isPersonalView ? 'Önceliklerim' : 'Yönetici Müdahale Kuyruğu'}</h3>
               <p className="text-micro text-text-tertiary uppercase tracking-label mt-0.5">
                 {queueFilter
                   ? <>Filtre: {executiveSignals.find(s => s.key === queueFilter)?.label} · <button type="button" onClick={() => setQueueFilter(null)} className="underline hover:text-executive-blue">Temizle</button></>
                   : isPersonalView ? 'Size ait risk ve mühlet önceliği' : 'Risk, mühlet, atalet ve onay önceliği'}
               </p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full md:w-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full">
               {executiveSignals.map(signal => (
                 <button
                   key={signal.key}
@@ -224,7 +224,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
                   onClick={() => setQueueFilter(prev => prev === signal.key ? null : signal.key)}
                   aria-pressed={queueFilter === signal.key}
                   className={cn(
-                    'min-w-0 rounded-xl border px-2 py-1.5 text-center transition-all duration-fast',
+                    'min-w-0 min-h-11 rounded-xl border px-2 py-2 text-center transition-all duration-fast',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base',
                     // NOT: Tailwind'in varsayılan red/amber/emerald paleti (oklch
                     // tabanlı) axe-core taramasında bu bileşende beklenmedik
@@ -237,7 +237,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
                   )}
                 >
                   <div className="text-body-lg font-semibold tabular-nums leading-none">{signal.value}</div>
-                  <div className="text-micro uppercase tracking-label mt-1 truncate">{signal.label}</div>
+                  <div className="text-micro uppercase tracking-label mt-1 break-words">{signal.label}</div>
                 </button>
               ))}
             </div>
@@ -286,7 +286,7 @@ export const Dashboard = ({ tasks, users, user, onViewTask, onNavigateTab, isLoa
         >
           <div className="flex items-center justify-between gap-3 mb-3">
             <div>
-              <h3 className="text-body font-medium text-executive-blue tracking-tight font-display">{isPersonalView ? 'Performans Özetim' : 'Kadro Yük Matrisi'}</h3>
+              <h3 className="text-title font-medium text-executive-blue tracking-tight font-display">{isPersonalView ? 'Performans Özetim' : 'Kadro Yük Matrisi'}</h3>
               <p className="text-micro text-text-tertiary uppercase tracking-label mt-0.5">{isPersonalView ? 'Kendi yükünüz ve SLA disiplininiz' : 'Aktif yük ve SLA disiplini'}</p>
             </div>
             <UsersIcon className="w-4 h-4 text-text-tertiary" />

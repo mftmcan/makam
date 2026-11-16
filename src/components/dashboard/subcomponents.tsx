@@ -90,8 +90,8 @@ export const StatCard = ({ label, value, max, icon: Icon, color, onClick, index 
           <RollingNumber
             value={value}
             className={cn(
-              'text-[20px] sm:text-[22px] font-light tracking-tight tabular-nums leading-none shrink-0',
-              value === 0 ? 'text-text-tertiary/60' : 'text-executive-blue'
+              'text-[24px] sm:text-[28px] font-medium tracking-tight tabular-nums leading-none shrink-0',
+              value === 0 ? 'text-text-tertiary' : 'text-executive-blue'
             )}
           />
           {max > 0 && <span className="text-micro text-text-tertiary font-light truncate min-w-0">/ {max}</span>}

@@ -151,7 +151,7 @@ export const TeamList = ({ users, tasks, currentUser, departments, onUpdateUser,
       <PageHeader
         icon={Building}
         tone="gold"
-        title="KURUMSAL ORGANİZASYON"
+        title="Kurumsal organizasyon"
         subtitle={`${users.length} Personel`}
         actions={<>
           {/* View mode switcher toggle */}

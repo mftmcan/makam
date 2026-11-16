@@ -5,7 +5,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   /**
-   * 'default' (pill, h-14) — form alanları. 'sm' (h-8, rounded-xl) — filtre
+   * 'default' (h-12) — form alanları. 'sm' (mobil 44px, masaüstü 40px) — filtre
    * çubuğu gibi kompakt bağlamlar (bkz. TaskBoard arama input'u, eskiden
    * native `<input>` olarak elle tekrarlanıyordu). `icon` yalnızca 'sm' ile
    * anlamlı biçimde konumlanır (sol tarafta, `group-focus-within` rengini
@@ -38,7 +38,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             aria-invalid={error ? true : undefined}
             aria-describedby={description}
             className={cn(
-              'h-8 bg-makam-glass border border-executive-blue/[0.05] rounded-xl focus:ring-4 focus:ring-executive-blue/[0.04] focus:border-executive-blue/20 transition-all text-body-sm font-light text-executive-blue placeholder:text-text-tertiary outline-none',
+              'h-11 sm:h-10 bg-surface-elevated border border-surface-border rounded-xl focus:ring-2 focus:ring-executive-blue/15 focus:border-executive-blue/40 transition-colors text-field sm:text-body font-normal text-executive-blue placeholder:text-text-tertiary outline-none',
               icon ? 'pl-9 pr-3 w-full' : 'px-3',
               className
             )}
@@ -52,7 +52,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
-          <label htmlFor={inputId} className="text-micro font-medium text-text-muted uppercase tracking-caps px-1">
+          <label htmlFor={inputId} className="text-body-sm font-medium text-text-body px-1">
             {label}
           </label>
         )}
@@ -62,7 +62,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={error ? true : undefined}
           aria-describedby={description}
           className={cn(
-            'w-full h-14 px-6 bg-makam-glass border border-makam-border/5 rounded-full text-[15px] font-light text-text-heading placeholder:text-text-muted/30 transition-all outline-none focus:border-executive-blue/20 focus:ring-8 focus:ring-executive-blue/5 shadow-inner',
+            'w-full h-12 px-4 bg-surface-elevated border border-surface-border rounded-xl text-title font-normal text-text-heading placeholder:text-text-muted transition-colors outline-none focus:border-executive-blue/40 focus:ring-2 focus:ring-executive-blue/15',
             error && 'border-status-danger/40 focus:border-status-danger focus:ring-status-danger/10',
             className
           )}

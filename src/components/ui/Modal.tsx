@@ -217,17 +217,17 @@ export const Modal = ({ isOpen, onClose, title, ariaLabel, children, footer, siz
               className={cn(
                 'relative z-10 w-full !p-0 overflow-hidden flex flex-col max-h-[90vh]',
                 'shadow-overlay',
-                'bg-surface-elevated backdrop-blur-[40px] border border-surface-border rounded-[40px]',
+                'bg-surface-elevated backdrop-blur-[40px] border border-surface-border rounded-3xl',
                 sizes[size]
               )}
             >
               {/* Header — title boşsa (ör. About modal) tam genişlikte boş bir
                   şerit yerine, kapat butonu doğrudan panelin köşesinde yüzer. */}
               {title ? (
-                <div className="flex items-center justify-between px-6 py-4 border-b border-makam-border/5 shrink-0">
+                <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-surface-border shrink-0">
                   <h3
                     id={modalId}
-                    className="text-[20px] font-light text-text-heading tracking-tight font-display uppercase"
+                    className="text-title-lg sm:text-[20px] font-medium text-text-heading tracking-tight font-display"
                   >
                     {title}
                   </h3>
@@ -235,7 +235,7 @@ export const Modal = ({ isOpen, onClose, title, ariaLabel, children, footer, siz
                     ref={closeButtonRef}
                     onClick={onClose}
                     aria-label={`${title} penceresini kapat`}
-                    className="w-10 h-10 flex items-center justify-center text-text-muted hover:text-executive-blue hover:bg-surface-glass transition-all rounded-full border border-transparent hover:border-makam-border/10 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2"
+                    className="w-11 h-11 shrink-0 flex items-center justify-center text-text-muted hover:text-executive-blue hover:bg-surface-glass transition-colors rounded-xl border border-surface-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue focus-visible:ring-offset-2"
                   >
                     <X className="w-5 h-5 stroke-[1.2]" aria-hidden="true" />
                   </button>

@@ -147,7 +147,7 @@ export const Reports = ({ tasks: propsTasks, users, blockers: propsBlockers, onN
       {/* ── Page header ─────────────────────────────────────────────── */}
       <PageHeader
         icon={TrendingUp}
-        title="OPERASYONEL ANALİTİK"
+        title="Operasyonel analitik"
         subtitle="İçgörü Matrisi"
         actions={
           <ReportsHeaderActions

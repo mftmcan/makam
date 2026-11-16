@@ -91,10 +91,10 @@ export function AppHeader({
   return (
     <>
       {/* Desktop Header Refined */}
-      <header className="hidden lg:flex min-h-20 bg-makam-glass border-b border-makam-border/5 items-center justify-between px-8 sticky top-0 z-40 lg:ml-64">
-        <div className="flex items-center gap-8">
-           <div className="flex flex-col gap-1.5 border-l-2 border-executive-gold/20 pl-6">
-             <h1 className="text-body font-medium text-text-heading uppercase tracking-caps font-display">
+      <header className="hidden lg:flex min-h-20 bg-makam-glass border-b border-surface-border items-center justify-between gap-4 px-5 xl:px-8 sticky top-0 z-40 lg:ml-64">
+        <div className="flex items-center min-w-0">
+           <div className="flex flex-col min-w-0 gap-1.5 border-l-2 border-executive-gold/20 pl-4 xl:pl-6">
+             <h1 className="text-body font-medium text-text-heading uppercase tracking-caps font-display truncate">
                {TAB_TITLES[activeTab]}
              </h1>
              <div className="flex items-center gap-3">
@@ -104,7 +104,7 @@ export function AppHeader({
            </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2 xl:gap-6 shrink-0">
           {Boolean(notifications.length > 0) && (
             <button 
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
@@ -114,9 +114,10 @@ export function AppHeader({
               className="flex items-center gap-3 px-4 py-2 bg-status-danger/[0.06] border border-status-danger/20 rounded-full animate-makam-flash shadow-sm hover:bg-status-danger/10 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger"
             >
               <AlertCircle className="w-3.5 h-3.5 text-status-danger stroke-[1.5]" aria-hidden="true" />
-              <span className="text-micro font-medium text-status-danger uppercase tracking-caps">
+              <span className="hidden 2xl:inline text-micro font-medium text-status-danger uppercase tracking-caps">
                 {notifications.length} Bekleyen Talimat
               </span>
+              <span className="2xl:hidden text-body-sm font-semibold text-status-danger tabular-nums">{notifications.length}</span>
             </button>
           )}
 
@@ -146,12 +147,12 @@ export function AppHeader({
           )}
           {/* Global Focus Filter Selector — Staff panosu kişisel kapsamlıdır, birim odağı anlamsız */}
           {user.role !== 'Staff' && (
-            <div className="flex items-center gap-2 bg-surface-base/60 p-1.5 rounded-full border border-executive-blue/[0.04] shadow-sm select-none">
+            <div className="flex items-center gap-2 bg-surface-base/60 p-1.5 rounded-full border border-surface-border shadow-sm select-none max-w-40 xl:max-w-52">
               <Building className="w-3.5 h-3.5 text-executive-blue stroke-[1.5] flex-shrink-0" />
               <select
                 value={globalFocusDept}
                 onChange={(e) => onGlobalFocusDeptChange(e.target.value)}
-                className="text-micro uppercase tracking-widest text-text-heading bg-transparent border-none font-bold cursor-pointer pr-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue rounded"
+                className="text-micro uppercase tracking-widest text-text-heading bg-transparent border-none font-bold cursor-pointer pr-4 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-executive-blue rounded"
                 aria-label="Global Odak Birimi Filtresi"
               >
                 <option value="ALL" className="bg-surface-base text-text-heading">Tüm Odaklar</option>
@@ -187,8 +188,8 @@ export function AppHeader({
           <div className="h-6 w-[1px] bg-executive-blue/[0.06]" />
           
           <div className="flex items-center gap-3 group p-1.5 pr-4 rounded-full hover:bg-makam-glass transition-all">
-            <div className="flex flex-col items-end gap-1">
-              <span className="text-body-sm font-normal text-executive-blue tracking-tight font-display leading-none">{user.fullName}</span>
+            <div className="hidden xl:flex flex-col items-end gap-1 max-w-36">
+              <span className="text-body-sm font-normal text-executive-blue tracking-tight font-display leading-none truncate max-w-full">{user.fullName}</span>
               <Badge variant="primary" className="text-micro px-2 py-0.5 font-bold">{ROLE_LABELS[user.role]}</Badge>
             </div>
             {/* #10 — Avatar bileşeni */}

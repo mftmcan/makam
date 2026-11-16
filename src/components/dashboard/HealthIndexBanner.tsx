@@ -32,7 +32,7 @@ export const HealthIndexBanner = ({ healthScore, completionRatePercent, slaCompl
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ ...SPRING_PANEL }}
-    className="relative overflow-hidden p-5 rounded-3xl bg-makam-glass backdrop-blur-xl border border-surface-border shadow-md flex flex-col md:flex-row items-center justify-between gap-6"
+    className="relative overflow-hidden p-5 rounded-3xl bg-makam-glass backdrop-blur-xl border border-surface-border shadow-md flex flex-col xl:flex-row items-center justify-between gap-6"
   >
     {/* Ambient backglow matching health score state */}
     <div className={cn(
@@ -53,7 +53,7 @@ export const HealthIndexBanner = ({ healthScore, completionRatePercent, slaCompl
       </div>
       <div>
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="text-body font-medium text-executive-blue tracking-tight font-display">Stratejik Sağlık Endeksi</h3>
+          <h3 className="text-title font-medium text-executive-blue tracking-tight font-display">Stratejik Sağlık Endeksi</h3>
           {/* Veri tazeliği göstergesi — tick state'inden türetilir, ek okuma yok */}
           <InfoTooltip content="Veriler canlı olarak izlenir; sayaçlar her dakika tazelenir." side="bottom">
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-status-success/25 bg-status-success/10 text-status-success text-micro font-semibold uppercase tracking-label tabular-nums">
@@ -68,8 +68,8 @@ export const HealthIndexBanner = ({ healthScore, completionRatePercent, slaCompl
       </div>
     </div>
 
-    <div className="relative z-10 flex items-center gap-8 justify-between w-full md:w-auto">
-      <div className="flex flex-col items-start md:items-end gap-1">
+    <div className="relative z-10 flex flex-wrap items-center gap-4 sm:gap-8 justify-between w-full xl:w-auto">
+      <div className="flex flex-col items-start xl:items-end gap-1">
         <span className="text-micro text-text-tertiary uppercase tracking-caps font-medium">Dizge Durumu</span>
         <div className="flex items-center gap-2">
           <span className={cn(
@@ -93,7 +93,7 @@ export const HealthIndexBanner = ({ healthScore, completionRatePercent, slaCompl
            </span>
         </div>
         {/* Sub-metrics transparency indicators */}
-        <div className="flex items-center gap-2.5 text-micro text-text-tertiary font-bold uppercase mt-1">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-caption text-text-tertiary font-medium mt-1">
           <span>İcra: %{completionRatePercent}</span>
           <span>SLA: %{slaCompliancePercent}</span>
           <InfoTooltip content={`Bu hafta ${completedTrend.current}, geçen hafta ${completedTrend.previous} talimat tamamlandı.`} side="bottom">
@@ -105,7 +105,7 @@ export const HealthIndexBanner = ({ healthScore, completionRatePercent, slaCompl
         </div>
       </div>
 
-      <div className="h-10 w-[1px] bg-executive-blue/10 hidden md:block" />
+      <div className="h-10 w-[1px] bg-executive-blue/10 hidden xl:block" />
 
       <div className="flex items-center gap-3">
         <div className="flex flex-col items-center">

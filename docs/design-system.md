@@ -64,9 +64,9 @@ değil.
 
 | Token | Değer | Kullanım |
 |---|---|---|
-| `tracking-label` | 0.15em | form label, tablo hücresi, dar mikro etiket |
-| `tracking-caps` | 0.2em | varsayılan uppercase mikro etiket + rozet |
-| `tracking-eyebrow` | 0.3em | sayfa/bölüm başlığı eyebrow'u |
+| `tracking-label` | 0.08em | dar mikro etiket |
+| `tracking-caps` | 0.12em | uppercase mikro etiket + rozet |
+| `tracking-eyebrow` | 0.16em | ikincil eyebrow |
 
 ## Gölge / Elevation
 
@@ -91,11 +91,21 @@ kendi rengine/bağlamına özgüdürler.
 ## Layout primitifleri
 
 - **`ui/PageShell.tsx`** — her ekranın dış konteyneri (`max-w-[1440px] mx-auto
-  font-sans` + dikey `gap-5`). `withMobileDockPadding` yalnızca Dashboard'da
-  (alt PWA toast'ıyla çakışmasın diye ekstra `pb-24`).
-- **`ui/PageHeader.tsx`** — "ikon çipi + eyebrow başlık + alt-etiket + sağda
-  aksiyonlar" kalıbı, 7 ekranın hepsinde. `tone` (ink/gold/danger/success)
+  font-sans` + dikey `gap-5`). Mobil dock boşluğu uygulamanın `main` alanında
+  bir kez ayrılır; ekranlar ayrıca alt boşluk eklemez.
+- **`ui/PageHeader.tsx`** — 22/26 px görünür `h2`, 13 px açıklama ve aksiyon
+  grubu, 7 ekranın hepsinde. Başlıklar doğal Türkçe yazımla verilir.
+  Aksiyonlar genişlik yetmediğinde başlığın altına geçer. `tone` (ink/gold/danger/success)
   ikon çipinin rengini, `titleTone` başlığın kendi rengini kontrol eder.
+
+Ortak form alanları 48 px yüksekliğinde, 16 px metinli ve 12 px köşe
+yarıçaplıdır. Filtre alanları mobilde 44 px, masaüstünde 40 px yüksekliğinde
+kalır. `Button` doğal yazım, 12 px köşe ve 40/44/48 px minimum yükseklik
+kullanır. Form etiketi ve yer tutucu metni düşük opaklıkla gizlenmez.
+
+Ayarlar kartları viewport yerine içerik konteyneri 640 px'e ulaştığında
+iki sütuna geçer. Mobil ve tablette bölüm sekmeleri yatay yerleşir.
+
 - **`ui/Panel.tsx`** — `PANEL_CLASSNAME` (dolgulu cam panel) ve
   `PANEL_FRAME_CLASSNAME` (tablo/liste çerçevesi, `p-0 overflow-hidden`
   varyantı) — `motion.div`'e `cn(PANEL_CLASSNAME, ...)` olarak uygulanır.

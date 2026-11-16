@@ -29,7 +29,7 @@ export const PerformanceChart = ({ isAdmin, onNavigateTab, hasChartActivity, las
   >
     <div className="flex justify-between items-center mb-3">
       <div>
-        <h3 className="text-body font-medium text-executive-blue tracking-tight font-display">Performans Analitiği</h3>
+        <h3 className="text-title font-medium text-executive-blue tracking-tight font-display">Performans Analitiği</h3>
         <p className="text-micro text-text-tertiary uppercase tracking-eyebrow mt-0.5">Son 7 Gün</p>
       </div>
       {isAdmin && (

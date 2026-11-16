@@ -7,7 +7,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   options: { value: string; label: string }[];
   error?: string;
   /**
-   * 'default' (pill, h-14, ChevronDown ikonlu) — form alanları.
+   * 'default' (h-12, rounded-xl, ChevronDown ikonlu) — form alanları.
    * 'ghost' — filtre çubuğu gibi KENDİ wrapper'ını (border/ikon/flex düzeni)
    * taşıyan bağlamlar için: yalnızca çıplak `<select>` render edilir, label/
    * error/ChevronDown/wrapper YOK — `className` tam olarak çağıranın verdiği
@@ -43,7 +43,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="flex flex-col gap-1.5 w-full relative">
         {label && (
-          <label htmlFor={selectId} className="text-micro font-medium text-text-muted uppercase tracking-caps px-1">
+          <label htmlFor={selectId} className="text-body-sm font-medium text-text-body px-1">
             {label}
           </label>
         )}
@@ -54,7 +54,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             aria-invalid={error ? true : undefined}
             aria-describedby={description}
             className={cn(
-              'w-full h-14 pl-6 pr-12 bg-makam-glass border border-makam-border/5 rounded-full text-[15px] font-light text-text-heading appearance-none cursor-pointer transition-all outline-none focus:border-executive-blue/20 focus:ring-8 focus:ring-executive-blue/5 shadow-inner',
+              'w-full h-12 pl-4 pr-12 bg-surface-elevated border border-surface-border rounded-xl text-title font-normal text-text-heading appearance-none cursor-pointer transition-colors outline-none focus:border-executive-blue/40 focus:ring-2 focus:ring-executive-blue/15',
               error && 'border-status-danger/40 focus:border-status-danger focus:ring-status-danger/10',
               className
             )}
@@ -66,7 +66,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-muted/40 pointer-events-none group-focus-within:text-executive-blue transition-colors stroke-[1.2]" />
+          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none group-focus-within:text-executive-blue transition-colors stroke-[1.5]" />
         </div>
         {error && <span id={errorId} role="alert" className="text-micro text-status-danger font-medium px-1 uppercase tracking-wider">{error}</span>}
       </div>

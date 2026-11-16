@@ -205,7 +205,7 @@ export const TaskDetailsFooter = ({ task, currentUser, onStatusChange }: {
           onClick={handleClick}
           isLoading={isSubmitting}
           className={cn(
-            'h-12 text-micro tracking-widest w-full md:w-auto md:min-w-[240px]',
+            'h-12 text-body-sm tracking-normal w-full md:w-auto md:min-w-[240px]',
             confirmArmed && 'ring-2 ring-offset-2 ring-executive-gold animate-pulse'
           )}
         >

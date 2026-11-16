@@ -226,7 +226,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
       <div className="flex flex-col gap-8">
         {/* Başlık */}
         <div className="flex flex-col gap-3">
-          <label htmlFor="task-title-input" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
+          <label htmlFor="task-title-input" className="text-body-sm font-medium text-text-body tracking-normal px-1 flex items-center gap-2.5">
             <Target className="w-3.5 h-3.5 text-[color:var(--gold-text)] stroke-[1.2]" />
             Operasyonel Hedef
           </label>
@@ -238,7 +238,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
             aria-invalid={errors.title ? true : undefined}
             aria-describedby={errors.title ? "task-title-error" : undefined}
             className={cn(
-              "text-[28px] font-light text-text-heading font-display tracking-tight outline-none bg-field-surface placeholder:text-text-muted/30 w-full border-b border-text-muted/20 pb-3 transition-colors focus:border-executive-blue/50 rounded-t-sm focus-visible:ring-2 focus-visible:ring-executive-blue/40 focus-visible:ring-offset-2",
+              "text-[22px] sm:text-[28px] font-light text-text-heading font-display tracking-tight outline-none bg-field-surface placeholder:text-text-muted w-full border-b border-text-muted/20 pb-3 transition-colors focus:border-executive-blue/50 rounded-t-sm focus-visible:ring-2 focus-visible:ring-executive-blue/40 focus-visible:ring-offset-2",
               errors.title && "border-status-danger/50 focus:border-status-danger/50"
             )}
           />
@@ -247,7 +247,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
         
         {/* Açıklama */}
         <div className="flex flex-col gap-3">
-          <label htmlFor="task-description-textarea" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
+          <label htmlFor="task-description-textarea" className="text-body-sm font-medium text-text-body tracking-normal px-1 flex items-center gap-2.5">
             <FileText className="w-3.5 h-3.5 text-executive-blue stroke-[1.2]" />
             Kapsam & Detaylar
           </label>
@@ -256,7 +256,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
             aria-invalid={errors.description ? true : undefined}
             aria-describedby={errors.description ? "task-description-error" : undefined}
             className={cn(
-              "w-full min-h-[140px] resize-none bg-field-surface border border-executive-blue/[0.05] text-text-heading placeholder:text-text-muted/30 rounded-xl px-5 py-4 text-body-lg font-light leading-relaxed transition-all outline-none focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
+              "w-full min-h-[140px] resize-none bg-field-surface border border-surface-border text-text-heading placeholder:text-text-muted rounded-xl px-5 py-4 text-title font-normal leading-relaxed transition-all outline-none focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
               errors.description && "border-status-danger/50"
             )}
             placeholder="İşin detaylarını ve başarı kriterlerini tanımlayın..."
@@ -268,18 +268,18 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
         {/* Görevlendirmeler */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="flex flex-col gap-3">
-             <label htmlFor="task-assignee-select" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
+             <label htmlFor="task-assignee-select" className="text-body-sm font-medium text-text-body tracking-normal px-1 flex items-center gap-2.5">
                <Users className="w-3.5 h-3.5 text-executive-blue stroke-[1.2]" />
                Sorumlu
              </label>
              {isSubTask && (
-               <p className="text-micro text-status-warning/80 px-1 tracking-wide flex items-center gap-1.5">
+               <p className="text-micro text-status-warning px-1 tracking-wide flex items-center gap-1.5">
                  <AlertCircle className="w-3 h-3 flex-shrink-0" />
                  Alt talimatlar yalnızca memurlara atanabilir.
                </p>
              )}
              {currentAssigneeOutOfScope && (
-               <p className="text-micro text-status-warning/80 px-1 tracking-wide flex items-center gap-1.5">
+               <p className="text-micro text-status-warning px-1 tracking-wide flex items-center gap-1.5">
                  <AlertCircle className="w-3 h-3 flex-shrink-0" />
                  Mevcut sorumlu ({currentAssignee?.fullName}) sizin atayabileceğiniz rol dışında — değiştirmezseniz aynı kalır.
                </p>
@@ -290,7 +290,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
               aria-invalid={errors.assigneeId ? true : undefined}
               aria-describedby={errors.assigneeId ? "task-assignee-error" : undefined}
               className={cn(
-                "w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 outline-none text-body font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
+                "w-full bg-field-surface border border-surface-border rounded-xl px-4 py-3 outline-none text-title font-normal text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
                 errors.assigneeId && "border-status-danger/50"
               )}
             >
@@ -303,8 +303,8 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
           </div>
 
           <div className="flex flex-col gap-3">
-             <label htmlFor="task-coordinator-select" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
-               <Users className="w-3.5 h-3.5 text-text-muted/40 stroke-[1.2]" />
+             <label htmlFor="task-coordinator-select" className="text-body-sm font-medium text-text-body tracking-normal px-1 flex items-center gap-2.5">
+               <Users className="w-3.5 h-3.5 text-text-muted stroke-[1.2]" />
                İrtibatlı
              </label>
              <select
@@ -313,11 +313,11 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
               aria-invalid={errors.coordinatorId ? true : undefined}
               aria-describedby={errors.coordinatorId ? "task-coordinator-error" : undefined}
               className={cn(
-                "w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 outline-none text-body font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
+                "w-full bg-field-surface border border-surface-border rounded-xl px-4 py-3 outline-none text-title font-normal text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
                 errors.coordinatorId && "border-status-danger/50"
               )}
             >
-              <option value="" className="bg-surface-base text-text-heading">İrtibatlı Seçiniz (İsteğe Bağlı)</option>
+              <option value="" className="bg-surface-base text-text-heading">İrtibatlı Seçiniz</option>
               {coordinatorUsers.map(m => (
                 <option key={m.uid} value={m.uid} className="bg-surface-base text-text-heading">{m.fullName} — {ROLE_LABELS[m.role]}</option>
               ))}
@@ -325,19 +325,19 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
              {errors.coordinatorId ? (
                 <span id="task-coordinator-error" role="alert" className="text-status-danger text-micro px-1 uppercase tracking-wider">{errors.coordinatorId.message}</span>
              ) : (
-                <p className="text-micro text-text-muted/40 px-1 tracking-wide">
-                  Sorumludan farklı biri seçilmelidir.
+                <p className="text-body-sm text-text-muted px-1">
+                  İsteğe bağlı. Sorumludan farklı biri seçilmelidir.
                 </p>
              )}
           </div>
 
           {needsExplicitDepartment && (
             <div className="flex flex-col gap-3 md:col-span-2">
-              <label htmlFor="task-department-select" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
+              <label htmlFor="task-department-select" className="text-body-sm font-medium text-text-body tracking-normal px-1 flex items-center gap-2.5">
                 <Building className="w-3.5 h-3.5 text-[color:var(--gold-text)] stroke-[1.2]" />
                 Sorumlu Birim
               </label>
-              <p className="text-micro text-status-warning/80 px-1 tracking-wide flex items-center gap-1.5">
+              <p className="text-micro text-status-warning px-1 tracking-wide flex items-center gap-1.5">
                 <AlertCircle className="w-3 h-3 flex-shrink-0" />
                 Seçilen sorumlu bir birime bağlı değil — talimatın hangi birime ait olduğunu belirtmelisiniz.
               </p>
@@ -347,7 +347,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
                 aria-invalid={errors.departmentId ? true : undefined}
                 aria-describedby={errors.departmentId ? "task-department-error" : undefined}
                 className={cn(
-                  "w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 outline-none text-body font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
+                  "w-full bg-field-surface border border-surface-border rounded-xl px-4 py-3 outline-none text-title font-normal text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
                   errors.departmentId && "border-status-danger/50"
                 )}
               >
@@ -361,7 +361,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
           )}
 
           <div className="flex flex-col gap-3">
-             <label htmlFor="task-priority-select" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
+             <label htmlFor="task-priority-select" className="text-body-sm font-medium text-text-body tracking-normal px-1 flex items-center gap-2.5">
                <AlertCircle className="w-3.5 h-3.5 text-[color:var(--gold-text)] stroke-[1.2]" />
                Öncelik
              </label>
@@ -370,7 +370,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
               {...register('priority')}
               aria-invalid={errors.priority ? true : undefined}
               aria-describedby={errors.priority ? "task-priority-error" : undefined}
-              className="w-full bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 outline-none text-body font-medium text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5"
+              className="w-full bg-field-surface border border-surface-border rounded-xl px-4 py-3 outline-none text-title font-normal text-text-heading transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5"
             >
               {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
                 <option key={value} value={value} className="bg-surface-base text-text-heading">{label}</option>
@@ -380,7 +380,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
           </div>
 
           <div className="flex flex-col gap-3">
-            <label htmlFor="task-deadline" className="text-micro font-semibold text-text-muted uppercase tracking-caps px-1 flex items-center gap-2.5">
+            <label htmlFor="task-deadline" className="text-body-sm font-medium text-text-body tracking-normal px-1 flex items-center gap-2.5">
               <Calendar className="w-3.5 h-3.5 text-executive-blue stroke-[1.2]" />
               SLA Mühleti
             </label>
@@ -394,7 +394,7 @@ export const TaskFormModal = ({ users, currentUser, departments = [], task, pare
               ariaDescribedBy={errors.deadline ? "task-deadline-error" : undefined}
               icon={<Calendar className="w-3.5 h-3.5 text-executive-blue/60 stroke-[1.2] flex-shrink-0" aria-hidden="true" />}
               triggerClassName={cn(
-                "w-full flex items-center gap-3 bg-field-surface border border-executive-blue/[0.05] rounded-xl px-4 py-3 text-body transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
+                "w-full flex items-center gap-3 bg-field-surface border border-surface-border rounded-xl px-4 py-3 text-body transition-all focus:border-executive-blue/30 focus:ring-4 focus:ring-executive-blue/5",
                 errors.deadline && "border-status-danger/50"
               )}
             />

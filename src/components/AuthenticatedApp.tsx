@@ -157,7 +157,9 @@ export function AuthenticatedApp({ user, onLogout, onError, tasksRef }: Authenti
       isFirstTabRenderRef.current = false;
       return;
     }
-    mainRef.current?.focus();
+    // Landmark focus must not scroll the page heading under the sticky header.
+    mainRef.current?.focus({ preventScroll: true });
+    window.scrollTo({ top: 0, behavior: 'instant' });
     setRouteAnnouncement(TAB_TITLES[activeTab]);
   }, [activeTab]);
 
@@ -396,7 +398,7 @@ export function AuthenticatedApp({ user, onLogout, onError, tasksRef }: Authenti
         aria-label={TAB_TITLES[activeTab]}
         ref={mainRef}
         tabIndex={-1}
-        className="lg:ml-64 min-h-screen relative z-10 scroll-smooth pb-24 lg:pb-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-executive-blue/30"
+        className="lg:ml-64 min-h-[calc(100dvh-4rem)] lg:min-h-[calc(100dvh-5rem)] relative z-10 pb-28 lg:pb-8 outline-none"
       >
         <h1 className="sr-only lg:hidden">{TAB_TITLES[activeTab]}</h1>
         <AnimatePresence mode="wait">

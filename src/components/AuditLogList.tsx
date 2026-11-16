@@ -120,7 +120,7 @@ export const AuditLogList = ({ tasks, users }: AuditLogListProps) => {
       {/* ── Page header ─────────────────────────────────────────────── */}
       <PageHeader
         icon={ShieldCheck}
-        title="DENETİM İZLERİ"
+        title="Denetim izleri"
         // Eskiden "filtrelenen / yüklenen" biçiminde İKİ sayı vardı; istemci
         // tarafı eleme kalktığı için ikisi artık matematiksel olarak hep eşit
         // — tek sayı gösterilir.

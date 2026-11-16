@@ -65,6 +65,19 @@ test.describe('MAKAM E2E — Kimlik Doğrulamalı Akışlar', () => {
     await expect(page.getByRole('table').getByText(seededTaskTitle)).toBeVisible({ timeout: 10000 });
   });
 
+  for (const width of [320, 1280]) {
+    test(`Yeni talimat formu ${width}px genişlikte erişilebilir olmalı`, async ({ page }) => {
+      await page.getByRole('link', { name: 'Talimatlar' }).click();
+      await page.setViewportSize({ width, height: 900 });
+      await page.getByRole('button', { name: width < 640 ? 'Yeni' : 'Yeni Talimat', exact: true }).click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await page.waitForTimeout(1200);
+      const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+      expect(results.violations.filter(v => v.impact === 'critical' || v.impact === 'serious')).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    });
+  }
+
   // a11y taraması eskiden yalnızca bu ekranı (Harekat Merkezi) kapsıyordu —
   // Talimatlar/Engeller/Kadro/Raporlar/Denetim/Ayarlar hiç taranmıyordu (bkz.
   // tasarım denetimi F3). Sidebar'daki gerçek nav etiketleriyle (Sidebar.tsx)

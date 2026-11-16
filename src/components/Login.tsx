@@ -11,7 +11,7 @@ interface LoginProps {
 export const Login = ({ onLogin, isLoading }: LoginProps) => {
   const resolvedTheme = useResolvedTheme();
   return (
-    <div className="min-h-dvh bg-surface-base flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
+    <div className="min-h-dvh bg-surface-base flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden font-sans">
       <h1 className="sr-only">MAKAM Kurumsal Giriş</h1>
       {/* Executive background plane */}
       <div className="absolute inset-0 z-0">
@@ -30,7 +30,7 @@ export const Login = ({ onLogin, isLoading }: LoginProps) => {
         <div
           className="flex flex-col gap-8"
         >
-          <div className="makam-card backdrop-filter-none p-8 flex flex-col gap-9 shadow-[0_24px_70px_rgba(22,21,19,0.055)] border-surface-border bg-makam-glass">
+          <div className="makam-card backdrop-filter-none p-5 sm:p-8 flex flex-col gap-7 sm:gap-9 shadow-[0_24px_70px_rgba(22,21,19,0.055)] border-surface-border bg-makam-glass">
             <div className="flex flex-col gap-6">
               <div
                 className="flex items-center gap-5 group transition-transform duration-300 motion-safe:hover:translate-x-1.5"

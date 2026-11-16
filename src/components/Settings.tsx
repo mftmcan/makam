@@ -107,7 +107,7 @@ export const Settings = ({
       {/* ── Page Header ──────────────────────────────────────────────── */}
       <PageHeader
         icon={SettingsIcon}
-        title="DİZGE YAPILANDIRMASI"
+        title="Dizge yapılandırması"
         subtitle="Konfigürasyon & Veri Yönetimi"
       />
 
@@ -123,7 +123,7 @@ export const Settings = ({
       <StatusBanner status={importStatus} />
 
       {/* ── Tabbed Layout ─────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row gap-6 mt-2">
+      <div className="flex flex-col lg:flex-row gap-6 mt-2">
 
         {/* Left Sidebar Tabs Selector — mobilde bu yatay kaydırılan bir
             şerit, masaüstünde dikey bir sütun. Sekme butonları eskiden
@@ -139,7 +139,7 @@ export const Settings = ({
           ariaLabel="Ayarlar bölümleri"
           activeId={activeSubTab}
           onChange={(id) => setActiveSubTab(id as typeof activeSubTab)}
-          className="pb-3 md:pb-0 shrink-0 md:w-56 border-b md:border-b-0 md:border-r border-surface-border"
+          className="pb-3 lg:pb-0 shrink-0 lg:w-48 border-b lg:border-b-0 lg:border-r border-surface-border"
           tabs={[
             { id: 'general', label: 'Genel & Görünüm' },
             ...(isAdmin ? [
@@ -155,7 +155,7 @@ export const Settings = ({
             tam cilalı, tek eksik buydu). `key={activeSubTab}` her sekme
             değişiminde yeni bir motion kimliği yaratıp fade+kaydırma
             tetikler. */}
-        <div className="flex-1 min-w-0">
+        <div className="@container flex-1 min-w-0">
           {/* mode="wait" yeni panelin mount'unu eskisinin exit animasyonu
               bitene dek erteler — jsdom'da bu geçiş asla "bitmediğinden"
               DataTab gibi alt sekmeler hiç mount olmuyordu (bkz. Settings.test.tsx

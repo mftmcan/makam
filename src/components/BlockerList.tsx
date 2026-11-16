@@ -282,7 +282,7 @@ export const BlockerList = ({ tasks, blockers, resolvedBlockers, users, isAdmin,
         icon={AlertTriangle}
         tone={activeBlockers.length > 0 ? 'danger' : 'success'}
         titleTone={activeBlockers.length > 0 ? 'danger' : 'heading'}
-        title="OPERASYONEL KRİZ YÖNETİMİ"
+        title="Operasyonel kriz yönetimi"
         subtitle={`${activeBlockers.length} Aktif Engel`}
       />
 
