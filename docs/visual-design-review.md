@@ -38,11 +38,20 @@ bulguları, WCAG odaklı otomatik kontroller ve görsel regresyonlar esas alınd
 - Dashboard ve talimatlar için dört görünümde 8 görsel karşılaştırma,
   referans güncelleme modu kapalıyken ayrıca geçti.
 
-## Platform sınırı
+## Linux doğrulaması
 
-Linux görsel referansları bu Windows ortamında üretilmedi. Değişiklikler
-yayına alınmadan önce mevcut `e2e.yml` workflow'unun `update_snapshots=true`
-seçeneğiyle Linux referansları üretilip incelenmelidir. Eski Linux PNG'leri
-Windows çıktısıyla etiket değiştirilerek ezilmedi; normal Linux görsel
-karşılaştırmasının yeni tasarımı eski referanslardan farklı bulması beklenir.
-Görsel test eşiği gevşetilmedi ve testler kapatılmadı.
+28 Linux görsel referansı, `e2e.yml` workflow'unun `update_snapshots=true`
+seçeneğiyle Ubuntu CI ortamında üretildi, indirildi ve incelendi.
+[Referans üretimi](https://github.com/mftmcan/makam/actions/runs/43935595161)
+başarılı: hem giriş ekranı hem kimlik doğrulamalı E2E işi geçti.
+Windows referansları korundu; Linux dosyaları gerçek Linux çıktılarıdır.
+
+Referans güncellemesi kapalı normal karşılaştırma da
+[ayrı CI koşusunda](https://github.com/mftmcan/makam/actions/runs/43936658679)
+başarıyla geçti: giriş ekranı ve kimlik doğrulamalı E2E işlerinin ikisi de
+başarılı. Görsel test eşiği gevşetilmedi ve testler kapatılmadı.
+
+PR #12 kontrolünde temiz CI kurulumunda ortaya çıkan Firebase Admin 14 tip
+uyumsuzluğu da düzeltildi: departman backfill mantığı Firestore tiplerini
+modüler `firebase-admin/firestore` girişinden alır. Çalışma zamanı davranışı
+değişmez; Functions paketindeki Admin 13 ile de aynı giriş kullanılabilir.

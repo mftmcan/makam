@@ -13,7 +13,7 @@
  * İDEMPOTENT: iki kez çalıştırılması zarar vermez — var olan departman
  * dokümanı yeniden yazılmaz, departmanı zaten dolu olan görev güncellenmez.
  */
-import type { firestore } from 'firebase-admin';
+import type * as firestore from 'firebase-admin/firestore';
 
 /**
  * Sorumlusu da departmansız olan görevlerin düşürüleceği varsayılan birim.
